@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Egodact Pantagora",
+  "version": "1.0",
+  "description": "Extension to add some useful features to the Egodact platform.",
+  "permissions": [
+    "activeTab"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://app.egodact.com/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
