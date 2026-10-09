@@ -3698,69 +3698,6 @@ function voegKnoppenToe() {
 
 
     // ========================================================
-    // MAGISTER MAIL
-    // ========================================================
-
-    if (!document.getElementById('egodact-mail-knop')) {
-    const mailKnop = document.createElement('button');
-
-
-    mailKnop.id = 'egodact-mail-knop';
-    mailKnop.type = 'button';
-    mailKnop.title = 'Magister Mail';
-
-    Object.assign(mailKnop.style, {
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        padding: '0',
-        margin: '0 0 0 8px',
-        width: '28px',
-        minWidth: '28px',
-        height: '32px',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        verticalAlign: 'middle',
-        outline: 'none',
-        position: 'relative',
-        zIndex: '999999',
-        flexShrink: '0'
-    });
-
-    mailKnop.innerHTML = `
-        <svg
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#ffffff"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            style="opacity:0.85;display:block;pointer-events:none"
-        >
-            <rect x="3" y="5" width="18" height="14" rx="2"></rect>
-            <path d="m3 7 9 6 9-6"></path>
-        </svg>
-    `;
-
-    mailKnop.addEventListener('click', openMagisterMailMenu);
-
-    const weekKnop = document.getElementById(
-        'egodact-weekplanning-knop'
-    );
-
-    if (weekKnop) {
-        weekKnop.insertAdjacentElement('afterend', mailKnop);
-    } else {
-        menuContainer.appendChild(mailKnop);
-    }
-
-
-    }
-
-    // ========================================================
     // WEEKPLANNING
     // ========================================================
 
