@@ -340,6 +340,12 @@ function openTakenMenu(e) {
             </h2>
 
             <input
+                type="text"
+                id="egodact-planner-search"
+                placeholder="Search.."
+                style="background:#2e2e2e;color:#fff;border:1px solid #555;padding:4px 8px;border-radius:4px;font-family:inherit;width:150px;"
+            >
+            <input
                 type="date"
                 id="egodact-planner-datum"
                 value="${vandaag}"
@@ -354,14 +360,6 @@ function openTakenMenu(e) {
                 "
             >
         </div>
-
-        <input
-            type="text"
-            id="egodact-planner-search"
-            placeholder="Search.."
-            aria-label="Search tasks"
-            style="width: 100%; box-sizing: border-box; background: #2e2e2e; color: #fff; border: 1px solid #555; padding: 10px 12px; border-radius: 4px; font-family: inherit; font-size: 14px; outline: none;"
-        >
 
         <div style="
             display: flex;
@@ -443,18 +441,6 @@ function openTakenMenu(e) {
 
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
-
-    function filterPlannerRows() {
-        const zoekterm = (modal.querySelector("#egodact-planner-search")?.value || "").trim().toLocaleLowerCase();
-        const container = modal.querySelector("#egodact-uren-container");
-        if (!container) return;
-        Array.from(container.children).forEach((rij) => {
-            const inputs = rij.querySelectorAll("input");
-            const taakTekst = inputs[2]?.value || "";
-            const tijdTekst = inputs[0]?.value || "";
-            rij.style.display = taakTekst.toLocaleLowerCase().includes(zoekterm) || tijdTekst.toLocaleLowerCase().includes(zoekterm) ? "flex" : "none";
-        });
-    }
 
     function renderPlanner(datum) {
 
@@ -770,10 +756,27 @@ function openTakenMenu(e) {
                 );
             }
         );
+
         filterPlannerRows();
     }
 
-    modal.querySelector("#egodact-planner-search").addEventListener("input", filterPlannerRows);
+    function filterPlannerRows() {
+        const searchInput = document.getElementById("egodact-planner-search");
+        const container = document.getElementById("egodact-uren-container");
+        if (!searchInput || !container) return;
+        const query = searchInput.value.trim().toLowerCase();
+        Array.from(container.children).forEach(row => {
+            const text = Array.from(row.querySelectorAll("input"))
+                .map(input => input.type === "checkbox" ? "" : input.value)
+                .join(" ")
+                .toLowerCase();
+            row.style.display = text.includes(query) ? "" : "none";
+        });
+    }
+
+    document
+        .getElementById("egodact-planner-search")
+        .addEventListener("input", filterPlannerRows);
 
     document
         .getElementById(
