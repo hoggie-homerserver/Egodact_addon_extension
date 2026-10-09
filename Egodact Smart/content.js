@@ -275,6 +275,101 @@ function openSMARTMenu(e) {
 
 
 // ============================================================
+// BETA FEATURES MENU
+// Zelfde modalstijl als SMART, bewust zonder inhoud.
+// ============================================================
+
+function openBetaFeaturesMenu(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (document.getElementById('egodact-custom-modal-backdrop')) return;
+
+    const backdrop = document.createElement('div');
+    backdrop.id = 'egodact-custom-modal-backdrop';
+
+    Object.assign(backdrop.style, {
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: 'rgba(0, 0, 0, 0.65)',
+        zIndex: '9999999',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: 'Arial, sans-serif'
+    });
+
+    const modal = document.createElement('div');
+
+    Object.assign(modal.style, {
+        backgroundColor: '#424242',
+        color: '#ffffff',
+        width: '520px',
+        maxWidth: 'calc(100vw - 32px)',
+        borderRadius: '6px',
+        padding: '24px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+        boxShadow:
+            '0px 11px 15px -7px rgba(0,0,0,0.3), ' +
+            '0px 24px 38px 3px rgba(0,0,0,0.2), ' +
+            '0px 9px 46px 8px rgba(0,0,0,0.15)'
+    });
+
+    modal.innerHTML = `
+        <h2 style="
+            margin: 0;
+            font-size: 22px;
+            font-weight: 500;
+            border-bottom: 1px solid #555;
+            padding-bottom: 10px;
+        ">Beta Features</h2>
+
+        <div style="
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 5px;
+        ">
+            <button
+                id="egodact-beta-modal-sluiten"
+                style="
+                    background-color: #90caf9;
+                    border: none;
+                    color: #0d47a1;
+                    cursor: pointer;
+                    padding: 10px 20px;
+                    font-weight: bold;
+                    font-size: 14px;
+                    text-transform: uppercase;
+                    border-radius: 4px;
+                    box-shadow: 0px 3px 1px -2px rgba(0,0,0,0.2);
+                "
+            >Sluiten</button>
+        </div>
+    `;
+
+    const sluitMenu = () => backdrop.remove();
+
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+
+    modal
+        .querySelector('#egodact-beta-modal-sluiten')
+        .addEventListener('click', sluitMenu);
+
+    backdrop.addEventListener('click', (event) => {
+        if (event.target === backdrop) {
+            sluitMenu();
+        }
+    });
+}
+
+
+// ============================================================
 // FLEXIBELE DAGPLANNER MET TEMPLATE-SYSTEM & HISTORIE
 // ============================================================
 
@@ -3397,10 +3492,16 @@ function voegKnoppenToe() {
             'egodact-weekplanning-knop'
         );
 
+    const bestaandeBetaFeatures =
+        document.getElementById(
+            'egodact-beta-features-knop'
+        );
+
     if (
         bestaandeInfo &&
         bestaandeTaken &&
-        bestaandeWeekplanning
+        bestaandeWeekplanning &&
+        bestaandeBetaFeatures
     ) {
         return;
     }
@@ -3606,6 +3707,67 @@ function voegKnoppenToe() {
             infoKnop,
             menuContainer.firstChild
         );
+    }
+
+    // ========================================================
+    // BETA FEATURES
+    // ========================================================
+
+    if (
+        !document.getElementById(
+            'egodact-beta-features-knop'
+        )
+    ) {
+        const betaKnop = document.createElement('button');
+        betaKnop.id = 'egodact-beta-features-knop';
+        betaKnop.type = 'button';
+        betaKnop.title = 'Beta Features';
+
+        Object.assign(betaKnop.style, {
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '0',
+            margin: '0 8px 0 0',
+            width: '28px',
+            minWidth: '28px',
+            height: '32px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            verticalAlign: 'middle',
+            outline: 'none',
+            position: 'relative',
+            zIndex: '999999',
+            flexShrink: '0'
+        });
+
+        betaKnop.innerHTML = `
+            <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#ffffff"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                style="opacity:0.85;display:block;pointer-events:none;"
+            >
+                <path d="M9 3h6"></path>
+                <path d="M10 3v7.2L4.8 19a1.5 1.5 0 0 0 1.3 2.2h11.8a1.5 1.5 0 0 0 1.3-2.2L14 10.2V3"></path>
+                <path d="M7.5 16h9"></path>
+            </svg>
+        `;
+
+        betaKnop.addEventListener('click', openBetaFeaturesMenu);
+
+        const infoKnopVoorBeta = document.getElementById('egodact-info-knop');
+        if (infoKnopVoorBeta) {
+            infoKnopVoorBeta.insertAdjacentElement('afterend', betaKnop);
+        } else {
+            menuContainer.insertBefore(betaKnop, menuContainer.firstChild);
+        }
     }
 
     // ========================================================
