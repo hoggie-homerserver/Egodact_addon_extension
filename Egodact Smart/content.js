@@ -355,6 +355,14 @@ function openTakenMenu(e) {
             >
         </div>
 
+        <input
+            type="text"
+            id="egodact-planner-search"
+            placeholder="Search.."
+            aria-label="Search tasks"
+            style="width: 100%; box-sizing: border-box; background: #2e2e2e; color: #fff; border: 1px solid #555; padding: 10px 12px; border-radius: 4px; font-family: inherit; font-size: 14px; outline: none;"
+        >
+
         <div style="
             display: flex;
             gap: 10px;
@@ -435,6 +443,18 @@ function openTakenMenu(e) {
 
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
+
+    function filterPlannerRows() {
+        const zoekterm = (modal.querySelector("#egodact-planner-search")?.value || "").trim().toLocaleLowerCase();
+        const container = modal.querySelector("#egodact-uren-container");
+        if (!container) return;
+        Array.from(container.children).forEach((rij) => {
+            const inputs = rij.querySelectorAll("input");
+            const taakTekst = inputs[2]?.value || "";
+            const tijdTekst = inputs[0]?.value || "";
+            rij.style.display = taakTekst.toLocaleLowerCase().includes(zoekterm) || tijdTekst.toLocaleLowerCase().includes(zoekterm) ? "flex" : "none";
+        });
+    }
 
     function renderPlanner(datum) {
 
@@ -750,7 +770,10 @@ function openTakenMenu(e) {
                 );
             }
         );
+        filterPlannerRows();
     }
+
+    modal.querySelector("#egodact-planner-search").addEventListener("input", filterPlannerRows);
 
     document
         .getElementById(
