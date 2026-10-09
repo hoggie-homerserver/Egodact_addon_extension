@@ -3458,6 +3458,15 @@ function voegKnoppenToe() {
                 'egodact-weekplanning-knop'
             );
 
+        const bestaandeBetaFeatures =
+            document.getElementById(
+                'egodact-beta-features-knop'
+            );
+
+        if (bestaandeBetaFeatures) {
+            bestaandeBetaFeatures.remove();
+        }
+
         if (bestaandeInfo) {
             bestaandeInfo.remove();
         }
