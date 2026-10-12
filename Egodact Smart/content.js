@@ -419,55 +419,99 @@ function openBetaFeaturesMenu(e) {
     document.body.appendChild(backdrop);
 
     async function laadChallenges() {
-    const container = modal.querySelector(
-        '#egodact-beta-challenges'
-    );
+        const container = modal.querySelector('#egodact-beta-challenges');
 
-    try {
-        const response = await fetch(
-            'https://api.egodact.com/challenge-portfolio',
-            {
-                credentials: 'include'
-            }
-        );
-
-        if (!response.ok) {
-            throw new Error(
-                `API error: ${response.status}`
+        try {
+            const response = await fetch(
+                'https://api.egodact.com/challenge-portfolio',
+                { credentials: 'include' }
             );
-        }
 
-        const data = await response.json();
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
 
-        console.log(
-            'Challenge API response:',
-            data
-        );
+            const data = await response.json();
+            console.log('Challenge API response:', data);
 
-        console.log('Portfolio rows:', data.rows);
-        console.log('Challenges:', data.challenges);
+            const challengesSource = data.challenges || {};
+            const challenges = Array.isArray(challengesSource)
+                ? challengesSource
+                : Object.values(challengesSource);
 
-        console.table(
-            Object.values(data.challenges || {}).map(c => ({
+            console.log('Portfolio rows:', data.rows);
+            console.table(challenges.map(c => ({
                 id: c.id,
                 name: c.name,
                 phase: c.phase,
                 keys: Object.keys(c).join(', ')
-            }))
-        );
+            })));
 
-laadChallenges();
-    
-    const searchInput = modal.querySelector(
-        '#egodact-beta-search'
-    );
+            const renderChallenges = (query = '') => {
+                const filtered = challenges.filter(challenge =>
+                    String(challenge.name || '')
+                        .toLowerCase()
+                        .includes(query.toLowerCase())
+                );
 
+                container.replaceChildren();
+
+                if (!filtered.length) {
+                    const empty = document.createElement('div');
+                    empty.style.cssText = 'color:#aaa;font-size:13px;grid-column:1/-1;';
+                    empty.textContent = query
+                        ? 'Geen challenges gevonden.'
+                        : 'Geen challenges beschikbaar.';
+                    container.appendChild(empty);
+                    return;
+                }
+
+                filtered.forEach(challenge => {
+                    const card = document.createElement('div');
+                    card.style.cssText = [
+                        'display:flex',
+                        'align-items:center',
+                        'gap:8px',
+                        'min-width:0',
+                        'padding:10px',
+                        'background:#2e2e2e',
+                        'border:1px solid #555',
+                        'border-radius:6px',
+                        'font-size:13px'
+                    ].join(';');
+
+                    const icon = document.createElement('span');
+                    icon.textContent = '🎯';
+                    icon.style.cssText = 'flex-shrink:0;font-size:18px;';
+
+                    const name = document.createElement('span');
+                    name.textContent = challenge.name || `Challenge ${challenge.id || ''}`;
+                    name.title = name.textContent;
+                    name.style.cssText = 'min-width:0;overflow-wrap:anywhere;';
+
+                    card.append(icon, name);
+                    container.appendChild(card);
+                });
+            };
+
+            renderChallenges();
+
+            const searchInput = modal.querySelector('#egodact-beta-search');
+            searchInput.addEventListener('input', () => {
+                renderChallenges(searchInput.value.trim());
+            });
+        } catch (error) {
+            console.error('Challenges laden mislukt:', error);
+            container.textContent = 'Challenges konden niet worden geladen.';
+        }
+    }
+
+    const searchInput = modal.querySelector('#egodact-beta-search');
     const searchWrapper = searchInput.parentElement;
 
     searchInput.addEventListener('focus', () => {
         searchWrapper.style.borderColor = '#90caf9';
-        searchWrapper.style.boxShadow =
-            '0 0 0 2px rgba(144, 202, 249, 0.15)';
+        searchWrapper.style.boxShadow = '0 0 0 2px rgba(144, 202, 249, 0.15)';
     });
 
     searchInput.addEventListener('blur', () => {
@@ -479,11 +523,11 @@ laadChallenges();
         .querySelector('#egodact-beta-modal-sluiten')
         .addEventListener('click', sluitMenu);
 
-    backdrop.addEventListener('click', (event) => {
-        if (event.target === backdrop) {
-            sluitMenu();
-        }
+    backdrop.addEventListener('click', event => {
+        if (event.target === backdrop) sluitMenu();
     });
+
+    laadChallenges();
 }
 
 
