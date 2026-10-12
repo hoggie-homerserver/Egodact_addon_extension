@@ -418,130 +418,109 @@ function openBetaFeaturesMenu(e) {
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
 
-    async function laadChallenges() {
-        const container = modal.querySelector('#egodact-beta-challenges');
+    
+async function laadChallenges() {
+    const container = modal.querySelector(
+        '#egodact-beta-challenges'
+    );
 
-        try {
-            // The Egodact API explicitly allows app.egodact.com as an origin.
-            // Fetch from the page context so the signed-in app session is used.
-            const response = await fetch(
-                'https://api.egodact.com/challenge-portfolio',
-                {
-                    method: 'GET',
-                    credentials: 'include',
-                    headers: {
-                        'Accept': 'application/json'
-                    },
-                    cache: 'no-store'
-                }
+    container.textContent = 'Challenges laden...';
+
+    try {
+        const ACCESS_TOKEN_KEY =
+            'pYfkT6ZWcUB98Sla76HppFpk4aYdTAp0_CACHE_0';
+
+        const SCHOOL_KEY = 'selectedSchool';
+
+        const accessToken = localStorage.getItem(
+            ACCESS_TOKEN_KEY
+        );
+
+        const selectedSchool = localStorage.getItem(
+            SCHOOL_KEY
+        );
+
+        if (!accessToken) {
+            throw new Error(
+                'Geen access token gevonden. Log opnieuw in bij Egodact.'
             );
-
-            if (!response.ok) {
-                throw new Error(`API error: ${response.status} ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            console.log('Challenge API response:', data);
-
-            const challengesSource = data.challenges || {};
-            const challenges = Array.isArray(challengesSource)
-                ? challengesSource
-                : Object.values(challengesSource);
-
-            console.log('Portfolio rows:', data.rows);
-            console.table(challenges.map(c => ({
-                id: c.id,
-                name: c.name,
-                phase: c.phase,
-                keys: Object.keys(c).join(', ')
-            })));
-
-            const renderChallenges = (query = '') => {
-                const filtered = challenges.filter(challenge =>
-                    String(challenge.name || '')
-                        .toLowerCase()
-                        .includes(query.toLowerCase())
-                );
-
-                container.replaceChildren();
-
-                if (!filtered.length) {
-                    const empty = document.createElement('div');
-                    empty.style.cssText = 'color:#aaa;font-size:13px;grid-column:1/-1;';
-                    empty.textContent = query
-                        ? 'Geen challenges gevonden.'
-                        : 'Geen challenges beschikbaar.';
-                    container.appendChild(empty);
-                    return;
-                }
-
-                filtered.forEach(challenge => {
-                    const card = document.createElement('div');
-                    card.style.cssText = [
-                        'display:flex',
-                        'align-items:center',
-                        'gap:8px',
-                        'min-width:0',
-                        'padding:10px',
-                        'background:#2e2e2e',
-                        'border:1px solid #555',
-                        'border-radius:6px',
-                        'font-size:13px'
-                    ].join(';');
-
-                    const icon = document.createElement('span');
-                    icon.textContent = '🎯';
-                    icon.style.cssText = 'flex-shrink:0;font-size:18px;';
-
-                    const name = document.createElement('span');
-                    name.textContent = challenge.name || `Challenge ${challenge.id || ''}`;
-                    name.title = name.textContent;
-                    name.style.cssText = 'min-width:0;overflow-wrap:anywhere;';
-
-                    card.append(icon, name);
-                    container.appendChild(card);
-                });
-            };
-
-            renderChallenges();
-
-            const searchInput = modal.querySelector('#egodact-beta-search');
-            searchInput.addEventListener('input', () => {
-                renderChallenges(searchInput.value.trim());
-            });
-        } catch (error) {
-            console.error('[Egodact Beta] Challenges laden mislukt:', error);
-            container.replaceChildren();
-            const errorBox = document.createElement('div');
-            errorBox.style.cssText = 'color:#ffcdd2;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere;grid-column:1/-1;';
-            errorBox.textContent = 'Challenges konden niet worden geladen.\\n\\nFout: ' +
-                (error instanceof Error ? error.message : String(error));
-            container.appendChild(errorBox);
         }
+
+        const headers = {
+            'Authorization': `Bearer ${accessToken}`,
+            'Accept': 'application/json'
+        };
+
+        if (selectedSchool) {
+            headers['School'] = selectedSchool;
+        }
+
+        const response = await fetch(
+            'https://api.egodact.com/challenge-portfolio',
+            {
+                method: 'GET',
+                headers,
+                credentials: 'include'
+            }
+        );
+
+        if (!response.ok) {
+            const details = await response.text();
+
+            throw new Error(
+                `API-fout ${response.status}: ${details.slice(0, 250)}`
+            );
+        }
+
+        const data = await response.json();
+
+        console.log('Challenge portfolio:', data);
+        console.log('Portfolio rows:', data.rows);
+        console.log('Challenges:', data.challenges);
+
+        const challenges = Object.values(
+            data.challenges || {}
+        );
+
+        if (challenges.length === 0) {
+            container.textContent =
+                'Geen challenges gevonden in de API-response.';
+            return;
+        }
+
+        container.replaceChildren();
+
+        for (const challenge of challenges) {
+            const card = document.createElement('div');
+
+            Object.assign(card.style, {
+                background: '#2e2e2e',
+                border: '1px solid #555',
+                borderRadius: '6px',
+                padding: '10px',
+                color: '#fff',
+                fontSize: '13px',
+                overflowWrap: 'anywhere'
+            });
+
+            const name = document.createElement('div');
+            name.textContent =
+                challenge.name || 'Naamloze challenge';
+
+            card.appendChild(name);
+            container.appendChild(card);
+        }
+    } catch (error) {
+        console.error(
+            'Challenges laden mislukt:',
+            error
+        );
+
+        container.textContent =
+            `Challenges konden niet worden geladen. Fout: ${
+                error?.message || error
+            }`;
     }
-
-    const searchInput = modal.querySelector('#egodact-beta-search');
-    const searchWrapper = searchInput.parentElement;
-
-    searchInput.addEventListener('focus', () => {
-        searchWrapper.style.borderColor = '#90caf9';
-        searchWrapper.style.boxShadow = '0 0 0 2px rgba(144, 202, 249, 0.15)';
-    });
-
-    searchInput.addEventListener('blur', () => {
-        searchWrapper.style.borderColor = '#555';
-        searchWrapper.style.boxShadow = 'none';
-    });
-
-    modal
-        .querySelector('#egodact-beta-modal-sluiten')
-        .addEventListener('click', sluitMenu);
-
-    backdrop.addEventListener('click', event => {
-        if (event.target === backdrop) sluitMenu();
-    });
-
-    laadChallenges();
 }
 
 
@@ -3991,7 +3970,7 @@ function voegKnoppenToe() {
                 padding:
                     '0',
                 margin:
-                    '0 2px 0 0',
+                    '0 8px 0 0',
                 width:
                     '28px',
                 minWidth:
