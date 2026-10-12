@@ -2,295 +2,21 @@
 // SMART MENU
 // ============================================================
 
-function openSMARTMenu(e) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (document.getElementById('egodact-custom-modal-backdrop')) return;
-
-    const backdrop = document.createElement('div');
-    backdrop.id = 'egodact-custom-modal-backdrop';
-
-    Object.assign(backdrop.style, {
-        position: 'fixed',
-        top: '0',
-        left: '0',
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: 'rgba(0, 0, 0, 0.65)',
-        zIndex: '9999999',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: 'Arial, sans-serif'
-    });
-
-    const modal = document.createElement('div');
-
-    Object.assign(modal.style, {
-        backgroundColor: '#424242',
-        color: '#ffffff',
-        width: '520px',
-        borderRadius: '6px',
-        padding: '24px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '16px',
-        boxShadow:
-            '0px 11px 15px -7px rgba(0,0,0,0.3), ' +
-            '0px 24px 38px 3px rgba(0,0,0,0.2), ' +
-            '0px 9px 46px 8px rgba(0,0,0,0.15)'
-    });
-
-    modal.innerHTML = `
-        <h2 style="
-            margin: 0;
-            font-size: 22px;
-            font-weight: 500;
-            border-bottom: 1px solid #555;
-            padding-bottom: 10px;
-        ">
-            SMART methode
-        </h2>
-
-        <div style="
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 5px;
-        ">
-
-            <div style="
-                display: flex;
-                align-items: center;
-                gap: 14px;
-                background: #2e2e2e;
-                padding: 12px;
-                border-radius: 4px;
-                border-left: 5px solid #0d47a1;
-            ">
-                <span style="
-                    font-size: 20px;
-                    font-weight: bold;
-                    color: #90caf9;
-                    min-width: 20px;
-                    text-align: center;
-                ">S</span>
-
-                <div>
-                    <div style="
-                        font-weight: bold;
-                        font-size: 15px;
-                    ">
-                        Specifiek
-                    </div>
-
-                    <div style="
-                        font-size: 13px;
-                        color: #b0b0b0;
-                    ">
-                        Is het doel duidelijk en concreet omschreven?
-                    </div>
-                </div>
-            </div>
-
-            <div style="
-                display: flex;
-                align-items: center;
-                gap: 14px;
-                background: #2e2e2e;
-                padding: 12px;
-                border-radius: 4px;
-                border-left: 5px solid #00b0ff;
-            ">
-                <span style="
-                    font-size: 20px;
-                    font-weight: bold;
-                    color: #40c4ff;
-                    min-width: 20px;
-                    text-align: center;
-                ">M</span>
-
-                <div>
-                    <div style="
-                        font-weight: bold;
-                        font-size: 15px;
-                    ">
-                        Meetbaar
-                    </div>
-
-                    <div style="
-                        font-size: 13px;
-                        color: #b0b0b0;
-                    ">
-                        Kun je achteraf bewijzen of meten dat het doel is gehaald?
-                    </div>
-                </div>
-            </div>
-
-            <div style="
-                display: flex;
-                align-items: center;
-                gap: 14px;
-                background: #2e2e2e;
-                padding: 12px;
-                border-radius: 4px;
-                border-left: 5px solid #ffb300;
-            ">
-                <span style="
-                    font-size: 20px;
-                    font-weight: bold;
-                    color: #ffe082;
-                    min-width: 20px;
-                    text-align: center;
-                ">A</span>
-
-                <div>
-                    <div style="
-                        font-weight: bold;
-                        font-size: 15px;
-                    ">
-                        Aantrekkelijk
-                    </div>
-
-                    <div style="
-                        font-size: 13px;
-                        color: #b0b0b0;
-                    ">
-                        Is het doel motiverend, uitdagend en de moeite waard?
-                    </div>
-                </div>
-            </div>
-
-            <div style="
-                display: flex;
-                align-items: center;
-                gap: 14px;
-                background: #2e2e2e;
-                padding: 12px;
-                border-radius: 4px;
-                border-left: 5px solid #9c27b0;
-            ">
-                <span style="
-                    font-size: 20px;
-                    font-weight: bold;
-                    color: #f48fb1;
-                    min-width: 20px;
-                    text-align: center;
-                ">R</span>
-
-                <div>
-                    <div style="
-                        font-weight: bold;
-                        font-size: 15px;
-                    ">
-                        Realistisch
-                    </div>
-
-                    <div style="
-                        font-size: 13px;
-                        color: #b0b0b0;
-                    ">
-                        Is het doel haalbaar en uitvoerbaar binnen jouw planning?
-                    </div>
-                </div>
-            </div>
-
-            <div style="
-                display: flex;
-                align-items: center;
-                gap: 14px;
-                background: #2e2e2e;
-                padding: 12px;
-                border-radius: 4px;
-                border-left: 5px solid #0288d1;
-            ">
-                <span style="
-                    font-size: 20px;
-                    font-weight: bold;
-                    color: #81d4fa;
-                    min-width: 20px;
-                    text-align: center;
-                ">T</span>
-
-                <div>
-                    <div style="
-                        font-weight: bold;
-                        font-size: 15px;
-                    ">
-                        Tijdsgebonden
-                    </div>
-
-                    <div style="
-                        font-size: 13px;
-                        color: #b0b0b0;
-                    ">
-                        Wanneer, op welke datum of na hoeveel weken is het klaar?
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <div style="
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 5px;
-        ">
-            <button
-                id="egodact-modal-sluiten"
-                style="
-                    background-color: #90caf9;
-                    border: none;
-                    color: #0d47a1;
-                    cursor: pointer;
-                    padding: 10px 20px;
-                    font-weight: bold;
-                    font-size: 14px;
-                    text-transform: uppercase;
-                    border-radius: 4px;
-                    box-shadow: 0px 3px 1px -2px rgba(0,0,0,0.2);
-                "
-            >
-                Sluiten
-            </button>
-        </div>
-    `;
-
-    const sluitMenu = () => backdrop.remove();
-
-    backdrop.appendChild(modal);
-    document.body.appendChild(backdrop);
-
-    document
-        .getElementById('egodact-modal-sluiten')
-        .addEventListener('click', sluitMenu);
-
-    backdrop.addEventListener('click', (e) => {
-        if (e.target === backdrop) {
-            sluitMenu();
-        }
-    });
-}
-
-
-// ============================================================
-// BETA FEATURES MENU
-// ============================================================
 
 function openBetaFeaturesMenu(e) {
     e.preventDefault();
     e.stopPropagation();
 
-    if (document.getElementById('egodact-custom-modal-backdrop')) return;
+    if (document.getElementById('egodact-custom-modal-backdrop')) {
+        return;
+    }
 
     const backdrop = document.createElement('div');
     backdrop.id = 'egodact-custom-modal-backdrop';
 
     Object.assign(backdrop.style, {
         position: 'fixed',
-        top: '0',
-        left: '0',
+        inset: '0',
         width: '100vw',
         height: '100vh',
         backgroundColor: 'rgba(0, 0, 0, 0.65)',
@@ -308,219 +34,295 @@ function openBetaFeaturesMenu(e) {
         color: '#ffffff',
         width: '520px',
         maxWidth: 'calc(100vw - 32px)',
+        maxHeight: '90vh',
         borderRadius: '6px',
         padding: '24px',
         display: 'flex',
         flexDirection: 'column',
         gap: '16px',
-        boxShadow:
-            '0px 11px 15px -7px rgba(0,0,0,0.3), ' +
-            '0px 24px 38px 3px rgba(0,0,0,0.2), ' +
-            '0px 9px 46px 8px rgba(0,0,0,0.15)'
+        boxShadow: '0 11px 30px rgba(0,0,0,0.35)'
     });
 
     modal.innerHTML = `
         <h2 style="
-            margin: 0;
-            font-size: 22px;
-            font-weight: 500;
-            border-bottom: 1px solid #555;
-            padding-bottom: 10px;
+            margin:0;
+            font-size:22px;
+            font-weight:500;
+            border-bottom:1px solid #555;
+            padding-bottom:10px;
         ">Beta Features</h2>
 
-        
-        <div style="
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: #2e2e2e;
-            border: 1px solid #555;
-            border-radius: 6px;
-            padding: 11px 13px;
-            transition: border-color 0.2s, box-shadow 0.2s;
+        <div id="egodact-beta-search-wrapper" style="
+            display:flex;
+            align-items:center;
+            gap:10px;
+            background:#2e2e2e;
+            border:1px solid #555;
+            border-radius:6px;
+            padding:11px 13px;
         ">
-            <svg
-                width="19"
-                height="19"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#90caf9"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                style="flex-shrink: 0;"
-            >
+            <svg width="19" height="19" viewBox="0 0 24 24"
+                fill="none" stroke="#90caf9" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"
+                style="flex-shrink:0">
                 <circle cx="11" cy="11" r="8"></circle>
                 <path d="m21 21-4.35-4.35"></path>
             </svg>
 
-            <input
-                id="egodact-beta-search"
+            <input id="egodact-beta-search"
                 type="text"
-                placeholder="Zoek een feature..."
+                placeholder="Zoek een challenge..."
                 autocomplete="off"
                 style="
-                    flex: 1;
-                    min-width: 0;
-                    background: transparent;
-                    border: none;
-                    outline: none;
-                    color: #ffffff;
-                    font-family: inherit;
-                    font-size: 14px;
-                "
-            >
+                    flex:1;
+                    min-width:0;
+                    background:transparent;
+                    border:none;
+                    outline:none;
+                    color:#fff;
+                    font-family:inherit;
+                    font-size:14px;
+                ">
         </div>
 
-        <div
-            id="egodact-beta-challenges"
-            style="
-                display: grid;
-                grid-template-columns: repeat(
-                    auto-fill,
-                    minmax(140px, 1fr)
-                );
-                gap: 10px;
-                max-height: 400px;
-                overflow-y: auto;
-            "
-        >
-            <div style="color: #aaa; font-size: 13px;">
+        <div id="egodact-beta-challenges" style="
+            display:grid;
+            grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+            gap:10px;
+            max-height:400px;
+            overflow-y:auto;
+        ">
+            <div style="color:#aaa;font-size:13px">
                 Challenges laden...
             </div>
         </div>
 
-        <div style="
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 5px;
-        ">
-            <button
-                id="egodact-beta-modal-sluiten"
+        <div style="display:flex;justify-content:flex-end">
+            <button id="egodact-beta-modal-sluiten" type="button"
                 style="
-                    background-color: #90caf9;
-                    border: none;
-                    color: #0d47a1;
-                    cursor: pointer;
-                    padding: 10px 20px;
-                    font-weight: bold;
-                    font-size: 14px;
-                    text-transform: uppercase;
-                    border-radius: 4px;
-                    box-shadow: 0px 3px 1px -2px rgba(0,0,0,0.2);
-                "
-            >Sluiten</button>
+                    background:#90caf9;
+                    border:none;
+                    color:#0d47a1;
+                    cursor:pointer;
+                    padding:10px 20px;
+                    font-weight:bold;
+                    font-size:14px;
+                    border-radius:4px;
+                ">SLUITEN</button>
         </div>
     `;
-
-    const sluitMenu = () => backdrop.remove();
 
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
 
-    
-async function laadChallenges() {
-    const container = modal.querySelector(
-        '#egodact-beta-challenges'
-    );
+    const container = modal.querySelector('#egodact-beta-challenges');
+    const searchInput = modal.querySelector('#egodact-beta-search');
+    const searchWrapper = modal.querySelector('#egodact-beta-search-wrapper');
 
-    container.textContent = 'Challenges laden...';
+    const closeMenu = () => backdrop.remove();
 
-    try {
-        const ACCESS_TOKEN_KEY =
-            'pYfkT6ZWcUB98Sla76HppFpk4aYdTAp0_CACHE_0';
+    modal.querySelector('#egodact-beta-modal-sluiten')
+        .addEventListener('click', closeMenu);
 
-        const SCHOOL_KEY = 'selectedSchool';
+    backdrop.addEventListener('click', event => {
+        if (event.target === backdrop) closeMenu();
+    });
 
-        const accessToken = localStorage.getItem(
-            ACCESS_TOKEN_KEY
-        );
-
-        const selectedSchool = localStorage.getItem(
-            SCHOOL_KEY
-        );
-
-        if (!accessToken) {
-            throw new Error(
-                'Geen access token gevonden. Log opnieuw in bij Egodact.'
-            );
+    document.addEventListener('keydown', function escapeHandler(event) {
+        if (event.key === 'Escape' && backdrop.isConnected) {
+            closeMenu();
+            document.removeEventListener('keydown', escapeHandler);
         }
+    });
 
-        const headers = {
-            'Authorization': `Bearer ${accessToken}`,
-            'Accept': 'application/json'
-        };
+    searchInput.addEventListener('focus', () => {
+        searchWrapper.style.borderColor = '#90caf9';
+        searchWrapper.style.boxShadow = '0 0 0 2px rgba(144,202,249,0.15)';
+    });
 
-        if (selectedSchool) {
-            headers['School'] = selectedSchool;
-        }
+    searchInput.addEventListener('blur', () => {
+        searchWrapper.style.borderColor = '#555';
+        searchWrapper.style.boxShadow = 'none';
+    });
 
-        const response = await fetch(
-            'https://api.egodact.com/challenge-portfolio',
-            {
-                method: 'GET',
-                headers,
-                credentials: 'include'
-            }
-        );
+    let allChallenges = [];
 
-        if (!response.ok) {
-            const details = await response.text();
+    function renderChallenges(query = '') {
+        const normalizedQuery = query.trim().toLowerCase();
 
-            throw new Error(
-                `API-fout ${response.status}: ${details.slice(0, 250)}`
-            );
-        }
-
-        const data = await response.json();
-
-        console.log('Challenge portfolio:', data);
-        console.log('Portfolio rows:', data.rows);
-        console.log('Challenges:', data.challenges);
-
-        const challenges = Object.values(
-            data.challenges || {}
-        );
-
-        if (challenges.length === 0) {
-            container.textContent =
-                'Geen challenges gevonden in de API-response.';
-            return;
-        }
+        const filtered = allChallenges.filter(challenge => {
+            const name = String(challenge.name || '').toLowerCase();
+            const phase = String(challenge.phase || '').toLowerCase();
+            return name.includes(normalizedQuery) ||
+                phase.includes(normalizedQuery);
+        });
 
         container.replaceChildren();
 
-        for (const challenge of challenges) {
+        if (!filtered.length) {
+            const empty = document.createElement('div');
+            empty.style.cssText =
+                'color:#aaa;font-size:13px;grid-column:1/-1;';
+            empty.textContent = normalizedQuery
+                ? 'Geen challenges gevonden.'
+                : 'Geen challenges beschikbaar.';
+            container.appendChild(empty);
+            return;
+        }
+
+        for (const challenge of filtered) {
             const card = document.createElement('div');
 
-            Object.assign(card.style, {
-                background: '#2e2e2e',
-                border: '1px solid #555',
-                borderRadius: '6px',
-                padding: '10px',
-                color: '#fff',
-                fontSize: '13px',
-                overflowWrap: 'anywhere'
-            });
+            card.style.cssText = [
+                'display:flex',
+                'align-items:center',
+                'gap:8px',
+                'min-width:0',
+                'padding:10px',
+                'background:#2e2e2e',
+                'border:1px solid #555',
+                'border-radius:6px',
+                'font-size:13px'
+            ].join(';');
 
-            const name = document.createElement('div');
+            // Use a real thumbnail if the API provides a usable URL.
+            const imageUrl =
+                challenge.thumbnailUrl ||
+                challenge.thumbnail_url ||
+                challenge.imageUrl ||
+                challenge.image_url ||
+                challenge.iconUrl ||
+                challenge.icon_url ||
+                challenge.image ||
+                challenge.thumbnail;
+
+            let icon;
+
+            if (typeof imageUrl === 'string' &&
+                /^https?:\/\//i.test(imageUrl)) {
+                icon = document.createElement('img');
+                icon.src = imageUrl;
+                icon.alt = '';
+                icon.loading = 'lazy';
+                icon.style.cssText =
+                    'width:32px;height:32px;object-fit:cover;' +
+                    'border-radius:4px;flex-shrink:0;';
+
+                icon.addEventListener('error', () => {
+                    const fallback = document.createElement('span');
+                    fallback.textContent = '🎯';
+                    fallback.style.cssText =
+                        'font-size:20px;flex-shrink:0;';
+                    icon.replaceWith(fallback);
+                }, { once: true });
+            } else {
+                icon = document.createElement('span');
+                icon.textContent = '🎯';
+                icon.style.cssText =
+                    'font-size:20px;flex-shrink:0;';
+            }
+
+            const name = document.createElement('span');
             name.textContent =
-                challenge.name || 'Naamloze challenge';
+                challenge.name || `Challenge ${challenge.id || ''}`;
+            name.title = name.textContent;
+            name.style.cssText =
+                'min-width:0;overflow-wrap:anywhere;';
 
-            card.appendChild(name);
+            card.append(icon, name);
             container.appendChild(card);
         }
-    } catch (error) {
-        console.error(
-            'Challenges laden mislukt:',
-            error
-        );
-
-        container.textContent =
-            `Challenges konden niet worden geladen. Fout: ${
-                error?.message || error
-            }`;
     }
+
+    searchInput.addEventListener('input', () => {
+        renderChallenges(searchInput.value);
+    });
+
+    async function laadChallenges() {
+        container.textContent = 'Challenges laden...';
+
+        try {
+            // These are the keys used by Egodact's own API client.
+            const accessTokenKey =
+                'pYfkT6ZWcUB98Sla76HppFpk4aYdTAp0_CACHE_0';
+
+            const accessToken = localStorage.getItem(accessTokenKey);
+            const selectedSchool = localStorage.getItem('selectedSchool');
+
+            if (!accessToken) {
+                throw new Error(
+                    'Geen access token gevonden. Log opnieuw in bij Egodact.'
+                );
+            }
+
+            const headers = {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+            };
+
+            if (selectedSchool) {
+                headers['School'] = selectedSchool;
+            }
+
+            const response = await fetch(
+                'https://api.egodact.com/challenge-portfolio',
+                {
+                    method: 'GET',
+                    headers,
+                    credentials: 'include'
+                }
+            );
+
+            if (!response.ok) {
+                const details = await response.text();
+
+                throw new Error(
+                    `API-fout ${response.status}: ` +
+                    `${details.slice(0, 200)}`
+                );
+            }
+
+            const data = await response.json();
+
+            console.log('[Egodact Beta] Portfolio response:', data);
+
+            const source = data.challenges || {};
+            allChallenges = Array.isArray(source)
+                ? source
+                : Object.values(source);
+
+            // Keep only valid challenge objects.
+            allChallenges = allChallenges.filter(
+                challenge => challenge && typeof challenge === 'object'
+            );
+
+            if (!allChallenges.length) {
+                container.textContent =
+                    'De API reageerde, maar bevatte geen challenges.';
+                return;
+            }
+
+            renderChallenges(searchInput.value);
+
+        } catch (error) {
+            console.error('[Egodact Beta] Challenges laden mislukt:', error);
+
+            container.replaceChildren();
+
+            const errorBox = document.createElement('div');
+            errorBox.style.cssText =
+                'color:#ffcdd2;font-size:13px;white-space:pre-wrap;' +
+                'overflow-wrap:anywhere;grid-column:1/-1;';
+
+            errorBox.textContent =
+                'Challenges konden niet worden geladen.\n\nFout: ' +
+                (error instanceof Error ? error.message : String(error));
+
+            container.appendChild(errorBox);
+        }
+    }
+
+    laadChallenges();
 }
 
 
