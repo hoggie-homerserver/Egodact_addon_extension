@@ -276,7 +276,6 @@ function openSMARTMenu(e) {
 
 // ============================================================
 // BETA FEATURES MENU
-// Zelfde modalstijl als SMART, bewust zonder inhoud.
 // ============================================================
 
 function openBetaFeaturesMenu(e) {
@@ -329,6 +328,68 @@ function openBetaFeaturesMenu(e) {
             padding-bottom: 10px;
         ">Beta Features</h2>
 
+        
+        <div style="
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #2e2e2e;
+            border: 1px solid #555;
+            border-radius: 6px;
+            padding: 11px 13px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        ">
+            <svg
+                width="19"
+                height="19"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#90caf9"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                style="flex-shrink: 0;"
+            >
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+            </svg>
+
+            <input
+                id="egodact-beta-search"
+                type="text"
+                placeholder="Zoek een feature..."
+                autocomplete="off"
+                style="
+                    flex: 1;
+                    min-width: 0;
+                    background: transparent;
+                    border: none;
+                    outline: none;
+                    color: #ffffff;
+                    font-family: inherit;
+                    font-size: 14px;
+                "
+            >
+        </div>
+
+        <div
+            id="egodact-beta-challenges"
+            style="
+                display: grid;
+                grid-template-columns: repeat(
+                    auto-fill,
+                    minmax(140px, 1fr)
+                );
+                gap: 10px;
+                max-height: 400px;
+                overflow-y: auto;
+            "
+        >
+            <div style="color: #aaa; font-size: 13px;">
+                Challenges laden...
+            </div>
+        </div>
+
         <div style="
             display: flex;
             justify-content: flex-end;
@@ -356,6 +417,63 @@ function openBetaFeaturesMenu(e) {
 
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
+
+    async function laadChallenges() {
+    const container = modal.querySelector(
+        '#egodact-beta-challenges'
+    );
+
+    try {
+        const response = await fetch(
+            'https://api.egodact.com/challenge-portfolio',
+            {
+                credentials: 'include'
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `API error: ${response.status}`
+            );
+        }
+
+        const data = await response.json();
+
+        console.log(
+            'Challenge API response:',
+            data
+        );
+
+        console.log('Portfolio rows:', data.rows);
+        console.log('Challenges:', data.challenges);
+
+        console.table(
+            Object.values(data.challenges || {}).map(c => ({
+                id: c.id,
+                name: c.name,
+                phase: c.phase,
+                keys: Object.keys(c).join(', ')
+            }))
+        );
+
+laadChallenges();
+    
+    const searchInput = modal.querySelector(
+        '#egodact-beta-search'
+    );
+
+    const searchWrapper = searchInput.parentElement;
+
+    searchInput.addEventListener('focus', () => {
+        searchWrapper.style.borderColor = '#90caf9';
+        searchWrapper.style.boxShadow =
+            '0 0 0 2px rgba(144, 202, 249, 0.15)';
+    });
+
+    searchInput.addEventListener('blur', () => {
+        searchWrapper.style.borderColor = '#555';
+        searchWrapper.style.boxShadow = 'none';
+    });
 
     modal
         .querySelector('#egodact-beta-modal-sluiten')
@@ -3930,7 +4048,7 @@ function voegKnoppenToe() {
                 padding:
                     '0',
                 margin:
-                    '0',
+                    '0 8px 0 0',
                 width:
                     '28px',
                 minWidth:
