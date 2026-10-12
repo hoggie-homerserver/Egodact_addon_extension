@@ -3977,7 +3977,7 @@ function voegKnoppenToe() {
                 padding:
                     '0',
                 margin:
-                    '0 8px 0 0',
+                    '0 2px 0 0',
                 width:
                     '28px',
                 minWidth:
