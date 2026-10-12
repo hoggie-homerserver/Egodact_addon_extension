@@ -423,9 +423,23 @@ function openBetaFeaturesMenu(e) {
 
         try {
             // Cross-origin API calls must run in the extension service worker.
-            const result = await chrome.runtime.sendMessage({
-                type: 'EGODACT_LOAD_CHALLENGES'
-            });
+            console.log('[Egodact Beta] Requesting challenges from extension service worker...');
+
+            const result = await Promise.race([
+                chrome.runtime.sendMessage({
+                    type: 'EGODACT_LOAD_CHALLENGES'
+                }),
+                new Promise((_, reject) => {
+                    setTimeout(
+                        () => reject(new Error(
+                            'Geen antwoord van background.js binnen 15 seconden. Controleer chrome://extensions > Egodact > Service worker en herlaad de extensie.'
+                        )),
+                        15000
+                    );
+                })
+            ]);
+
+            console.log('[Egodact Beta] Service worker response:', result);
 
             if (!result || !result.ok) {
                 throw new Error(result?.error || 'De API-aanvraag is mislukt.');
