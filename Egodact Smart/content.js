@@ -523,6 +523,31 @@ async function laadChallenges() {
     }
 }
 
+    // Zoekveld en sluiten-knop activeren nadat het menu in de DOM staat.
+    const searchInput = modal.querySelector('#egodact-beta-search');
+    const searchWrapper = searchInput.parentElement;
+
+    searchInput.addEventListener('focus', () => {
+        searchWrapper.style.borderColor = '#90caf9';
+        searchWrapper.style.boxShadow = '0 0 0 2px rgba(144, 202, 249, 0.15)';
+    });
+
+    searchInput.addEventListener('blur', () => {
+        searchWrapper.style.borderColor = '#555';
+        searchWrapper.style.boxShadow = 'none';
+    });
+
+    modal
+        .querySelector('#egodact-beta-modal-sluiten')
+        .addEventListener('click', sluitMenu);
+
+    backdrop.addEventListener('click', event => {
+        if (event.target === backdrop) sluitMenu();
+    });
+
+    laadChallenges();
+}
+
 
 // ============================================================
 // FLEXIBELE DAGPLANNER MET TEMPLATE-SYSTEM & HISTORIE
