@@ -3601,7 +3601,7 @@ function voegKnoppenToe() {
     // Alleen op Pantagora
     if (
         !window.location.href.includes(
-            "school=pantagora"
+            "https://app.egodact.com/"
         )
     ) {
 
