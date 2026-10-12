@@ -422,16 +422,16 @@ function openBetaFeaturesMenu(e) {
         const container = modal.querySelector('#egodact-beta-challenges');
 
         try {
-            const response = await fetch(
-                'https://api.egodact.com/challenge-portfolio',
-                { credentials: 'include' }
-            );
+            // Cross-origin API calls must run in the extension service worker.
+            const result = await chrome.runtime.sendMessage({
+                type: 'EGODACT_LOAD_CHALLENGES'
+            });
 
-            if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
+            if (!result || !result.ok) {
+                throw new Error(result?.error || 'De API-aanvraag is mislukt.');
             }
 
-            const data = await response.json();
+            const data = result.data;
             console.log('Challenge API response:', data);
 
             const challengesSource = data.challenges || {};
