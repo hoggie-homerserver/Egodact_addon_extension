@@ -422,30 +422,25 @@ function openBetaFeaturesMenu(e) {
         const container = modal.querySelector('#egodact-beta-challenges');
 
         try {
-            // Cross-origin API calls must run in the extension service worker.
-            console.log('[Egodact Beta] Requesting challenges from extension service worker...');
+            // The Egodact API explicitly allows app.egodact.com as an origin.
+            // Fetch from the page context so the signed-in app session is used.
+            const response = await fetch(
+                'https://api.egodact.com/challenge-portfolio',
+                {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    cache: 'no-store'
+                }
+            );
 
-            const result = await Promise.race([
-                chrome.runtime.sendMessage({
-                    type: 'EGODACT_LOAD_CHALLENGES'
-                }),
-                new Promise((_, reject) => {
-                    setTimeout(
-                        () => reject(new Error(
-                            'Geen antwoord van background.js binnen 15 seconden. Controleer chrome://extensions > Egodact > Service worker en herlaad de extensie.'
-                        )),
-                        15000
-                    );
-                })
-            ]);
-
-            console.log('[Egodact Beta] Service worker response:', result);
-
-            if (!result || !result.ok) {
-                throw new Error(result?.error || 'De API-aanvraag is mislukt.');
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status} ${response.statusText}`);
             }
 
-            const data = result.data;
+            const data = await response.json();
             console.log('Challenge API response:', data);
 
             const challengesSource = data.challenges || {};
@@ -515,8 +510,13 @@ function openBetaFeaturesMenu(e) {
                 renderChallenges(searchInput.value.trim());
             });
         } catch (error) {
-            console.error('Challenges laden mislukt:', error);
-            container.textContent = 'Challenges konden niet worden geladen.';
+            console.error('[Egodact Beta] Challenges laden mislukt:', error);
+            container.replaceChildren();
+            const errorBox = document.createElement('div');
+            errorBox.style.cssText = 'color:#ffcdd2;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere;grid-column:1/-1;';
+            errorBox.textContent = 'Challenges konden niet worden geladen.\\n\\nFout: ' +
+                (error instanceof Error ? error.message : String(error));
+            container.appendChild(errorBox);
         }
     }
 
