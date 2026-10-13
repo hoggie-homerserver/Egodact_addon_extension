@@ -236,8 +236,16 @@ function openSMARTMenu(e) {
                     <p>Gebruik deze techniek om je doelen en taken te visualiseren en gemakkelijker te onthouden.</p>
                 </div>
             `
+        },
+        {
+            title: "Test",
+            content: `
+                <div>
+                    <p>Dit is een testpagina voor de Smart pages.</p>
+                </div>
+            `
         }
-    ];
+    ];  
 
     modal.innerHTML = `
         <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #555; padding-bottom:10px; margin-bottom:5px;">
