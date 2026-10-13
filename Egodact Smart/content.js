@@ -515,6 +515,7 @@ function rgbVan(hex) {
 // wereld-icoontjes, daarna de avatars van de gebruikers.
 function schraapBord(challenges, modalEl) {
     const resultaat = { thumbs: {}, users: {} };
+    const stemmenPerUser = {};
 
     const leaves = [];
     document.body.querySelectorAll('*').forEach(el => {
@@ -561,20 +562,33 @@ function schraapBord(challenges, modalEl) {
 
         const metFoto = (c.users || []).filter(u => u.picture);
         const heeftThumb = !!(c.thumbnail && c.thumbnail.file);
+        const aantalWerelden = (c.worlds || []).length;
 
-        const userUrls = urls.slice(
-            Math.max(urls.length - metFoto.length, 0)
-        );
-
-        metFoto.forEach((u, i) => {
-            if (userUrls[i] && !resultaat.users[u.name]) {
-                resultaat.users[u.name] = userUrls[i];
-            }
-        });
-
-        if (heeftThumb && urls.length > metFoto.length) {
+        // Thumbnail staat bovenaan de kaart, vóór de wereld-icoontjes.
+        if (heeftThumb && urls.length > aantalWerelden) {
             resultaat.thumbs[c.id] = urls[0];
         }
+
+        // Avatars alleen vertrouwen als het aantal afbeeldingen exact
+        // klopt. Egodact verbergt namelijk je eigen avatar op kaarten
+        // waar je de enige deelnemer bent.
+        const verwacht =
+            (heeftThumb ? 1 : 0) + aantalWerelden + metFoto.length;
+
+        if (urls.length === verwacht) {
+            const userUrls = urls.slice(urls.length - metFoto.length);
+
+            metFoto.forEach((u, i) => {
+                const stemmen = (stemmenPerUser[u.name] ||= {});
+                stemmen[userUrls[i]] = (stemmen[userUrls[i]] || 0) + 1;
+            });
+        }
+    }
+
+    // Per gebruiker de URL die op de meeste kaarten voorkomt.
+    for (const [naam, stemmen] of Object.entries(stemmenPerUser)) {
+        resultaat.users[naam] = Object.entries(stemmen)
+            .sort((a, b) => b[1] - a[1])[0][0];
     }
 
     return resultaat;
