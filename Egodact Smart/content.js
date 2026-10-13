@@ -242,10 +242,10 @@ function openSMARTMenu(e) {
     modal.innerHTML = `
         <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #555; padding-bottom:10px; margin-bottom:5px;">
             <h2 id="modal-title-text" style="margin:0; font-size:22px; font-weight:500;">${modalPagesData[currentModalPage].title}</h2>
-            <div style="display:flex; align-items:center; gap:6px;">
-                <button id="modal-prev-btn" type="button" aria-label="Vorige pagina" title="Vorige pagina" style="background:none; border:none; color:#90caf9; cursor:pointer; padding:4px 6px; font-size:22px; line-height:1;">‹</button>
+            <div style="display:flex; align-items:center; gap:4px;">
+                <button id="modal-prev-btn" type="button" aria-label="Vorige pagina" title="Vorige pagina" style="background-color:transparent; border:1px solid #90caf9; border-radius:4px; color:#90caf9; cursor:pointer; padding:3px 9px; font-size:18px; font-weight:600; line-height:1.2; transition:background-color 120ms ease, color 120ms ease;" onmouseenter="this.style.backgroundColor='#90caf9'; this.style.color='#0d47a1';" onmouseleave="this.style.backgroundColor='transparent'; this.style.color='#90caf9';">‹</button>
                 <span id="modal-page-indicator" aria-live="polite" style="min-width:28px; text-align:center; color:#b0b0b0; font-size:12px;">1 / 2</span>
-                <button id="modal-next-btn" type="button" aria-label="Volgende pagina" title="Volgende pagina" style="background:none; border:none; color:#90caf9; cursor:pointer; padding:4px 6px; font-size:22px; line-height:1;">›</button>
+                <button id="modal-next-btn" type="button" aria-label="Volgende pagina" title="Volgende pagina" style="background-color:transparent; border:1px solid #90caf9; border-radius:4px; color:#90caf9; cursor:pointer; padding:3px 9px; font-size:18px; font-weight:600; line-height:1.2; transition:background-color 120ms ease, color 120ms ease;" onmouseenter="this.style.backgroundColor='#90caf9'; this.style.color='#0d47a1';" onmouseleave="this.style.backgroundColor='transparent'; this.style.color='#90caf9';">›</button>
             </div>
         </div>
         <div id="modal-dynamic-content" style="display:flex; flex-direction:column; gap:10px; margin-top:5px;">
@@ -273,6 +273,7 @@ function openSMARTMenu(e) {
             button.style.opacity = button.disabled ? '0.35' : '1';
             button.style.cursor = button.disabled ? 'default' : 'pointer';
             button.style.color = button.disabled ? '#777777' : '#90caf9';
+            button.style.borderColor = button.disabled ? '#777777' : '#90caf9';
         });
     }
 
