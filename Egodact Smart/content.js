@@ -42,220 +42,261 @@ function openSMARTMenu(e) {
             '0px 9px 46px 8px rgba(0,0,0,0.15)'
     });
 
+    let currentModalPage = 0;
+
+    const modalPagesData = [
+        {
+            title: "SMART methode",
+            content: `
+            <div style="
+                        display: flex;
+                        flex-direction: column;
+                        gap: 10px;
+                        margin-top: 5px;
+                    ">
+            
+                        <div style="
+                            display: flex;
+                            align-items: center;
+                            gap: 14px;
+                            background: #2e2e2e;
+                            padding: 12px;
+                            border-radius: 4px;
+                            border-left: 5px solid #0d47a1;
+                        ">
+                            <span style="
+                                font-size: 20px;
+                                font-weight: bold;
+                                color: #90caf9;
+                                min-width: 20px;
+                                text-align: center;
+                            ">S</span>
+            
+                            <div>
+                                <div style="
+                                    font-weight: bold;
+                                    font-size: 15px;
+                                ">
+                                    Specifiek
+                                </div>
+            
+                                <div style="
+                                    font-size: 13px;
+                                    color: #b0b0b0;
+                                ">
+                                    Is het doel duidelijk en concreet omschreven?
+                                </div>
+                            </div>
+                        </div>
+            
+                        <div style="
+                            display: flex;
+                            align-items: center;
+                            gap: 14px;
+                            background: #2e2e2e;
+                            padding: 12px;
+                            border-radius: 4px;
+                            border-left: 5px solid #00b0ff;
+                        ">
+                            <span style="
+                                font-size: 20px;
+                                font-weight: bold;
+                                color: #40c4ff;
+                                min-width: 20px;
+                                text-align: center;
+                            ">M</span>
+            
+                            <div>
+                                <div style="
+                                    font-weight: bold;
+                                    font-size: 15px;
+                                ">
+                                    Meetbaar
+                                </div>
+            
+                                <div style="
+                                    font-size: 13px;
+                                    color: #b0b0b0;
+                                ">
+                                    Kun je achteraf bewijzen of meten dat het doel is gehaald?
+                                </div>
+                            </div>
+                        </div>
+            
+                        <div style="
+                            display: flex;
+                            align-items: center;
+                            gap: 14px;
+                            background: #2e2e2e;
+                            padding: 12px;
+                            border-radius: 4px;
+                            border-left: 5px solid #ffb300;
+                        ">
+                            <span style="
+                                font-size: 20px;
+                                font-weight: bold;
+                                color: #ffe082;
+                                min-width: 20px;
+                                text-align: center;
+                            ">A</span>
+            
+                            <div>
+                                <div style="
+                                    font-weight: bold;
+                                    font-size: 15px;
+                                ">
+                                    Aantrekkelijk
+                                </div>
+            
+                                <div style="
+                                    font-size: 13px;
+                                    color: #b0b0b0;
+                                ">
+                                    Is het doel motiverend, uitdagend en de moeite waard?
+                                </div>
+                            </div>
+                        </div>
+            
+                        <div style="
+                            display: flex;
+                            align-items: center;
+                            gap: 14px;
+                            background: #2e2e2e;
+                            padding: 12px;
+                            border-radius: 4px;
+                            border-left: 5px solid #9c27b0;
+                        ">
+                            <span style="
+                                font-size: 20px;
+                                font-weight: bold;
+                                color: #f48fb1;
+                                min-width: 20px;
+                                text-align: center;
+                            ">R</span>
+            
+                            <div>
+                                <div style="
+                                    font-weight: bold;
+                                    font-size: 15px;
+                                ">
+                                    Realistisch
+                                </div>
+            
+                                <div style="
+                                    font-size: 13px;
+                                    color: #b0b0b0;
+                                ">
+                                    Is het doel haalbaar en uitvoerbaar binnen jouw planning?
+                                </div>
+                            </div>
+                        </div>
+            
+                        <div style="
+                            display: flex;
+                            align-items: center;
+                            gap: 14px;
+                            background: #2e2e2e;
+                            padding: 12px;
+                            border-radius: 4px;
+                            border-left: 5px solid #0288d1;
+                        ">
+                            <span style="
+                                font-size: 20px;
+                                font-weight: bold;
+                                color: #81d4fa;
+                                min-width: 20px;
+                                text-align: center;
+                            ">T</span>
+            
+                            <div>
+                                <div style="
+                                    font-weight: bold;
+                                    font-size: 15px;
+                                ">
+                                    Tijdsgebonden
+                                </div>
+            
+                                <div style="
+                                    font-size: 13px;
+                                    color: #b0b0b0;
+                                ">
+                                    Wanneer, op welke datum of na hoeveel weken is het klaar?
+                                </div>
+                            </div>
+                        </div>
+            
+                    </div>
+            `
+        },
+        {
+            title: "Volgende Taken",
+            content: `
+                <div style="display:flex; align-items:center; gap:14px; background:#2e2e2e; padding:12px; border-radius:4px; border-left:5px solid #4caf50;">
+                    <span style="font-size:20px; font-weight:bold; color:#a5d6a7; min-width:20px; text-align:center;">1</span>
+                    <div>
+                        <div style="font-weight:bold; font-size:15px;">Doelen Formuleren</div>
+                        <div style="font-size:13px; color:#b0b0b0;">Schrijf je eerste SMART doel op in je dashboard.</div>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:14px; background:#2e2e2e; padding:12px; border-radius:4px; border-left:5px solid #f44336;">
+                    <span style="font-size:20px; font-weight:bold; color:#ef9a9a; min-width:20px; text-align:center;">2</span>
+                    <div>
+                        <div style="font-weight:bold; font-size:15px;">Deadline Controleren</div>
+                        <div style="font-size:13px; color:#b0b0b0;">Zorg dat er een duidelijke datum gekoppeld is aan de T.</div>
+                    </div>
+                </div>
+            `
+        }
+    ];
+
     modal.innerHTML = `
-        <h2 style="
-            margin: 0;
-            font-size: 22px;
-            font-weight: 500;
-            border-bottom: 1px solid #555;
-            padding-bottom: 10px;
-        ">
-            SMART methode
-        </h2>
-
-        <div style="
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 5px;
-        ">
-
-            <div style="
-                display: flex;
-                align-items: center;
-                gap: 14px;
-                background: #2e2e2e;
-                padding: 12px;
-                border-radius: 4px;
-                border-left: 5px solid #0d47a1;
-            ">
-                <span style="
-                    font-size: 20px;
-                    font-weight: bold;
-                    color: #90caf9;
-                    min-width: 20px;
-                    text-align: center;
-                ">S</span>
-
-                <div>
-                    <div style="
-                        font-weight: bold;
-                        font-size: 15px;
-                    ">
-                        Specifiek
-                    </div>
-
-                    <div style="
-                        font-size: 13px;
-                        color: #b0b0b0;
-                    ">
-                        Is het doel duidelijk en concreet omschreven?
-                    </div>
-                </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #555; padding-bottom:10px; margin-bottom:5px;">
+            <h2 id="modal-title-text" style="margin:0; font-size:22px; font-weight:500;">${modalPagesData[currentModalPage].title}</h2>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <button id="modal-prev-btn" type="button" aria-label="Vorige pagina" style="background:none; border:none; cursor:pointer; font-size:24px; line-height:1; color:#fff; padding:0 5px;">‹</button>
+                <button id="modal-next-btn" type="button" aria-label="Volgende pagina" style="background:none; border:none; cursor:pointer; font-size:24px; line-height:1; color:#fff; padding:0 5px;">›</button>
             </div>
-
-            <div style="
-                display: flex;
-                align-items: center;
-                gap: 14px;
-                background: #2e2e2e;
-                padding: 12px;
-                border-radius: 4px;
-                border-left: 5px solid #00b0ff;
-            ">
-                <span style="
-                    font-size: 20px;
-                    font-weight: bold;
-                    color: #40c4ff;
-                    min-width: 20px;
-                    text-align: center;
-                ">M</span>
-
-                <div>
-                    <div style="
-                        font-weight: bold;
-                        font-size: 15px;
-                    ">
-                        Meetbaar
-                    </div>
-
-                    <div style="
-                        font-size: 13px;
-                        color: #b0b0b0;
-                    ">
-                        Kun je achteraf bewijzen of meten dat het doel is gehaald?
-                    </div>
-                </div>
-            </div>
-
-            <div style="
-                display: flex;
-                align-items: center;
-                gap: 14px;
-                background: #2e2e2e;
-                padding: 12px;
-                border-radius: 4px;
-                border-left: 5px solid #ffb300;
-            ">
-                <span style="
-                    font-size: 20px;
-                    font-weight: bold;
-                    color: #ffe082;
-                    min-width: 20px;
-                    text-align: center;
-                ">A</span>
-
-                <div>
-                    <div style="
-                        font-weight: bold;
-                        font-size: 15px;
-                    ">
-                        Aantrekkelijk
-                    </div>
-
-                    <div style="
-                        font-size: 13px;
-                        color: #b0b0b0;
-                    ">
-                        Is het doel motiverend, uitdagend en de moeite waard?
-                    </div>
-                </div>
-            </div>
-
-            <div style="
-                display: flex;
-                align-items: center;
-                gap: 14px;
-                background: #2e2e2e;
-                padding: 12px;
-                border-radius: 4px;
-                border-left: 5px solid #9c27b0;
-            ">
-                <span style="
-                    font-size: 20px;
-                    font-weight: bold;
-                    color: #f48fb1;
-                    min-width: 20px;
-                    text-align: center;
-                ">R</span>
-
-                <div>
-                    <div style="
-                        font-weight: bold;
-                        font-size: 15px;
-                    ">
-                        Realistisch
-                    </div>
-
-                    <div style="
-                        font-size: 13px;
-                        color: #b0b0b0;
-                    ">
-                        Is het doel haalbaar en uitvoerbaar binnen jouw planning?
-                    </div>
-                </div>
-            </div>
-
-            <div style="
-                display: flex;
-                align-items: center;
-                gap: 14px;
-                background: #2e2e2e;
-                padding: 12px;
-                border-radius: 4px;
-                border-left: 5px solid #0288d1;
-            ">
-                <span style="
-                    font-size: 20px;
-                    font-weight: bold;
-                    color: #81d4fa;
-                    min-width: 20px;
-                    text-align: center;
-                ">T</span>
-
-                <div>
-                    <div style="
-                        font-weight: bold;
-                        font-size: 15px;
-                    ">
-                        Tijdsgebonden
-                    </div>
-
-                    <div style="
-                        font-size: 13px;
-                        color: #b0b0b0;
-                    ">
-                        Wanneer, op welke datum of na hoeveel weken is het klaar?
-                    </div>
-                </div>
-            </div>
-
         </div>
-
-        <div style="
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 5px;
-        ">
-            <button
-                id="egodact-modal-sluiten"
-                style="
-                    background-color: #90caf9;
-                    border: none;
-                    color: #0d47a1;
-                    cursor: pointer;
-                    padding: 10px 20px;
-                    font-weight: bold;
-                    font-size: 14px;
-                    text-transform: uppercase;
-                    border-radius: 4px;
-                    box-shadow: 0px 3px 1px -2px rgba(0,0,0,0.2);
-                "
-            >
-                Sluiten
-            </button>
+        <div id="modal-dynamic-content" style="display:flex; flex-direction:column; gap:10px; margin-top:5px;">
+            ${modalPagesData[currentModalPage].content}
+        </div>
+        <div style="display:flex; justify-content:flex-end; margin-top:15px;">
+            <button id="egodact-modal-sluiten" style="background-color:#90caf9; border:none; color:#0d47a1; cursor:pointer; padding:10px 20px; font-weight:bold; font-size:14px; text-transform:uppercase; border-radius:4px; box-shadow:0px 3px 1px -2px rgba(0,0,0,0.2);">Sluiten</button>
         </div>
     `;
+
+    const modalTitle = modal.querySelector('#modal-title-text');
+    const modalBody = modal.querySelector('#modal-dynamic-content');
+    const prevButton = modal.querySelector('#modal-prev-btn');
+    const nextButton = modal.querySelector('#modal-next-btn');
+
+    function updateModalView() {
+        modalTitle.textContent = modalPagesData[currentModalPage].title;
+        modalBody.innerHTML = modalPagesData[currentModalPage].content;
+        prevButton.disabled = currentModalPage === 0;
+        nextButton.disabled = currentModalPage === modalPagesData.length - 1;
+        prevButton.style.opacity = prevButton.disabled ? '0.35' : '1';
+        nextButton.style.opacity = nextButton.disabled ? '0.35' : '1';
+        prevButton.style.cursor = prevButton.disabled ? 'default' : 'pointer';
+        nextButton.style.cursor = nextButton.disabled ? 'default' : 'pointer';
+    }
+
+    nextButton.addEventListener('click', () => {
+        if (currentModalPage < modalPagesData.length - 1) {
+            currentModalPage++;
+            updateModalView();
+        }
+    });
+
+    prevButton.addEventListener('click', () => {
+        if (currentModalPage > 0) {
+            currentModalPage--;
+            updateModalView();
+        }
+    });
+
+    updateModalView();
+
 
     const sluitMenu = () => backdrop.remove();
 
