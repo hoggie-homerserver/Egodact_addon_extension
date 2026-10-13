@@ -229,19 +229,42 @@ function openSMARTMenu(e) {
             `
         },
         {
-            title: "Memory Palace",
+            title: "Geheugenpaleis",
             content: `
-                <div>
-                    <p>De Memory Palace is een techniek om informatie te onthouden door deze te associëren met een bekend locatie of ruimte.</p>
-                    <p>Gebruik deze techniek om je doelen en taken te visualiseren en gemakkelijker te onthouden.</p>
-                </div>
-            `
-        },
-        {
-            title: "Test",
-            content: `
-                <div>
-                    <p>Dit is een testpagina voor de Smart pages.</p>
+                <div style="display:flex; flex-direction:column; gap:10px; margin-top:5px;">
+                    <p style="margin:0 0 4px; color:#b0b0b0; font-size:13px;">Onthoud informatie door die te koppelen aan een plek die je goed kent.</p>
+
+                    <div style="display:flex; align-items:center; gap:12px; background:#2e2e2e; padding:12px; border-radius:4px; border-left:4px solid #0d47a1;">
+                        <span style="font-size:18px; font-weight:bold; color:#90caf9; min-width:20px;">1</span>
+                        <div>
+                            <div style="font-weight:bold; font-size:14px;">Kies een plek</div>
+                            <div style="font-size:13px; color:#b0b0b0;">Bijvoorbeeld je huis of klaslokaal.</div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:12px; background:#2e2e2e; padding:12px; border-radius:4px; border-left:4px solid #00b0ff;">
+                        <span style="font-size:18px; font-weight:bold; color:#40c4ff; min-width:20px;">2</span>
+                        <div>
+                            <div style="font-weight:bold; font-size:14px;">Kies je route</div>
+                            <div style="font-size:13px; color:#b0b0b0;">Loop in gedachten langs vaste plekken.</div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:12px; background:#2e2e2e; padding:12px; border-radius:4px; border-left:4px solid #ffb300;">
+                        <span style="font-size:18px; font-weight:bold; color:#ffe082; min-width:20px;">3</span>
+                        <div>
+                            <div style="font-weight:bold; font-size:14px;">Maak beelden</div>
+                            <div style="font-size:13px; color:#b0b0b0;">Koppel elk punt aan iets opvallends.</div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:12px; background:#2e2e2e; padding:12px; border-radius:4px; border-left:4px solid #0288d1;">
+                        <span style="font-size:18px; font-weight:bold; color:#81d4fa; min-width:20px;">4</span>
+                        <div>
+                            <div style="font-weight:bold; font-size:14px;">Oefen je route</div>
+                            <div style="font-size:13px; color:#b0b0b0;">Loop hem in gedachten na om alles terug te halen.</div>
+                        </div>
+                    </div>
                 </div>
             `
         }
