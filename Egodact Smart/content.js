@@ -229,21 +229,11 @@ function openSMARTMenu(e) {
             `
         },
         {
-            title: "Volgende Taken",
+            title: "Memory Palace",
             content: `
-                <div style="display:flex; align-items:center; gap:14px; background:#2e2e2e; padding:12px; border-radius:4px; border-left:5px solid #4caf50;">
-                    <span style="font-size:20px; font-weight:bold; color:#a5d6a7; min-width:20px; text-align:center;">1</span>
-                    <div>
-                        <div style="font-weight:bold; font-size:15px;">Doelen Formuleren</div>
-                        <div style="font-size:13px; color:#b0b0b0;">Schrijf je eerste SMART doel op in je dashboard.</div>
-                    </div>
-                </div>
-                <div style="display:flex; align-items:center; gap:14px; background:#2e2e2e; padding:12px; border-radius:4px; border-left:5px solid #f44336;">
-                    <span style="font-size:20px; font-weight:bold; color:#ef9a9a; min-width:20px; text-align:center;">2</span>
-                    <div>
-                        <div style="font-weight:bold; font-size:15px;">Deadline Controleren</div>
-                        <div style="font-size:13px; color:#b0b0b0;">Zorg dat er een duidelijke datum gekoppeld is aan de T.</div>
-                    </div>
+                <div>
+                    <p>De Memory Palace is een techniek om informatie te onthouden door deze te associëren met een bekend locatie of ruimte.</p>
+                    <p>Gebruik deze techniek om je doelen en taken te visualiseren en gemakkelijker te onthouden.</p>
                 </div>
             `
         }
