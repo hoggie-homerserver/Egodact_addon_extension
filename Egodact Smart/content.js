@@ -494,7 +494,93 @@ function kleurIsDonker(hex) {
     return (0.299 * r + 0.587 * g + 0.114 * b) < 150;
 }
 
-function maakAvatar(user, pictureBase) {
+function afbeeldingUrlVan(el) {
+    if (el.tagName === 'IMG') return el.currentSrc || el.src || null;
+
+    const bg = getComputedStyle(el).backgroundImage;
+    const m = bg && bg !== 'none' && /url\(["']?([^"')]+)/.exec(bg);
+    return m ? m[1] : null;
+}
+
+function rgbVan(hex) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+    if (!m) return null;
+
+    const n = parseInt(m[1], 16);
+    return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
+}
+
+// Zoekt de echte kaart op het Egodact-bord (achter dit menu) op naam en
+// leest daar de afbeeldingen uit. Volgorde in een kaart: thumbnail,
+// wereld-icoontjes, daarna de avatars van de gebruikers.
+function schraapBord(challenges, modalEl) {
+    const resultaat = { thumbs: {}, users: {} };
+
+    const leaves = [];
+    document.body.querySelectorAll('*').forEach(el => {
+        if (modalEl.contains(el) || el.children.length) return;
+        const tekst = el.textContent.trim();
+        if (tekst) leaves.push({ el, tekst });
+    });
+
+    for (const c of challenges) {
+        const naam = (c.name || '').trim();
+        const kandidaten = leaves.filter(l => l.tekst === naam);
+        if (!kandidaten.length) continue;
+
+        const kleur = rgbVan(c.color);
+        let kaart = null;
+
+        for (const { el } of kandidaten) {
+            let node = el;
+
+            for (let i = 0; i < 8 && node.parentElement; i++) {
+                node = node.parentElement;
+
+                if (kleur &&
+                    getComputedStyle(node).backgroundColor === kleur) {
+                    kaart = node;
+                    break;
+                }
+            }
+
+            if (kaart) break;
+        }
+
+        if (!kaart && !kleur) {
+            kaart = kandidaten[0].el.parentElement &&
+                kandidaten[0].el.parentElement.parentElement;
+        }
+        if (!kaart) continue;
+
+        const urls = [];
+        kaart.querySelectorAll('*').forEach(el => {
+            const url = afbeeldingUrlVan(el);
+            if (url) urls.push(url);
+        });
+
+        const metFoto = (c.users || []).filter(u => u.picture);
+        const heeftThumb = !!(c.thumbnail && c.thumbnail.file);
+
+        const userUrls = urls.slice(
+            Math.max(urls.length - metFoto.length, 0)
+        );
+
+        metFoto.forEach((u, i) => {
+            if (userUrls[i] && !resultaat.users[u.name]) {
+                resultaat.users[u.name] = userUrls[i];
+            }
+        });
+
+        if (heeftThumb && urls.length > metFoto.length) {
+            resultaat.thumbs[c.id] = urls[0];
+        }
+    }
+
+    return resultaat;
+}
+
+function maakAvatar(user, url) {
     const size = '26px';
     const wrap = document.createElement('div');
 
@@ -515,9 +601,9 @@ function maakAvatar(user, pictureBase) {
     wrap.title = user.name || '';
     wrap.textContent = (user.firstName || '?')[0].toUpperCase();
 
-    if (user.picture && pictureBase) {
+    if (url) {
         const img = document.createElement('img');
-        img.src = pictureBase + user.picture;
+        img.src = url;
         img.alt = '';
         Object.assign(img.style, {
             width: '100%',
@@ -533,7 +619,7 @@ function maakAvatar(user, pictureBase) {
     return wrap;
 }
 
-function maakChallengeKaart(challenge, thumbBase, pictureBase) {
+function maakChallengeKaart(challenge, thumbBase, pictureBase, schraap) {
     const donker = kleurIsDonker(challenge.color);
     const card = document.createElement('div');
 
@@ -558,9 +644,12 @@ function maakChallengeKaart(challenge, thumbBase, pictureBase) {
     const thumbName = file &&
         (file.thumbnailStorageFilename || file.storageFilename);
 
-    if (thumbName && thumbBase) {
+    const thumbUrl = schraap.thumbs[challenge.id] ||
+        (thumbName && thumbBase ? thumbBase + thumbName : null);
+
+    if (thumbUrl) {
         const img = document.createElement('img');
-        img.src = thumbBase + thumbName;
+        img.src = thumbUrl;
         img.alt = '';
         Object.assign(img.style, {
             width: '100%',
@@ -573,13 +662,6 @@ function maakChallengeKaart(challenge, thumbBase, pictureBase) {
         img.addEventListener('load', () => {
             img.style.display = 'block';
         });
-        // Zonder thumbnail-bestand: probeer het originele bestand.
-        img.addEventListener('error', () => {
-            if (file.storageFilename &&
-                !img.src.endsWith(file.storageFilename)) {
-                img.src = thumbBase + file.storageFilename;
-            }
-        });
         card.appendChild(img);
     }
 
@@ -589,9 +671,11 @@ function maakChallengeKaart(challenge, thumbBase, pictureBase) {
         gap: '4px',
         flexWrap: 'wrap'
     });
-    (challenge.users || []).forEach(u =>
-        users.appendChild(maakAvatar(u, pictureBase))
-    );
+    (challenge.users || []).forEach(u => {
+        const url = schraap.users[u.name] ||
+            (u.picture && pictureBase ? pictureBase + u.picture : null);
+        users.appendChild(maakAvatar(u, url));
+    });
     if (users.childNodes.length) card.appendChild(users);
 
     const name = document.createElement('div');
@@ -654,25 +738,27 @@ function toonChallengePortfolio(container, data) {
         )
     );
 
+    const modalEl = container.parentElement || container;
+    const schraap = schraapBord(alleChallenges, modalEl);
+
     console.log('Egodact extensie: thumbnail-basis =', thumbBase);
     console.log('Egodact extensie: avatar-basis =', pictureBase);
+    console.log(
+        'Egodact extensie: van bord gelezen thumbnails =',
+        Object.keys(schraap.thumbs).length,
+        'gebruikers =',
+        Object.keys(schraap.users).length,
+        schraap
+    );
 
-    if (!thumbBase || !pictureBase) {
-        console.warn(
-            'Egodact extensie: afbeeldings-URL niet gevonden. ' +
-            'Voorbeeld van geladen afbeeldingen:',
-            paginaAfbeeldingen
-                .filter(u => /\.(png|jpe?g|webp|svg)|image|file/i.test(u))
-                .slice(0, 20)
-        );
-    }
+    const LIJN = '1px solid #616161';
 
     container.replaceChildren();
 
     const gridStijl = {
         display: 'grid',
         gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-        gap: '12px'
+        gap: '0'
     };
 
     const kop = document.createElement('div');
@@ -680,14 +766,18 @@ function toonChallengePortfolio(container, data) {
         position: 'sticky',
         top: '0',
         background: '#424242',
-        padding: '4px 0 8px',
         zIndex: '1',
         color: '#bdbdbd',
-        fontSize: '14px'
+        fontSize: '14px',
+        borderBottom: LIJN
     });
-    CHALLENGE_FASES.forEach(f => {
+    CHALLENGE_FASES.forEach((f, i) => {
         const el = document.createElement('div');
         el.textContent = f.label;
+        Object.assign(el.style, {
+            padding: '8px 12px',
+            borderLeft: i > 0 ? LIJN : 'none'
+        });
         kop.appendChild(el);
     });
     container.appendChild(kop);
@@ -698,24 +788,28 @@ function toonChallengePortfolio(container, data) {
         Object.assign(titel.style, {
             fontSize: '18px',
             fontWeight: '500',
-            margin: '14px 0 8px',
-            borderTop: '1px solid #555',
-            paddingTop: '10px'
+            padding: '12px',
+            borderBottom: LIJN
         });
         container.appendChild(titel);
 
         const grid = document.createElement('div');
-        Object.assign(grid.style, gridStijl);
+        Object.assign(grid.style, gridStijl, {
+            borderBottom: LIJN
+        });
 
         const kolommen = {};
-        CHALLENGE_FASES.forEach(f => {
+        CHALLENGE_FASES.forEach((f, i) => {
             const kol = document.createElement('div');
             Object.assign(kol.style, {
                 display: 'grid',
                 gridTemplateColumns:
                     'repeat(auto-fill, minmax(150px, 1fr))',
                 gap: '8px',
-                alignContent: 'start'
+                alignContent: 'start',
+                padding: '12px',
+                minHeight: '56px',
+                borderLeft: i > 0 ? LIJN : 'none'
             });
             kolommen[f.key] = kol;
             grid.appendChild(kol);
@@ -727,14 +821,15 @@ function toonChallengePortfolio(container, data) {
 
             const kol = kolommen[challenge.phase] || kolommen.TODO;
             kol.appendChild(
-                maakChallengeKaart(challenge, thumbBase, pictureBase)
+                maakChallengeKaart(
+                    challenge, thumbBase, pictureBase, schraap
+                )
             );
         }
 
         container.appendChild(grid);
     }
 }
-
 
 async function laadChallenges() {
     const container = modal.querySelector(
