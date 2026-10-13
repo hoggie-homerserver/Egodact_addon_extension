@@ -638,6 +638,7 @@ function maakChallengeKaart(challenge, thumbBase, pictureBase, schraap) {
     const card = document.createElement('div');
 
     card.dataset.name = (challenge.name || '').toLowerCase();
+    card.dataset.phase = challenge.phase || 'TODO';
 
     Object.assign(card.style, {
         background: challenge.color || '#616161',
@@ -769,6 +770,15 @@ function toonChallengePortfolio(container, data) {
 
     container.replaceChildren();
 
+    const zoek = document.createElement('div');
+    zoek.id = 'egodact-zoekresultaten';
+    zoek.style.display = 'none';
+    container.appendChild(zoek);
+
+    const bord = document.createElement('div');
+    bord.id = 'egodact-bord';
+    container.appendChild(bord);
+
     const gridStijl = {
         display: 'grid',
         gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
@@ -794,7 +804,7 @@ function toonChallengePortfolio(container, data) {
         });
         kop.appendChild(el);
     });
-    container.appendChild(kop);
+    bord.appendChild(kop);
 
     for (const row of rows) {
         const titel = document.createElement('div');
@@ -805,7 +815,7 @@ function toonChallengePortfolio(container, data) {
             padding: '12px',
             borderBottom: LIJN
         });
-        container.appendChild(titel);
+        bord.appendChild(titel);
 
         const grid = document.createElement('div');
         Object.assign(grid.style, gridStijl, {
@@ -834,15 +844,124 @@ function toonChallengePortfolio(container, data) {
             if (!challenge) continue;
 
             const kol = kolommen[challenge.phase] || kolommen.TODO;
-            kol.appendChild(
-                maakChallengeKaart(
-                    challenge, thumbBase, pictureBase, schraap
-                )
+            const kaart = maakChallengeKaart(
+                challenge, thumbBase, pictureBase, schraap
             );
+            kaart.dataset.row = row.name || '';
+            kol.appendChild(kaart);
         }
 
-        container.appendChild(grid);
+        bord.appendChild(grid);
     }
+}
+
+// Zoeken: de gevonden challenges komen bovenaan, het gewone bord
+// wordt tijdelijk verborgen. Leeg zoekveld = alles weer terug.
+function toonZoekresultaten(container, zoekterm) {
+    const zoek = container.querySelector('#egodact-zoekresultaten');
+    const bord = container.querySelector('#egodact-bord');
+    if (!zoek || !bord) return;
+
+    const q = zoekterm.trim().toLowerCase();
+
+    zoek.replaceChildren();
+
+    if (!q) {
+        zoek.style.display = 'none';
+        bord.style.display = '';
+        return;
+    }
+
+    bord.style.display = 'none';
+    zoek.style.display = '';
+
+    const gevonden = [...bord.querySelectorAll('[data-name]')]
+        .filter(k => k.dataset.name.includes(q));
+
+    const titel = document.createElement('div');
+    titel.textContent = `Zoekresultaten (${gevonden.length})`;
+    Object.assign(titel.style, {
+        fontSize: '18px',
+        fontWeight: '500',
+        padding: '12px',
+        borderBottom: '1px solid #616161'
+    });
+    zoek.appendChild(titel);
+
+    if (!gevonden.length) {
+        const leeg = document.createElement('div');
+        leeg.textContent = 'Geen challenges gevonden.';
+        Object.assign(leeg.style, {
+            padding: '12px',
+            color: '#bdbdbd',
+            fontSize: '13px'
+        });
+        zoek.appendChild(leeg);
+        return;
+    }
+
+    const grid = document.createElement('div');
+    Object.assign(grid.style, {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+        gap: '0',
+        borderBottom: '1px solid #616161'
+    });
+
+    CHALLENGE_FASES.forEach((f, i) => {
+        const kol = document.createElement('div');
+        Object.assign(kol.style, {
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+            gap: '8px',
+            alignContent: 'start',
+            padding: '12px',
+            minHeight: '56px',
+            borderLeft: i > 0 ? '1px solid #616161' : 'none'
+        });
+
+        gevonden
+            .filter(k => k.dataset.phase === f.key)
+            .forEach(k => {
+                const kopie = k.cloneNode(true);
+
+                if (k.dataset.row) {
+                    const rij = document.createElement('div');
+                    rij.textContent = k.dataset.row;
+                    Object.assign(rij.style, {
+                        fontSize: '11px',
+                        opacity: '0.7'
+                    });
+                    kopie.appendChild(rij);
+                }
+
+                kol.appendChild(kopie);
+            });
+
+        grid.appendChild(kol);
+    });
+
+    // Kolomkoppen bovenaan de resultaten.
+    const kop = document.createElement('div');
+    Object.assign(kop.style, {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+        color: '#bdbdbd',
+        fontSize: '14px',
+        borderBottom: '1px solid #616161'
+    });
+    CHALLENGE_FASES.forEach((f, i) => {
+        const el = document.createElement('div');
+        el.textContent = f.label;
+        Object.assign(el.style, {
+            padding: '8px 12px',
+            borderLeft: i > 0 ? '1px solid #616161' : 'none'
+        });
+        kop.appendChild(el);
+    });
+
+    zoek.appendChild(kop);
+    zoek.appendChild(grid);
 }
 
 async function laadChallenges() {
@@ -941,14 +1060,10 @@ async function laadChallenges() {
     });
 
     searchInput.addEventListener('input', () => {
-        const q = searchInput.value.trim().toLowerCase();
-
-        modal
-            .querySelectorAll('#egodact-beta-challenges [data-name]')
-            .forEach(card => {
-                card.style.display =
-                    !q || card.dataset.name.includes(q) ? '' : 'none';
-            });
+        toonZoekresultaten(
+            modal.querySelector('#egodact-beta-challenges'),
+            searchInput.value
+        );
     });
 
     laadChallenges();
