@@ -394,19 +394,6 @@ function openBetaFeaturesMenu(e) {
             margin-top: 5px;
         ">
             <button
-                id="egodact-beta-debug"
-                style="
-                    background: transparent;
-                    border: 1px solid #757575;
-                    color: #bdbdbd;
-                    cursor: pointer;
-                    padding: 10px 14px;
-                    font-size: 12px;
-                    border-radius: 4px;
-                    margin-right: 10px;
-                "
-            >Debug kopiëren</button>
-            <button
                 id="egodact-beta-modal-sluiten"
                 style="
                     background-color: #90caf9;
@@ -672,18 +659,6 @@ function schraapBord(challenges, modalEl) {
         if (!veranderd) break;
     }
 
-    resultaat.debug = kaarten.map(k => ({
-        challenge: k.naam,
-        deelnemersMetFoto: k.namen,
-        avatarUrlsOpKaart: k.tail,
-        alleAfbeeldingenOpKaart: k.ruweUrls
-    }));
-    resultaat.debug.push({
-        ik: meNaam,
-        mijnFotoUrl: meUrl,
-        toegewezen: resultaat.users
-    });
-
     return resultaat;
 }
 
@@ -848,7 +823,6 @@ function toonChallengePortfolio(container, data) {
 
     const modalEl = container.parentElement || container;
     const schraap = schraapBord(alleChallenges, modalEl);
-    modalEl.__egodactDebug = schraap.debug;
 
     console.log('Egodact extensie: thumbnail-basis =', thumbBase);
     console.log('Egodact extensie: avatar-basis =', pictureBase);
@@ -856,8 +830,7 @@ function toonChallengePortfolio(container, data) {
         'Egodact extensie: van bord gelezen thumbnails =',
         Object.keys(schraap.thumbs).length,
         'gebruikers =',
-        Object.keys(schraap.users).length,
-        schraap
+        Object.keys(schraap.users).length
     );
 
     const LIJN = '1px solid #616161';
@@ -1148,25 +1121,6 @@ async function laadChallenges() {
     modal
         .querySelector('#egodact-beta-modal-sluiten')
         .addEventListener('click', sluitMenu);
-
-    modal
-        .querySelector('#egodact-beta-debug')
-        .addEventListener('click', async event => {
-            const knop = event.currentTarget;
-            const tekst = JSON.stringify(
-                modal.__egodactDebug || 'nog niet geladen',
-                null,
-                1
-            );
-
-            try {
-                await navigator.clipboard.writeText(tekst);
-                knop.textContent = 'Gekopieerd!';
-            } catch (err) {
-                console.log('Egodact debug:', tekst);
-                knop.textContent = 'Zie console';
-            }
-        });
 
     backdrop.addEventListener('click', event => {
         if (event.target === backdrop) sluitMenu();
