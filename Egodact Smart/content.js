@@ -460,7 +460,7 @@ async function laadChallenges() {
             {
                 method: 'GET',
                 headers,
-                credentials: 'include'
+                credentials: 'omit'
             }
         );
 
