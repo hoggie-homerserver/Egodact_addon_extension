@@ -242,9 +242,10 @@ function openSMARTMenu(e) {
     modal.innerHTML = `
         <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #555; padding-bottom:10px; margin-bottom:5px;">
             <h2 id="modal-title-text" style="margin:0; font-size:22px; font-weight:500;">${modalPagesData[currentModalPage].title}</h2>
-            <div style="display:flex; gap:8px; align-items:center;">
-                <button id="modal-prev-btn" type="button" aria-label="Vorige pagina" style="background:none; border:none; cursor:pointer; font-size:24px; line-height:1; color:#fff; padding:0 5px;">‹</button>
-                <button id="modal-next-btn" type="button" aria-label="Volgende pagina" style="background:none; border:none; cursor:pointer; font-size:24px; line-height:1; color:#fff; padding:0 5px;">›</button>
+            <div style="display:flex; align-items:center; gap:9px; padding:5px 7px; border:1px solid #5c6675; border-radius:999px; background:#303640;">
+                <button id="modal-prev-btn" type="button" aria-label="Vorige pagina" title="Vorige pagina" style="display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border:1px solid #596575; border-radius:50%; background:#3b4553; color:#eaf2ff; cursor:pointer; font-size:25px; line-height:1; padding:0; transition:background 160ms ease, transform 160ms ease, opacity 160ms ease;">‹</button>
+                <span id="modal-page-indicator" aria-live="polite" style="min-width:36px; text-align:center; color:#cbd5e1; font-size:12px; font-weight:700; letter-spacing:.08em; font-variant-numeric:tabular-nums;">1 / 2</span>
+                <button id="modal-next-btn" type="button" aria-label="Volgende pagina" title="Volgende pagina" style="display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border:1px solid #90caf9; border-radius:50%; background:#90caf9; color:#123b62; cursor:pointer; font-size:25px; line-height:1; padding:0; transition:background 160ms ease, transform 160ms ease, opacity 160ms ease;">›</button>
             </div>
         </div>
         <div id="modal-dynamic-content" style="display:flex; flex-direction:column; gap:10px; margin-top:5px;">
@@ -259,17 +260,35 @@ function openSMARTMenu(e) {
     const modalBody = modal.querySelector('#modal-dynamic-content');
     const prevButton = modal.querySelector('#modal-prev-btn');
     const nextButton = modal.querySelector('#modal-next-btn');
+    const pageIndicator = modal.querySelector('#modal-page-indicator');
 
     function updateModalView() {
         modalTitle.textContent = modalPagesData[currentModalPage].title;
         modalBody.innerHTML = modalPagesData[currentModalPage].content;
+        pageIndicator.textContent = `${currentModalPage + 1} / ${modalPagesData.length}`;
         prevButton.disabled = currentModalPage === 0;
         nextButton.disabled = currentModalPage === modalPagesData.length - 1;
-        prevButton.style.opacity = prevButton.disabled ? '0.35' : '1';
-        nextButton.style.opacity = nextButton.disabled ? '0.35' : '1';
-        prevButton.style.cursor = prevButton.disabled ? 'default' : 'pointer';
-        nextButton.style.cursor = nextButton.disabled ? 'default' : 'pointer';
+
+        [prevButton, nextButton].forEach(button => {
+            button.style.opacity = button.disabled ? '0.35' : '1';
+            button.style.cursor = button.disabled ? 'default' : 'pointer';
+            button.style.boxShadow = button.disabled ? 'none' : '0 2px 7px rgba(0,0,0,0.22)';
+        });
+
+        prevButton.style.background = prevButton.disabled ? '#303640' : '#3b4553';
+        prevButton.style.color = prevButton.disabled ? '#77808d' : '#eaf2ff';
+        nextButton.style.background = nextButton.disabled ? '#303640' : '#90caf9';
+        nextButton.style.color = nextButton.disabled ? '#77808d' : '#123b62';
     }
+
+    [prevButton, nextButton].forEach(button => {
+        button.addEventListener('mouseenter', () => {
+            if (!button.disabled) button.style.transform = 'scale(1.07)';
+        });
+        button.addEventListener('mouseleave', () => {
+            button.style.transform = 'scale(1)';
+        });
+    });
 
     nextButton.addEventListener('click', () => {
         if (currentModalPage < modalPagesData.length - 1) {
