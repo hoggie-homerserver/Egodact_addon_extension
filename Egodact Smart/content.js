@@ -585,10 +585,26 @@ function schraapBord(challenges, modalEl) {
         }
     }
 
-    // Per gebruiker de URL die op de meeste kaarten voorkomt.
+    // Per gebruiker de URL die op de meeste kaarten voorkomt, maar
+    // strikt één-op-één: een foto die al bij iemand hoort (bijv. die
+    // van jezelf, die op bijna elke kaart staat) kan nooit aan een
+    // ander worden gegeven, ook niet als één kaart een andere
+    // volgorde van deelnemers laat zien.
+    const paren = [];
     for (const [naam, stemmen] of Object.entries(stemmenPerUser)) {
-        resultaat.users[naam] = Object.entries(stemmen)
-            .sort((a, b) => b[1] - a[1])[0][0];
+        for (const [url, aantal] of Object.entries(stemmen)) {
+            paren.push({ naam, url, aantal });
+        }
+    }
+
+    paren.sort((x, y) => y.aantal - x.aantal);
+
+    const gebruikteUrls = new Set();
+    for (const { naam, url } of paren) {
+        if (resultaat.users[naam] || gebruikteUrls.has(url)) continue;
+
+        resultaat.users[naam] = url;
+        gebruikteUrls.add(url);
     }
 
     return resultaat;
