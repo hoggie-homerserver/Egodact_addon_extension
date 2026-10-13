@@ -394,6 +394,19 @@ function openBetaFeaturesMenu(e) {
             margin-top: 5px;
         ">
             <button
+                id="egodact-beta-debug"
+                style="
+                    background: transparent;
+                    border: 1px solid #757575;
+                    color: #bdbdbd;
+                    cursor: pointer;
+                    padding: 10px 14px;
+                    font-size: 12px;
+                    border-radius: 4px;
+                    margin-right: 10px;
+                "
+            >Debug kopiëren</button>
+            <button
                 id="egodact-beta-modal-sluiten"
                 style="
                     background-color: #90caf9;
@@ -515,7 +528,8 @@ function rgbVan(hex) {
 // wereld-icoontjes, daarna de avatars van de gebruikers.
 function schraapBord(challenges, modalEl) {
     const resultaat = { thumbs: {}, users: {} };
-    const stemmenPerUser = {};
+    const kaarten = [];
+    const kaartEls = [];
 
     const leaves = [];
     document.body.querySelectorAll('*').forEach(el => {
@@ -553,6 +567,7 @@ function schraapBord(challenges, modalEl) {
                 kandidaten[0].el.parentElement.parentElement;
         }
         if (!kaart) continue;
+        kaartEls.push(kaart);
 
         const urls = [];
         kaart.querySelectorAll('*').forEach(el => {
@@ -563,49 +578,111 @@ function schraapBord(challenges, modalEl) {
         const metFoto = (c.users || []).filter(u => u.picture);
         const heeftThumb = !!(c.thumbnail && c.thumbnail.file);
         const aantalWerelden = (c.worlds || []).length;
+        const kopAantal = (heeftThumb ? 1 : 0) + aantalWerelden;
 
         // Thumbnail staat bovenaan de kaart, vóór de wereld-icoontjes.
         if (heeftThumb && urls.length > aantalWerelden) {
             resultaat.thumbs[c.id] = urls[0];
         }
 
-        // Avatars alleen vertrouwen als het aantal afbeeldingen exact
-        // klopt. Egodact verbergt namelijk je eigen avatar op kaarten
-        // waar je de enige deelnemer bent.
-        const verwacht =
-            (heeftThumb ? 1 : 0) + aantalWerelden + metFoto.length;
+        // Alles na thumbnail + wereld-icoontjes zijn avatars. Een
+        // kaart kan er minder tonen dan er deelnemers zijn (Egodact
+        // verbergt je eigen avatar als je alleen staat), maar nooit meer.
+        const tail = [...new Set(urls.slice(kopAantal))];
 
-        if (urls.length === verwacht) {
-            const userUrls = urls.slice(urls.length - metFoto.length);
+        kaarten.push({
+            id: c.id,
+            naam: c.name,
+            namen: metFoto.map(u => u.name),
+            tail: tail.length <= metFoto.length ? tail : null,
+            ruweUrls: urls
+        });
+    }
 
-            metFoto.forEach((u, i) => {
-                const stemmen = (stemmenPerUser[u.name] ||= {});
-                stemmen[userUrls[i]] = (stemmen[userUrls[i]] || 0) + 1;
-            });
+    // De volgorde van deelnemers op het bord is niet betrouwbaar, dus
+    // we gebruiken die niet. In plaats daarvan:
+    //  1. Jouw eigen foto staat op (bijna) elke kaart: de afbeelding
+    //     die op de meeste kaarten voorkomt, hoort bij de gebruiker die
+    //     op de meeste kaarten voorkomt.
+    //  2. Per kaart: haal bekende foto's/mensen eraf. Blijft er precies
+    //     één persoon én één foto over, dan horen die bij elkaar.
+    //  Wat dan nog onduidelijk is, krijgt géén foto (initiaal) in
+    //  plaats van een mogelijk verkeerde.
+    const bruikbaar = kaarten.filter(k => k.tail && k.tail.length);
+
+    // Wie ben jij? Jij staat in al je eigen challenges, dus de
+    // gebruiker die in de meeste challenges van de API voorkomt.
+    const dataNaamTelling = {};
+    challenges.forEach(c => (c.users || []).forEach(u => {
+        if (u.picture) {
+            dataNaamTelling[u.name] = (dataNaamTelling[u.name] || 0) + 1;
         }
+    }));
+    const meNaam = (Object.entries(dataNaamTelling)
+        .sort((x, y) => y[1] - x[1])[0] || [])[0];
+
+    // Welke afbeelding is jouw foto? Die staat ook buiten de kaarten,
+    // in de koptekst van Egodact (avatar rechtsboven).
+    const buitenUrls = new Set();
+    document.body.querySelectorAll('*').forEach(el => {
+        if (modalEl.contains(el)) return;
+        if (kaartEls.some(ce => ce.contains(el))) return;
+
+        const url = afbeeldingUrlVan(el);
+        if (url) buitenUrls.add(url);
+    });
+
+    const urlTelling = {};
+    bruikbaar.forEach(k => {
+        k.tail.forEach(u => { urlTelling[u] = (urlTelling[u] || 0) + 1; });
+    });
+    const urlsOpFrequentie = Object.entries(urlTelling)
+        .sort((x, y) => y[1] - x[1]);
+
+    let meUrl = (urlsOpFrequentie.find(([u]) => buitenUrls.has(u)) ||
+        [])[0];
+
+    // Zonder koptekst-match alleen als één afbeelding duidelijk
+    // vaker voorkomt dan alle andere (geen gelijkspel).
+    if (!meUrl && urlsOpFrequentie.length &&
+        (urlsOpFrequentie.length === 1 ||
+         urlsOpFrequentie[0][1] > urlsOpFrequentie[1][1])) {
+        meUrl = urlsOpFrequentie[0][0];
     }
 
-    // Per gebruiker de URL die op de meeste kaarten voorkomt, maar
-    // strikt één-op-één: een foto die al bij iemand hoort (bijv. die
-    // van jezelf, die op bijna elke kaart staat) kan nooit aan een
-    // ander worden gegeven, ook niet als één kaart een andere
-    // volgorde van deelnemers laat zien.
-    const paren = [];
-    for (const [naam, stemmen] of Object.entries(stemmenPerUser)) {
-        for (const [url, aantal] of Object.entries(stemmen)) {
-            paren.push({ naam, url, aantal });
+    if (meNaam && meUrl) {
+        resultaat.users[meNaam] = meUrl;
+    }
+
+    for (let ronde = 0; ronde < 10; ronde++) {
+        let veranderd = false;
+        const bekendeUrls = new Set(Object.values(resultaat.users));
+
+        for (const k of bruikbaar) {
+            const overNamen = k.namen.filter(n => !resultaat.users[n]);
+            const overUrls = k.tail.filter(u => !bekendeUrls.has(u));
+
+            if (overNamen.length === 1 && overUrls.length === 1) {
+                resultaat.users[overNamen[0]] = overUrls[0];
+                bekendeUrls.add(overUrls[0]);
+                veranderd = true;
+            }
         }
+
+        if (!veranderd) break;
     }
 
-    paren.sort((x, y) => y.aantal - x.aantal);
-
-    const gebruikteUrls = new Set();
-    for (const { naam, url } of paren) {
-        if (resultaat.users[naam] || gebruikteUrls.has(url)) continue;
-
-        resultaat.users[naam] = url;
-        gebruikteUrls.add(url);
-    }
+    resultaat.debug = kaarten.map(k => ({
+        challenge: k.naam,
+        deelnemersMetFoto: k.namen,
+        avatarUrlsOpKaart: k.tail,
+        alleAfbeeldingenOpKaart: k.ruweUrls
+    }));
+    resultaat.debug.push({
+        ik: meNaam,
+        mijnFotoUrl: meUrl,
+        toegewezen: resultaat.users
+    });
 
     return resultaat;
 }
@@ -771,6 +848,7 @@ function toonChallengePortfolio(container, data) {
 
     const modalEl = container.parentElement || container;
     const schraap = schraapBord(alleChallenges, modalEl);
+    modalEl.__egodactDebug = schraap.debug;
 
     console.log('Egodact extensie: thumbnail-basis =', thumbBase);
     console.log('Egodact extensie: avatar-basis =', pictureBase);
@@ -1070,6 +1148,25 @@ async function laadChallenges() {
     modal
         .querySelector('#egodact-beta-modal-sluiten')
         .addEventListener('click', sluitMenu);
+
+    modal
+        .querySelector('#egodact-beta-debug')
+        .addEventListener('click', async event => {
+            const knop = event.currentTarget;
+            const tekst = JSON.stringify(
+                modal.__egodactDebug || 'nog niet geladen',
+                null,
+                1
+            );
+
+            try {
+                await navigator.clipboard.writeText(tekst);
+                knop.textContent = 'Gekopieerd!';
+            } catch (err) {
+                console.log('Egodact debug:', tekst);
+                knop.textContent = 'Zie console';
+            }
+        });
 
     backdrop.addEventListener('click', event => {
         if (event.target === backdrop) sluitMenu();
