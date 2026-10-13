@@ -426,22 +426,47 @@ const CHALLENGE_FASES = [
 // De API geeft alleen bestandsnamen. De volledige URL leren we van
 // afbeeldingen die Egodact zelf al op de pagina heeft geladen.
 function verzamelPaginaAfbeeldingen() {
-    const urls = [];
+    const urls = new Set();
 
-    document
-        .querySelectorAll('img, [style*="url("]')
-        .forEach(el => {
-            if (el.tagName === 'IMG') {
-                urls.push(el.currentSrc || el.src || '');
-            } else {
-                const m = /url\(["']?([^"')]+)/.exec(
-                    el.getAttribute('style') || ''
-                );
-                if (m) urls.push(m[1]);
-            }
+    // 1. Alles wat de browser al heeft geladen (ongeacht hoe het in de
+    //    pagina is gezet: <img>, CSS-achtergrond, canvas, ...).
+    try {
+        performance.getEntriesByType('resource').forEach(entry => {
+            if (entry.name) urls.add(entry.name);
         });
+    } catch (err) {
+        // performance API niet beschikbaar
+    }
 
-    return urls.filter(Boolean);
+    // 2. <img>-tags en achtergrondafbeeldingen in de DOM.
+    document.querySelectorAll('img').forEach(img => {
+        urls.add(img.currentSrc || img.src || '');
+    });
+
+    document.querySelectorAll('*').forEach(el => {
+        const bg = getComputedStyle(el).backgroundImage;
+        if (!bg || bg === 'none') return;
+
+        for (const m of bg.matchAll(/url\(["']?([^"')]+)/g)) {
+            urls.add(m[1]);
+        }
+    });
+
+    urls.delete('');
+
+    // Zowel de ruwe als de gedecodeerde variant, voor het zoeken.
+    const result = [];
+    urls.forEach(url => {
+        result.push(url);
+        try {
+            const decoded = decodeURIComponent(url);
+            if (decoded !== url) result.push(decoded);
+        } catch (err) {
+            // ongeldige encoding, negeren
+        }
+    });
+
+    return result;
 }
 
 function leerBasisUrl(urls, bestandsnamen) {
@@ -629,9 +654,16 @@ function toonChallengePortfolio(container, data) {
         )
     );
 
-    if (!thumbBase) {
+    console.log('Egodact extensie: thumbnail-basis =', thumbBase);
+    console.log('Egodact extensie: avatar-basis =', pictureBase);
+
+    if (!thumbBase || !pictureBase) {
         console.warn(
-            'Egodact extensie: thumbnail-URL niet gevonden op de pagina.'
+            'Egodact extensie: afbeeldings-URL niet gevonden. ' +
+            'Voorbeeld van geladen afbeeldingen:',
+            paginaAfbeeldingen
+                .filter(u => /\.(png|jpe?g|webp|svg)|image|file/i.test(u))
+                .slice(0, 20)
         );
     }
 
