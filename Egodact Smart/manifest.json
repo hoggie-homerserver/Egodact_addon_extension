@@ -18,8 +18,5 @@
   ],
   "host_permissions": [
     "https://api.egodact.com/*"
-  ],
-  "background": {
-    "service_worker": "background.js"
-  }
+  ]
 }
