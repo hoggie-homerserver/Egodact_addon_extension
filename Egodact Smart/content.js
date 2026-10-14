@@ -730,6 +730,24 @@ function egodactSchraapBord(challenges, modalEl) {
 
 
 
+// Kleuren voor weekplanning-blokken. null = standaard (blauw).
+const EGODACT_BLOK_KLEUREN = [
+    null,
+    '#E81C4F',
+    '#FF691F',
+    '#FAB81E',
+    '#19CF86',
+    '#7FDBB6',
+    '#1B95E0',
+    '#981CEB',
+    '#F58EA8',
+    '#B71C1C',
+    '#379e00',
+    '#757575'
+];
+
+const EGODACT_STANDAARD_BLOKKLEUR = '#1976d2';
+
 const EGODACT_WERELD_NAAM = {
     artistic: 'Artistiek',
     scientific: 'Wetenschappelijk',
@@ -2081,8 +2099,13 @@ function openWeekplanning(e) {
                 background: "#424242",
                 width: "420px",
                 maxWidth: "90%",
+                maxHeight:
+                    "min(calc(100% - 24px), calc(100vh - 48px))",
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
                 borderRadius: "6px",
-                padding: "20px",
+                padding: "0",
                 boxShadow:
                     "0 10px 30px rgba(0,0,0,0.5)"
             }
@@ -2338,33 +2361,455 @@ function openWeekplanning(e) {
             </div>
         `;
 
-        // Challenge-info (thumbnail, leden, werelden) onder de titel.
-        if (gekoppeldeChallengeId && challengeLijst) {
+        // ====================================================
+        // CHALLENGE-INFO (standaard ingeklapt)
+        // ====================================================
 
-            const gekoppeld =
-                challengeLijst.find(
+        const gekoppeldeChallenge =
+            gekoppeldeChallengeId &&
+            challengeLijst
+                ? challengeLijst.find(
                     c =>
                         c.id ===
                         gekoppeldeChallengeId
+                )
+                : null;
+
+        if (gekoppeldeChallenge) {
+
+            const wrap =
+                document.createElement("div");
+
+            Object.assign(
+                wrap.style,
+                {
+                    background: "#2b2b2b",
+                    borderRadius: "4px",
+                    marginBottom: "14px"
+                }
+            );
+
+            const kop =
+                document.createElement("div");
+
+            Object.assign(
+                kop.style,
+                {
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "6px 8px",
+                    cursor: "pointer"
+                }
+            );
+
+            const miniThumb =
+                bordAfb.thumbs[
+                    gekoppeldeChallenge.id
+                ];
+
+            if (miniThumb) {
+
+                const img =
+                    document.createElement("img");
+
+                img.src =
+                    miniThumb;
+
+                img.alt =
+                    "";
+
+                Object.assign(
+                    img.style,
+                    {
+                        width: "34px",
+                        height: "34px",
+                        objectFit: "cover",
+                        borderRadius: "3px",
+                        flexShrink: "0",
+                        display: "none"
+                    }
                 );
 
-            if (gekoppeld) {
+                img.addEventListener(
+                    "load",
+                    () => {
+                        img.style.display =
+                            "block";
+                    }
+                );
 
-                const info =
-                    egodactMaakInfoBlok(
-                        gekoppeld,
-                        bordAfb,
-                        true
-                    );
-
-                info.style.marginBottom =
-                    "14px";
-
-                editor.children[0].after(
-                    info
+                kop.appendChild(
+                    img
                 );
             }
+
+            const kopTekst =
+                document.createElement("div");
+
+            kopTekst.style.flex =
+                "1";
+
+            kopTekst.style.minWidth =
+                "0";
+
+            const kopNaam =
+                document.createElement("div");
+
+            kopNaam.textContent =
+                `Challenge: ${gekoppeldeChallenge.naam}`;
+
+            Object.assign(
+                kopNaam.style,
+                {
+                    fontSize: "12px",
+                    fontWeight: "bold",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis"
+                }
+            );
+
+            kopTekst.appendChild(
+                kopNaam
+            );
+
+            const kopAvatars =
+                document.createElement("div");
+
+            Object.assign(
+                kopAvatars.style,
+                {
+                    display: "flex",
+                    gap: "2px",
+                    marginTop: "3px"
+                }
+            );
+
+            gekoppeldeChallenge.users
+                .slice(0, 8)
+                .forEach(
+                    u => {
+
+                        kopAvatars.appendChild(
+                            egodactMaakAvatar(
+                                u,
+                                bordAfb.users[u.name],
+                                16
+                            )
+                        );
+                    }
+                );
+
+            kopTekst.appendChild(
+                kopAvatars
+            );
+
+            kop.appendChild(
+                kopTekst
+            );
+
+            const kopPijl =
+                document.createElement("span");
+
+            kopPijl.textContent =
+                "▸";
+
+            kopPijl.style.opacity =
+                "0.7";
+
+            kop.appendChild(
+                kopPijl
+            );
+
+            const details =
+                egodactMaakInfoBlok(
+                    gekoppeldeChallenge,
+                    bordAfb,
+                    true
+                );
+
+            details.style.display =
+                "none";
+
+            details.style.borderRadius =
+                "0 0 4px 4px";
+
+            kop.addEventListener(
+                "click",
+                () => {
+
+                    const open =
+                        details.style.display ===
+                        "none";
+
+                    details.style.display =
+                        open
+                            ? "flex"
+                            : "none";
+
+                    kopPijl.textContent =
+                        open
+                            ? "▾"
+                            : "▸";
+                }
+            );
+
+            wrap.appendChild(
+                kop
+            );
+
+            wrap.appendChild(
+                details
+            );
+
+            editor.children[0].after(
+                wrap
+            );
         }
+
+        // ====================================================
+        // KLEUR
+        // ====================================================
+
+        let gekozenKleur =
+            isBewerken
+                ? bestaandBlok.kleur || null
+                : (
+                    gekoppeldeChallenge &&
+                    gekoppeldeChallenge.kleur
+                ) || null;
+
+        const knoppenRij =
+            editor.lastElementChild;
+
+        const kleurSectie =
+            document.createElement("div");
+
+        kleurSectie.style.marginBottom =
+            "16px";
+
+        const kleurLabel =
+            document.createElement("label");
+
+        kleurLabel.textContent =
+            "Kleur";
+
+        Object.assign(
+            kleurLabel.style,
+            {
+                display: "block",
+                marginBottom: "6px",
+                fontSize: "13px",
+                color: "#bbb"
+            }
+        );
+
+        kleurSectie.appendChild(
+            kleurLabel
+        );
+
+        const kleurRij =
+            document.createElement("div");
+
+        kleurRij.id =
+            "egodact-blok-kleuren";
+
+        Object.assign(
+            kleurRij.style,
+            {
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "6px",
+                alignItems: "center"
+            }
+        );
+
+        const kleurKnoppen = [];
+
+        const gelijk =
+            (x, y) =>
+                (x || null) === null
+                    ? (y || null) === null
+                    : (y || "").toLowerCase() ===
+                      x.toLowerCase();
+
+        const eigenKleur =
+            document.createElement("input");
+
+        function updateKleurKnoppen() {
+
+            kleurKnoppen.forEach(
+                ({ knop, kleur }) => {
+
+                    const gekozen =
+                        gelijk(
+                            kleur,
+                            gekozenKleur
+                        );
+
+                    knop.style.border =
+                        gekozen
+                            ? "3px solid #ffffff"
+                            : "2px solid rgba(255,255,255,0.2)";
+
+                    knop.dataset.gekozen =
+                        gekozen
+                            ? "ja"
+                            : "nee";
+                }
+            );
+
+            if (gekozenKleur) {
+
+                eigenKleur.value =
+                    gekozenKleur.toLowerCase();
+            }
+        }
+
+        EGODACT_BLOK_KLEUREN.forEach(
+            kleur => {
+
+                const knop =
+                    document.createElement("button");
+
+                knop.type =
+                    "button";
+
+                knop.title =
+                    kleur ||
+                    "Standaard (blauw)";
+
+                Object.assign(
+                    knop.style,
+                    {
+                        width: "26px",
+                        height: "26px",
+                        borderRadius: "50%",
+                        cursor: "pointer",
+                        padding: "0",
+                        boxSizing: "border-box",
+                        background:
+                            kleur ||
+                            EGODACT_STANDAARD_BLOKKLEUR
+                    }
+                );
+
+                knop.addEventListener(
+                    "click",
+                    () => {
+
+                        gekozenKleur =
+                            kleur;
+
+                        updateKleurKnoppen();
+                    }
+                );
+
+                kleurKnoppen.push({
+                    knop,
+                    kleur
+                });
+
+                kleurRij.appendChild(
+                    knop
+                );
+            }
+        );
+
+        eigenKleur.type =
+            "color";
+
+        eigenKleur.id =
+            "egodact-blok-kleur-eigen";
+
+        eigenKleur.title =
+            "Eigen kleur kiezen";
+
+        eigenKleur.value =
+            (
+                gekozenKleur ||
+                EGODACT_STANDAARD_BLOKKLEUR
+            ).toLowerCase();
+
+        Object.assign(
+            eigenKleur.style,
+            {
+                width: "30px",
+                height: "28px",
+                padding: "0",
+                border: "none",
+                background: "none",
+                cursor: "pointer"
+            }
+        );
+
+        eigenKleur.addEventListener(
+            "input",
+            () => {
+
+                gekozenKleur =
+                    eigenKleur.value;
+
+                updateKleurKnoppen();
+            }
+        );
+
+        kleurRij.appendChild(
+            eigenKleur
+        );
+
+        kleurSectie.appendChild(
+            kleurRij
+        );
+
+        editor.insertBefore(
+            kleurSectie,
+            knoppenRij
+        );
+
+        updateKleurKnoppen();
+
+        // ====================================================
+        // SCROLLBAAR MIDDENDEEL, KNOPPEN BLIJVEN ZICHTBAAR
+        // ====================================================
+
+        const inhoud =
+            document.createElement("div");
+
+        Object.assign(
+            inhoud.style,
+            {
+                overflowY: "auto",
+                minHeight: "0",
+                flex: "1 1 auto",
+                padding: "20px 20px 4px"
+            }
+        );
+
+        while (
+            editor.firstChild &&
+            editor.firstChild !== knoppenRij
+        ) {
+
+            inhoud.appendChild(
+                editor.firstChild
+            );
+        }
+
+        editor.insertBefore(
+            inhoud,
+            knoppenRij
+        );
+
+        Object.assign(
+            knoppenRij.style,
+            {
+                padding: "12px 20px 20px",
+                borderTop: "1px solid #555",
+                flexShrink: "0"
+            }
+        );
 
         editorBackdrop.appendChild(
             editor
@@ -2556,6 +3001,9 @@ function openWeekplanning(e) {
                         blok.beschrijving =
                             beschrijving;
 
+                        blok.kleur =
+                            gekozenKleur;
+
                         if (!blok.onderwerp) {
 
                             blok.onderwerp =
@@ -2595,7 +3043,10 @@ function openWeekplanning(e) {
                                 onderwerp,
 
                             challengeId:
-                                gekoppeldeChallengeId
+                                gekoppeldeChallengeId,
+
+                            kleur:
+                                gekozenKleur
                         });
                     }
 
@@ -4231,6 +4682,15 @@ function openWeekplanning(e) {
                     60 *
                     hoogtePerUur;
 
+                const blokKleur =
+                    blok.kleur ||
+                    EGODACT_STANDAARD_BLOKKLEUR;
+
+                const lichteTekst =
+                    egodactKleurIsDonker(
+                        blokKleur
+                    );
+
                 Object.assign(
                     blokElement.style,
                     {
@@ -4248,7 +4708,11 @@ function openWeekplanning(e) {
                                 35
                             )}px`,
                         background:
-                            "#1976d2",
+                            blokKleur,
+                        color:
+                            lichteTekst
+                                ? "#ffffff"
+                                : "#212121",
                         borderRadius:
                             "4px",
                         padding:
@@ -4262,7 +4726,13 @@ function openWeekplanning(e) {
                         zIndex:
                             "10",
                         borderLeft:
-                            "4px solid #90caf9"
+                            blok.kleur
+                                ? (
+                                    lichteTekst
+                                        ? "4px solid rgba(255,255,255,0.55)"
+                                        : "4px solid rgba(0,0,0,0.35)"
+                                )
+                                : "4px solid #90caf9"
                     }
                 );
 
@@ -4283,7 +4753,7 @@ function openWeekplanning(e) {
 
                     <div style="
                         font-size: 10px;
-                        color: #dbeeff;
+                        opacity: 0.85;
                         margin-top: 2px;
                         pointer-events: none;
                     ">
