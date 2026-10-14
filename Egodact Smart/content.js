@@ -1022,7 +1022,7 @@ function openTakenMenu(e) {
                 font-size: 22px;
                 font-weight: 500;
             ">
-                Flexibele Dagplanning
+                Dagplanning
             </h2>
 
             <input
