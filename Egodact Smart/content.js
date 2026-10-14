@@ -1,8 +1,7 @@
 // ============================================================
-// EGODACT THEMA-ONDERSTEUNING VOOR EIGEN MENU'S
+// THEMAKLEUR VOOR DE VIER MENUKNOPPEN
 // ============================================================
-function egodactSyncModalTheme(backdrop) {
-    if (!backdrop) return;
+function egodactSyncMenuButtonTheme() {
     const isLightTheme = () => {
         const root = document.documentElement, body = document.body;
         const classes = `${root.className || ""} ${body?.className || ""} ${root.getAttribute("data-theme") || ""} ${body?.getAttribute("data-theme") || ""}`.toLowerCase();
@@ -20,43 +19,24 @@ function egodactSyncModalTheme(backdrop) {
         }
         return false;
     };
-    const update = () => { if (backdrop.isConnected) backdrop.dataset.egodactTheme = isLightTheme() ? "light" : "dark"; };
-    if (!document.getElementById("egodact-custom-theme-styles")) {
-        const style = document.createElement("style");
-        style.id = "egodact-custom-theme-styles";
-        style.textContent = `
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div { background-color:#fff !important;color:#202124 !important;border:1px solid #d5d9df; }
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div h1,
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div h2,
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div h3,
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div p,
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div label,
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div span,
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div strong { color:#202124; }
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div div[style*="#2e2e2e"],
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div div[style*="#333"],
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div div[style*="#424242"],
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div div[style*="#1e1e1e"],
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div div[style*="#2b2b2b"] { background-color:#f3f5f8 !important;color:#202124 !important;border-color:#cbd2dc !important; }
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div input,
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div textarea,
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div select { background-color:#fff !important;color:#202124 !important;border-color:#aeb7c4 !important;color-scheme:light; }
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div button { color:#174a7e;border-color:#9aaec4; }
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div button[style*="#90caf9"] { background-color:#1976d2 !important;color:#fff !important; }
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div button[style*="#333"],
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div button[style*="#2e2e2e"] { background-color:#e8edf3 !important;color:#17324d !important; }
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div [style*="color: #b0b0b0"],
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div [style*="color: #bbb"],
-          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div [style*="color: #ddd"] { color:#505a66 !important; }
-        `;
-        document.head.appendChild(style);
-    }
+    const update = () => {
+        const stroke = isLightTheme() ? "#757575" : "#ffffff";
+        ["egodact-info-knop", "egodact-beta-features-knop", "egodact-taken-knop", "egodact-weekplanning-knop"]
+            .forEach(id => {
+                const button = document.getElementById(id);
+                const svg = button?.querySelector("svg");
+                if (svg) svg.setAttribute("stroke", stroke);
+            });
+    };
     update();
-    const observer = new MutationObserver(update);
-    observer.observe(document.documentElement,{attributes:true,attributeFilter:["class","style","data-theme"]});
-    observer.observe(document.body,{attributes:true,attributeFilter:["class","style","data-theme"]});
-    const cleanup = new MutationObserver(() => { if (!backdrop.isConnected) { observer.disconnect(); cleanup.disconnect(); } });
-    cleanup.observe(document.documentElement,{childList:true,subtree:true});
+    if (!document.documentElement.dataset.egodactButtonThemeObserver) {
+        document.documentElement.dataset.egodactButtonThemeObserver = "true";
+        const observer = new MutationObserver(update);
+        observer.observe(document.documentElement, {attributes:true, attributeFilter:["class","style","data-theme"]});
+        observer.observe(document.body, {attributes:true, attributeFilter:["class","style","data-theme"]});
+        const buttonsObserver = new MutationObserver(update);
+        buttonsObserver.observe(document.body, {childList:true, subtree:true});
+    }
 }
 
 // ============================================================
@@ -6144,6 +6124,8 @@ function voegKnoppenToe() {
             );
         }
     }
+
+    egodactSyncMenuButtonTheme();
 }
 
 
