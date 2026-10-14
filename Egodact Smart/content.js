@@ -475,7 +475,11 @@ function egodactBouwChallengeLijst(data) {
             kleur: c.color || null,
             fase: c.phase || 'TODO',
             rij: (rijVan.get(c.id) || {}).naam || '',
-            rijIndex: rijVan.has(c.id) ? rijVan.get(c.id).index : 999
+            rijIndex: rijVan.has(c.id) ? rijVan.get(c.id).index : 999,
+            users: c.users || [],
+            werelden: c.worlds || [],
+            einddatum: c.plannedEndDate || null,
+            raw: c
         }))
         .sort((a, b) =>
             (EGODACT_FASE_VOLGORDE[a.fase] ?? 9) -
@@ -536,6 +540,386 @@ function egodactKleurIsDonker(hex) {
     const b = n & 255;
 
     return (0.299 * r + 0.587 * g + 0.114 * b) < 150;
+}
+
+function egodactAfbeeldingUrlVan(el) {
+    if (el.tagName === 'IMG') return el.currentSrc || el.src || null;
+
+    const bg = getComputedStyle(el).backgroundImage;
+    const m = bg && bg !== 'none' && /url\(["']?([^"')]+)/.exec(bg);
+    return m ? m[1] : null;
+}
+
+function egodactRgbVan(hex) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+    if (!m) return null;
+
+    const n = parseInt(m[1], 16);
+    return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
+}
+
+// Zoekt de echte kaart op het Egodact-bord (achter dit menu) op naam en
+// leest daar de afbeeldingen uit. Volgorde in een kaart: thumbnail,
+// wereld-icoontjes, daarna de avatars van de gebruikers.
+function egodactSchraapBord(challenges, modalEl) {
+    const resultaat = { thumbs: {}, users: {}, werelden: {} };
+    const wereldStemmen = {};
+    const kaarten = [];
+    const kaartEls = [];
+
+    const leaves = [];
+    document.body.querySelectorAll('*').forEach(el => {
+        if (modalEl.contains(el) || el.children.length) return;
+        const tekst = el.textContent.trim();
+        if (tekst) leaves.push({ el, tekst });
+    });
+
+    for (const c of challenges) {
+        const naam = (c.name || '').trim();
+        const kandidaten = leaves.filter(l => l.tekst === naam);
+        if (!kandidaten.length) continue;
+
+        const kleur = egodactRgbVan(c.color);
+        let kaart = null;
+
+        for (const { el } of kandidaten) {
+            let node = el;
+
+            for (let i = 0; i < 8 && node.parentElement; i++) {
+                node = node.parentElement;
+
+                if (kleur &&
+                    getComputedStyle(node).backgroundColor === kleur) {
+                    kaart = node;
+                    break;
+                }
+            }
+
+            if (kaart) break;
+        }
+
+        if (!kaart && !kleur) {
+            kaart = kandidaten[0].el.parentElement &&
+                kandidaten[0].el.parentElement.parentElement;
+        }
+        if (!kaart) continue;
+        kaartEls.push(kaart);
+
+        const urls = [];
+        kaart.querySelectorAll('*').forEach(el => {
+            const url = egodactAfbeeldingUrlVan(el);
+            if (url) urls.push(url);
+        });
+
+        const metFoto = (c.users || []).filter(u => u.picture);
+        const heeftThumb = !!(c.thumbnail && c.thumbnail.file);
+        const aantalWerelden = (c.worlds || []).length;
+        const kopAantal = (heeftThumb ? 1 : 0) + aantalWerelden;
+
+        // Wereld-icoontjes staan na de thumbnail, in dezelfde volgorde
+        // als c.worlds. Elke wereld heeft overal hetzelfde icoon.
+        if (urls.length >= kopAantal) {
+            (c.worlds || []).forEach((w, i) => {
+                const url = urls[(heeftThumb ? 1 : 0) + i];
+                if (!url) return;
+
+                const stemmen = (wereldStemmen[w] ||= {});
+                stemmen[url] = (stemmen[url] || 0) + 1;
+            });
+        }
+
+        // Thumbnail staat bovenaan de kaart, vóór de wereld-icoontjes.
+        if (heeftThumb && urls.length > aantalWerelden) {
+            resultaat.thumbs[c.id] = urls[0];
+        }
+
+        // Alles na thumbnail + wereld-icoontjes zijn avatars. Een
+        // kaart kan er minder tonen dan er deelnemers zijn (Egodact
+        // verbergt je eigen avatar als je alleen staat), maar nooit meer.
+        const tail = [...new Set(urls.slice(kopAantal))];
+
+        kaarten.push({
+            id: c.id,
+            naam: c.name,
+            namen: metFoto.map(u => u.name),
+            tail: tail.length <= metFoto.length ? tail : null,
+            ruweUrls: urls
+        });
+    }
+
+    // De volgorde van deelnemers op het bord is niet betrouwbaar, dus
+    // we gebruiken die niet. In plaats daarvan:
+    //  1. Jouw eigen foto staat op (bijna) elke kaart: de afbeelding
+    //     die op de meeste kaarten voorkomt, hoort bij de gebruiker die
+    //     op de meeste kaarten voorkomt.
+    //  2. Per kaart: haal bekende foto's/mensen eraf. Blijft er precies
+    //     één persoon én één foto over, dan horen die bij elkaar.
+    //  Wat dan nog onduidelijk is, krijgt géén foto (initiaal) in
+    //  plaats van een mogelijk verkeerde.
+    const bruikbaar = kaarten.filter(k => k.tail && k.tail.length);
+
+    // Wie ben jij? Jij staat in al je eigen challenges, dus de
+    // gebruiker die in de meeste challenges van de API voorkomt.
+    const dataNaamTelling = {};
+    challenges.forEach(c => (c.users || []).forEach(u => {
+        if (u.picture) {
+            dataNaamTelling[u.name] = (dataNaamTelling[u.name] || 0) + 1;
+        }
+    }));
+    const meNaam = (Object.entries(dataNaamTelling)
+        .sort((x, y) => y[1] - x[1])[0] || [])[0];
+
+    // Welke afbeelding is jouw foto? Die staat ook buiten de kaarten,
+    // in de koptekst van Egodact (avatar rechtsboven).
+    const buitenUrls = new Set();
+    document.body.querySelectorAll('*').forEach(el => {
+        if (modalEl.contains(el)) return;
+        if (kaartEls.some(ce => ce.contains(el))) return;
+
+        const url = egodactAfbeeldingUrlVan(el);
+        if (url) buitenUrls.add(url);
+    });
+
+    const urlTelling = {};
+    bruikbaar.forEach(k => {
+        k.tail.forEach(u => { urlTelling[u] = (urlTelling[u] || 0) + 1; });
+    });
+    const urlsOpFrequentie = Object.entries(urlTelling)
+        .sort((x, y) => y[1] - x[1]);
+
+    let meUrl = (urlsOpFrequentie.find(([u]) => buitenUrls.has(u)) ||
+        [])[0];
+
+    // Zonder koptekst-match alleen als één afbeelding duidelijk
+    // vaker voorkomt dan alle andere (geen gelijkspel).
+    if (!meUrl && urlsOpFrequentie.length &&
+        (urlsOpFrequentie.length === 1 ||
+         urlsOpFrequentie[0][1] > urlsOpFrequentie[1][1])) {
+        meUrl = urlsOpFrequentie[0][0];
+    }
+
+    if (meNaam && meUrl) {
+        resultaat.users[meNaam] = meUrl;
+    }
+
+    for (let ronde = 0; ronde < 10; ronde++) {
+        let veranderd = false;
+        const bekendeUrls = new Set(Object.values(resultaat.users));
+
+        for (const k of bruikbaar) {
+            const overNamen = k.namen.filter(n => !resultaat.users[n]);
+            const overUrls = k.tail.filter(u => !bekendeUrls.has(u));
+
+            if (overNamen.length === 1 && overUrls.length === 1) {
+                resultaat.users[overNamen[0]] = overUrls[0];
+                bekendeUrls.add(overUrls[0]);
+                veranderd = true;
+            }
+        }
+
+        if (!veranderd) break;
+    }
+
+    for (const [w, stemmen] of Object.entries(wereldStemmen)) {
+        resultaat.werelden[w] = Object.entries(stemmen)
+            .sort((x, y) => y[1] - x[1])[0][0];
+    }
+
+    return resultaat;
+}
+
+
+
+const EGODACT_WERELD_NAAM = {
+    artistic: 'Artistiek',
+    scientific: 'Wetenschappelijk',
+    social_ethic: 'Sociaal-ethisch',
+    societal: 'Maatschappelijk'
+};
+
+function egodactMaakAvatar(user, url, grootte) {
+    const wrap = document.createElement('div');
+
+    Object.assign(wrap.style, {
+        width: `${grootte}px`,
+        height: `${grootte}px`,
+        borderRadius: '50%',
+        overflow: 'hidden',
+        flexShrink: '0',
+        background: '#757575',
+        color: '#fff',
+        fontSize: `${Math.max(7, Math.round(grootte * 0.46))}px`,
+        fontWeight: 'normal',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxSizing: 'border-box',
+        border: '1px solid rgba(0,0,0,0.25)'
+    });
+
+    wrap.title = user.name || '';
+    wrap.textContent =
+        ((user.firstName || user.name || '?')[0] || '?').toUpperCase();
+
+    if (url) {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = '';
+        Object.assign(img.style, {
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover'
+        });
+        img.addEventListener('load', () => {
+            wrap.textContent = '';
+            wrap.appendChild(img);
+        });
+    }
+
+    return wrap;
+}
+
+// Details van een challenge: thumbnail, fase, leden en werelden.
+// Gebruikt in de zijbalk (uitgeklapt) en in het blok-venster.
+function egodactMaakInfoBlok(c, afb, compact) {
+    const blok = document.createElement('div');
+
+    Object.assign(blok.style, {
+        background: '#2b2b2b',
+        borderRadius: '4px',
+        padding: '8px',
+        fontSize: '11px',
+        color: '#e0e0e0',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        fontWeight: 'normal'
+    });
+
+    const thumb = afb && afb.thumbs && afb.thumbs[c.id];
+    if (thumb) {
+        const img = document.createElement('img');
+        img.src = thumb;
+        img.alt = '';
+        Object.assign(img.style, {
+            width: '100%',
+            maxHeight: compact ? '80px' : '110px',
+            objectFit: 'cover',
+            borderRadius: '3px',
+            background: '#fff',
+            display: 'none'
+        });
+        img.addEventListener('load', () => { img.style.display = 'block'; });
+        blok.appendChild(img);
+    }
+
+    const meta = [
+        EGODACT_FASE_NAAM[c.fase] || c.fase,
+        c.rij,
+        c.einddatum
+            ? 'Einddatum ' + new Date(c.einddatum).toLocaleDateString(
+                'nl-NL',
+                { day: '2-digit', month: '2-digit', year: 'numeric' }
+            )
+            : ''
+    ].filter(Boolean).join(' · ');
+
+    const metaEl = document.createElement('div');
+    metaEl.textContent = meta;
+    metaEl.style.color = '#bdbdbd';
+    blok.appendChild(metaEl);
+
+    const kopje = tekst => {
+        const el = document.createElement('div');
+        el.textContent = tekst;
+        Object.assign(el.style, {
+            fontSize: '10px',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            color: '#9e9e9e',
+            marginBottom: '4px'
+        });
+        return el;
+    };
+
+    if ((c.users || []).length) {
+        const sectie = document.createElement('div');
+        sectie.appendChild(kopje('Leden'));
+
+        c.users.forEach(u => {
+            const regel = document.createElement('div');
+            Object.assign(regel.style, {
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginBottom: '3px'
+            });
+
+            regel.appendChild(
+                egodactMaakAvatar(u, afb && afb.users && afb.users[u.name], 20)
+            );
+
+            const naam = document.createElement('span');
+            naam.textContent = u.name || u.firstName || '';
+            regel.appendChild(naam);
+
+            sectie.appendChild(regel);
+        });
+
+        blok.appendChild(sectie);
+    }
+
+    if ((c.werelden || []).length) {
+        const sectie = document.createElement('div');
+        sectie.appendChild(
+            kopje(c.werelden.length > 1 ? 'Werelden' : 'Wereld')
+        );
+
+        const chips = document.createElement('div');
+        Object.assign(chips.style, {
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '4px'
+        });
+
+        c.werelden.forEach(w => {
+            const chip = document.createElement('div');
+            Object.assign(chip.style, {
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: '#424242',
+                borderRadius: '10px',
+                padding: '2px 7px 2px 3px'
+            });
+
+            const icoon = afb && afb.werelden && afb.werelden[w];
+            if (icoon) {
+                const img = document.createElement('img');
+                img.src = icoon;
+                img.alt = '';
+                Object.assign(img.style, {
+                    width: '14px',
+                    height: '14px',
+                    objectFit: 'contain'
+                });
+                img.addEventListener('error', () => img.remove());
+                chip.appendChild(img);
+            }
+
+            const label = document.createElement('span');
+            label.textContent = EGODACT_WERELD_NAAM[w] || w;
+            chip.appendChild(label);
+
+            chips.appendChild(chip);
+        });
+
+        sectie.appendChild(chips);
+        blok.appendChild(sectie);
+    }
+
+    return blok;
 }
 
 // Bepaalt wat er in de zijbalk staat.
@@ -1659,11 +2043,17 @@ function openWeekplanning(e) {
         start = 9 * 60,
         einde = 10 * 60,
         onderwerp = "",
-        bestaandBlok = null
+        bestaandBlok = null,
+        challengeId = null
     ) {
 
         const isBewerken =
             bestaandBlok !== null;
+
+        const gekoppeldeChallengeId =
+            isBewerken
+                ? bestaandBlok.challengeId || null
+                : challengeId;
 
         const editorBackdrop =
             document.createElement("div");
@@ -1948,6 +2338,34 @@ function openWeekplanning(e) {
             </div>
         `;
 
+        // Challenge-info (thumbnail, leden, werelden) onder de titel.
+        if (gekoppeldeChallengeId && challengeLijst) {
+
+            const gekoppeld =
+                challengeLijst.find(
+                    c =>
+                        c.id ===
+                        gekoppeldeChallengeId
+                );
+
+            if (gekoppeld) {
+
+                const info =
+                    egodactMaakInfoBlok(
+                        gekoppeld,
+                        bordAfb,
+                        true
+                    );
+
+                info.style.marginBottom =
+                    "14px";
+
+                editor.children[0].after(
+                    info
+                );
+            }
+        }
+
         editorBackdrop.appendChild(
             editor
         );
@@ -2174,7 +2592,10 @@ function openWeekplanning(e) {
                                 beschrijving,
 
                             onderwerp:
-                                onderwerp
+                                onderwerp,
+
+                            challengeId:
+                                gekoppeldeChallengeId
                         });
                     }
 
@@ -2291,6 +2712,341 @@ function openWeekplanning(e) {
     let challengeLijst = null;
     let challengeFout = null;
     let zoekTerm = "";
+    let openChallengeId = null;
+    let selectieOpruimen = null;
+    let bordAfb = { thumbs: {}, users: {}, werelden: {} };
+
+    // Leest thumbnails, foto's en wereld-icoontjes van het Egodact-bord
+    // dat achter dit venster staat.
+    function leesBord() {
+
+        try {
+
+            bordAfb =
+                egodactSchraapBord(
+                    challengeLijst.map(
+                        c => c.raw
+                    ),
+                    backdrop
+                );
+
+        } catch (fout) {
+
+            console.warn(
+                "Egodact: afbeeldingen van het bord lezen mislukt",
+                fout
+            );
+        }
+    }
+
+    function maakChallengeItem(c) {
+
+        const wrapper =
+            document.createElement("div");
+
+        wrapper.style.marginBottom =
+            "5px";
+
+        const open =
+            openChallengeId === c.id;
+
+        const achtergrond =
+            c.kleur || "#1976d2";
+
+        const lichteTekst =
+            !c.kleur ||
+            egodactKleurIsDonker(
+                c.kleur
+            );
+
+        const rij =
+            document.createElement("div");
+
+        rij.draggable =
+            true;
+
+        rij.title =
+            "Klik voor details, sleep naar de kalender";
+
+        Object.assign(
+            rij.style,
+            {
+                background:
+                    achtergrond,
+                color:
+                    lichteTekst
+                        ? "#ffffff"
+                        : "#212121",
+                borderRadius:
+                    open
+                        ? "4px 4px 0 0"
+                        : "4px",
+                padding:
+                    "6px 8px 6px 6px",
+                cursor:
+                    "grab",
+                display:
+                    "flex",
+                alignItems:
+                    "center",
+                gap:
+                    "8px",
+                borderLeft:
+                    "4px solid rgba(255,255,255,0.55)",
+                userSelect:
+                    "none",
+                overflowWrap:
+                    "anywhere"
+            }
+        );
+
+        const thumbUrl =
+            bordAfb.thumbs[c.id];
+
+        if (thumbUrl) {
+
+            const img =
+                document.createElement("img");
+
+            img.src =
+                thumbUrl;
+
+            img.alt =
+                "";
+
+            img.draggable =
+                false;
+
+            Object.assign(
+                img.style,
+                {
+                    width: "36px",
+                    height: "36px",
+                    objectFit: "cover",
+                    borderRadius: "3px",
+                    flexShrink: "0",
+                    background: "#fff",
+                    display: "none"
+                }
+            );
+
+            img.addEventListener(
+                "load",
+                () => {
+                    img.style.display =
+                        "block";
+                }
+            );
+
+            rij.appendChild(
+                img
+            );
+        }
+
+        const tekstKolom =
+            document.createElement("div");
+
+        tekstKolom.style.minWidth =
+            "0";
+
+        tekstKolom.style.flex =
+            "1";
+
+        const naam =
+            document.createElement("div");
+
+        naam.textContent =
+            c.naam;
+
+        Object.assign(
+            naam.style,
+            {
+                fontSize: "12px",
+                fontWeight: "bold"
+            }
+        );
+
+        tekstKolom.appendChild(
+            naam
+        );
+
+        if (c.rij) {
+
+            const sub =
+                document.createElement("div");
+
+            sub.textContent =
+                c.rij;
+
+            Object.assign(
+                sub.style,
+                {
+                    fontSize: "10px",
+                    opacity: "0.8"
+                }
+            );
+
+            tekstKolom.appendChild(
+                sub
+            );
+        }
+
+        if (c.users.length) {
+
+            const avatars =
+                document.createElement("div");
+
+            Object.assign(
+                avatars.style,
+                {
+                    display: "flex",
+                    gap: "2px",
+                    marginTop: "3px",
+                    alignItems: "center"
+                }
+            );
+
+            c.users
+                .slice(0, 6)
+                .forEach(
+                    u => {
+
+                        avatars.appendChild(
+                            egodactMaakAvatar(
+                                u,
+                                bordAfb.users[u.name],
+                                16
+                            )
+                        );
+                    }
+                );
+
+            if (c.users.length > 6) {
+
+                const meer =
+                    document.createElement("span");
+
+                meer.textContent =
+                    `+${c.users.length - 6}`;
+
+                meer.style.fontSize =
+                    "10px";
+
+                avatars.appendChild(
+                    meer
+                );
+            }
+
+            tekstKolom.appendChild(
+                avatars
+            );
+        }
+
+        rij.appendChild(
+            tekstKolom
+        );
+
+        const pijl =
+            document.createElement("span");
+
+        pijl.textContent =
+            open
+                ? "▾"
+                : "▸";
+
+        Object.assign(
+            pijl.style,
+            {
+                fontSize: "11px",
+                opacity: "0.7",
+                flexShrink: "0"
+            }
+        );
+
+        rij.appendChild(
+            pijl
+        );
+
+        rij.addEventListener(
+            "click",
+            () => {
+
+                openChallengeId =
+                    open
+                        ? null
+                        : c.id;
+
+                ververszijbalk();
+            }
+        );
+
+        rij.addEventListener(
+            "dragstart",
+            event => {
+
+                const dragData = {
+                    type:
+                        "subject",
+                    subject:
+                        c.naam,
+                    challengeId:
+                        c.id
+                };
+
+                event.dataTransfer.effectAllowed =
+                    "copy";
+
+                event.dataTransfer.setData(
+                    "text/plain",
+                    JSON.stringify(
+                        dragData
+                    )
+                );
+
+                window.__egodactDraggedWeekBlock =
+                    dragData;
+            }
+        );
+
+        rij.addEventListener(
+            "dragend",
+            () => {
+
+                window.__egodactDraggedWeekBlock =
+                    null;
+            }
+        );
+
+        wrapper.appendChild(
+            rij
+        );
+
+        if (open) {
+
+            const info =
+                egodactMaakInfoBlok(
+                    c,
+                    bordAfb,
+                    false
+                );
+
+            Object.assign(
+                info.style,
+                {
+                    borderRadius:
+                        "0 0 4px 4px",
+                    borderLeft:
+                        `4px solid ${achtergrond}`
+                }
+            );
+
+            wrapper.appendChild(
+                info
+            );
+        }
+
+        return wrapper;
+    }
 
     function maakSleepItem(
         tekst,
@@ -2579,10 +3335,8 @@ function openWeekplanning(e) {
                     }
 
                     zijbalk.appendChild(
-                        maakSleepItem(
-                            c.naam,
-                            c.rij,
-                            c.kleur
+                        maakChallengeItem(
+                            c
                         )
                     );
                 }
@@ -2666,6 +3420,10 @@ function openWeekplanning(e) {
         // een opnieuw gerenderde kalender.
         window.__egodactDraggedWeekBlock =
             null;
+
+        if (selectieOpruimen) {
+            selectieOpruimen();
+        }
 
         weekData =
             laadWeek();
@@ -2868,68 +3626,337 @@ function openWeekplanning(e) {
 
         const alleDagKolommen = [];
 
+        // Klikken en slepen in een dagkolom: de selectie werkt in cellen
+        // van 30 minuten. Een enkele klik geeft (zoals altijd) het hele
+        // uur; slepen geeft precies het gesleepte bereik.
+        const CEL_MINUTEN = 30;
+
+        const aantalCellen =
+            (laatsteUur - eersteUur) *
+            60 /
+            CEL_MINUTEN;
+
         let actieveSelectie = null;
+        let scrollTimer = null;
 
-        // Gebruik één pointerup-listener per render.
-        // Deze blijft bestaan zolang deze kalender bestaat.
-        const selectiePointerUp =
-            () => {
+        function celBij(dagKolom, clientY) {
 
-                if (
-                    !actieveSelectie
-                ) {
-                    return;
-                }
+            const rect =
+                dagKolom.getBoundingClientRect();
 
-                const huidigeSelectie =
-                    actieveSelectie;
-
-                actieveSelectie =
-                    null;
-
-                const startUur =
-                    huidigeSelectie.getStart();
-
-                const eindeUur =
-                    huidigeSelectie.getEinde();
-
-                const laagste =
-                    Math.min(
-                        startUur,
-                        eindeUur
-                    );
-
-                const hoogste =
-                    Math.max(
-                        startUur,
-                        eindeUur
-                    );
-
-                huidigeSelectie.dagKolom
-                    .querySelectorAll(
-                        ".egodact-selectie"
+            const cel =
+                Math.floor(
+                    (clientY - rect.top) /
+                    (
+                        hoogtePerUur *
+                        CEL_MINUTEN /
+                        60
                     )
-                    .forEach(
-                        el =>
-                            el.remove()
+                );
+
+            return Math.max(
+                0,
+                Math.min(
+                    aantalCellen - 1,
+                    cel
+                )
+            );
+        }
+
+        function selectieBereik(selectie) {
+
+            // Klik zonder slepen: het hele uur.
+            if (
+                selectie.anker ===
+                selectie.huidig
+            ) {
+
+                const uur =
+                    eersteUur +
+                    Math.floor(
+                        selectie.anker *
+                        CEL_MINUTEN /
+                        60
                     );
 
-                openBlokEditor(
-                    Number(
-                        huidigeSelectie
-                            .dagKolom
-                            .dataset
-                            .dag
-                    ),
-                    laagste * 60,
-                    (hoogste + 1) * 60
+                return {
+                    start: uur * 60,
+                    einde: (uur + 1) * 60
+                };
+            }
+
+            const laagste =
+                Math.min(
+                    selectie.anker,
+                    selectie.huidig
                 );
+
+            const hoogste =
+                Math.max(
+                    selectie.anker,
+                    selectie.huidig
+                );
+
+            return {
+                start:
+                    eersteUur * 60 +
+                    laagste * CEL_MINUTEN,
+                einde:
+                    eersteUur * 60 +
+                    (hoogste + 1) * CEL_MINUTEN
             };
+        }
+
+        function toonSelectie(selectie) {
+
+            selectie.dagKolom
+                .querySelectorAll(
+                    ".egodact-selectie"
+                )
+                .forEach(
+                    el =>
+                        el.remove()
+                );
+
+            const bereik =
+                selectieBereik(
+                    selectie
+                );
+
+            const el =
+                document.createElement(
+                    "div"
+                );
+
+            el.className =
+                "egodact-selectie";
+
+            Object.assign(
+                el.style,
+                {
+                    position:
+                        "absolute",
+                    left: "3px",
+                    right: "3px",
+                    top:
+                        `${(
+                            bereik.start -
+                            eersteUur * 60
+                        ) /
+                        60 *
+                        hoogtePerUur}px`,
+                    height:
+                        `${(
+                            bereik.einde -
+                            bereik.start
+                        ) /
+                        60 *
+                        hoogtePerUur}px`,
+                    background:
+                        "rgba(144, 202, 249, 0.35)",
+                    border:
+                        "2px solid #90caf9",
+                    borderRadius:
+                        "4px",
+                    boxSizing:
+                        "border-box",
+                    padding:
+                        "3px 6px",
+                    fontSize:
+                        "11px",
+                    fontWeight:
+                        "bold",
+                    color:
+                        "#ffffff",
+                    pointerEvents:
+                        "none",
+                    zIndex: "4",
+                    overflow:
+                        "hidden"
+                }
+            );
+
+            el.textContent =
+                `${formatTijd(bereik.start)} - ${formatTijd(bereik.einde)}`;
+
+            selectie.dagKolom.appendChild(
+                el
+            );
+        }
+
+        // Scrolt de kalender mee als je bij de rand sleept, zodat je
+        // lange blokken kunt maken zonder los te laten.
+        function startAutoScroll() {
+
+            if (scrollTimer) {
+                return;
+            }
+
+            scrollTimer =
+                setInterval(
+                    () => {
+
+                        if (!actieveSelectie) {
+                            return;
+                        }
+
+                        const rect =
+                            calendar.getBoundingClientRect();
+
+                        const y =
+                            actieveSelectie.laatsteY;
+
+                        // De dagkop blijft bovenaan staan.
+                        const bovenGrens =
+                            rect.top + 64;
+
+                        const onderGrens =
+                            rect.bottom - 40;
+
+                        let delta = 0;
+
+                        if (y < bovenGrens) {
+
+                            delta =
+                                -Math.min(
+                                    25,
+                                    (bovenGrens - y) / 3 + 4
+                                );
+
+                        } else if (y > onderGrens) {
+
+                            delta =
+                                Math.min(
+                                    25,
+                                    (y - onderGrens) / 3 + 4
+                                );
+                        }
+
+                        if (!delta) {
+                            return;
+                        }
+
+                        calendar.scrollTop += delta;
+
+                        actieveSelectie.huidig =
+                            celBij(
+                                actieveSelectie.dagKolom,
+                                y
+                            );
+
+                        toonSelectie(
+                            actieveSelectie
+                        );
+                    },
+                    30
+                );
+        }
+
+        function stopSelectie(annuleer) {
+
+            if (scrollTimer) {
+
+                clearInterval(
+                    scrollTimer
+                );
+
+                scrollTimer =
+                    null;
+            }
+
+            const selectie =
+                actieveSelectie;
+
+            actieveSelectie =
+                null;
+
+            if (!selectie) {
+                return;
+            }
+
+            selectie.dagKolom
+                .querySelectorAll(
+                    ".egodact-selectie"
+                )
+                .forEach(
+                    el =>
+                        el.remove()
+                );
+
+            try {
+
+                selectie.dagKolom
+                    .releasePointerCapture(
+                        selectie.pointerId
+                    );
+
+            } catch (error) {}
+
+            if (annuleer) {
+                return;
+            }
+
+            const bereik =
+                selectieBereik(
+                    selectie
+                );
+
+            openBlokEditor(
+                Number(
+                    selectie.dagKolom
+                        .dataset
+                        .dag
+                ),
+                bereik.start,
+                bereik.einde
+            );
+        }
+
+        const selectiePointerUp =
+            () =>
+                stopSelectie(false);
+
+        const selectiePointerCancel =
+            () =>
+                stopSelectie(true);
 
         document.addEventListener(
             "pointerup",
             selectiePointerUp
         );
+
+        document.addEventListener(
+            "pointercancel",
+            selectiePointerCancel
+        );
+
+        // Bij het opnieuw tekenen of sluiten de oude listeners weghalen.
+        selectieOpruimen =
+            () => {
+
+                if (scrollTimer) {
+
+                    clearInterval(
+                        scrollTimer
+                    );
+
+                    scrollTimer =
+                        null;
+                }
+
+                actieveSelectie =
+                    null;
+
+                document.removeEventListener(
+                    "pointerup",
+                    selectiePointerUp
+                );
+
+                document.removeEventListener(
+                    "pointercancel",
+                    selectiePointerCancel
+                );
+            };
 
         for (
             let dagIndex = 0;
@@ -3059,159 +4086,99 @@ function openWeekplanning(e) {
             }
 
             // ================================================
-            // SELECTIE
+            // SELECTIE (KLIKKEN EN SLEPEN)
             // ================================================
 
-            let selectieStart =
-                null;
+            dagKolom.addEventListener(
+                "pointerdown",
+                event => {
 
-            let selectieEinde =
-                null;
+                    if (
+                        event.button !== 0
+                    ) {
+                        return;
+                    }
 
-            function toonSelectie() {
+                    // Op een bestaand blok klikken/slepen werkt zoals
+                    // eerst (bewerken of verplaatsen).
+                    if (
+                        event.target.closest(
+                            "[data-id]"
+                        )
+                    ) {
+                        return;
+                    }
 
-                dagKolom
-                    .querySelectorAll(
-                        ".egodact-selectie"
-                    )
-                    .forEach(
-                        el =>
-                            el.remove()
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    const cel =
+                        celBij(
+                            dagKolom,
+                            event.clientY
+                        );
+
+                    actieveSelectie = {
+                        dagKolom,
+                        anker: cel,
+                        huidig: cel,
+                        pointerId:
+                            event.pointerId,
+                        laatsteY:
+                            event.clientY
+                    };
+
+                    try {
+
+                        dagKolom.setPointerCapture(
+                            event.pointerId
+                        );
+
+                    } catch (error) {}
+
+                    toonSelectie(
+                        actieveSelectie
                     );
 
-                if (
-                    selectieStart === null ||
-                    selectieEinde === null
-                ) {
-                    return;
+                    startAutoScroll();
                 }
+            );
 
-                const laagste =
-                    Math.min(
-                        selectieStart,
-                        selectieEinde
-                    );
+            dagKolom.addEventListener(
+                "pointermove",
+                event => {
 
-                const hoogste =
-                    Math.max(
-                        selectieStart,
-                        selectieEinde
-                    );
-
-                const selectie =
-                    document.createElement(
-                        "div"
-                    );
-
-                selectie.className =
-                    "egodact-selectie";
-
-                Object.assign(
-                    selectie.style,
-                    {
-                        position:
-                            "absolute",
-                        left: "3px",
-                        right: "3px",
-                        top:
-                            `${(
-                                laagste -
-                                eersteUur
-                            ) *
-                            hoogtePerUur}px`,
-                        height:
-                            `${(
-                                hoogste -
-                                laagste +
-                                1
-                            ) *
-                            hoogtePerUur}px`,
-                        background:
-                            "rgba(144, 202, 249, 0.35)",
-                        border:
-                            "2px solid #90caf9",
-                        borderRadius:
-                            "4px",
-                        pointerEvents:
-                            "none",
-                        zIndex: "4"
+                    if (
+                        !actieveSelectie ||
+                        actieveSelectie.dagKolom !==
+                            dagKolom
+                    ) {
+                        return;
                     }
-                );
 
-                dagKolom.appendChild(
-                    selectie
-                );
-            }
+                    actieveSelectie.laatsteY =
+                        event.clientY;
 
-            dagKolom
-                .querySelectorAll(
-                    ".egodact-tijdslot"
-                )
-                .forEach(
-                    slot => {
-
-                        slot.addEventListener(
-                            "pointerdown",
-                            event => {
-
-                                if (
-                                    event.button !== 0
-                                ) {
-                                    return;
-                                }
-
-                                event.preventDefault();
-                                event.stopPropagation();
-
-                                selectieStart =
-                                    Number(
-                                        slot.dataset.uur
-                                    );
-
-                                selectieEinde =
-                                    selectieStart;
-
-                                actieveSelectie = {
-                                    dagKolom,
-                                    getStart: () =>
-                                        selectieStart,
-                                    getEinde: () =>
-                                        selectieEinde,
-                                    toonSelectie
-                                };
-
-                                try {
-                                    dagKolom.setPointerCapture(
-                                        event.pointerId
-                                    );
-                                } catch (error) {}
-
-                                toonSelectie();
-                            }
+                    const cel =
+                        celBij(
+                            dagKolom,
+                            event.clientY
                         );
 
-                        slot.addEventListener(
-                            "pointerenter",
-                            event => {
+                    if (
+                        cel !==
+                        actieveSelectie.huidig
+                    ) {
 
-                                if (
-                                    !actieveSelectie ||
-                                    actieveSelectie.dagKolom !==
-                                        dagKolom
-                                ) {
-                                    return;
-                                }
+                        actieveSelectie.huidig =
+                            cel;
 
-                                selectieEinde =
-                                    Number(
-                                        slot.dataset.uur
-                                    );
-
-                                toonSelectie();
-                            }
+                        toonSelectie(
+                            actieveSelectie
                         );
                     }
-                );
+                }
+            );
 
             body.appendChild(
                 dagKolom
@@ -3683,7 +4650,9 @@ function openWeekplanning(e) {
                                     start + 60,
                                     laatsteUur * 60
                                 ),
-                                data.subject
+                                data.subject,
+                                null,
+                                data.challengeId || null
                             );
 
                             return;
@@ -3775,6 +4744,10 @@ function openWeekplanning(e) {
 
             window.__egodactDraggedWeekBlock =
                 null;
+
+            if (selectieOpruimen) {
+                selectieOpruimen();
+            }
 
             document.removeEventListener(
                 "keydown",
@@ -3939,7 +4912,31 @@ function openWeekplanning(e) {
                 challengeLijst =
                     lijst;
 
+                leesBord();
+
                 ververszijbalk();
+
+                // Het bord kan nog bezig zijn met laden.
+                if (
+                    !Object.keys(
+                        bordAfb.thumbs
+                    ).length
+                ) {
+
+                    setTimeout(
+                        () => {
+
+                            if (gesloten) {
+                                return;
+                            }
+
+                            leesBord();
+
+                            ververszijbalk();
+                        },
+                        1500
+                    );
+                }
             }
         )
         .catch(
