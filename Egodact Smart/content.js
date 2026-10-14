@@ -370,7 +370,6 @@ function openSMARTMenu(e) {
 
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
-    egodactSyncModalTheme(backdrop);
 
     document
         .getElementById('egodact-modal-sluiten')
@@ -465,7 +464,6 @@ function openBetaFeaturesMenu(e) {
 
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
-    egodactSyncModalTheme(backdrop);
 
     modal
         .querySelector('#egodact-beta-modal-sluiten')
@@ -1170,7 +1168,6 @@ function openTakenMenu(e) {
 
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
-    egodactSyncModalTheme(backdrop);
 
     function renderPlanner(datum) {
 
@@ -2083,7 +2080,6 @@ function openWeekplanning(e) {
 
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
-    egodactSyncModalTheme(backdrop);
 
     // ========================================================
     // WEEK TITEL
