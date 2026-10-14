@@ -437,6 +437,21 @@ function openBetaFeaturesMenu(e) {
             padding-bottom: 10px;
         ">Beta Features</h2>
 
+        <button
+            id="egodact-open-test-page"
+            type="button"
+            style="
+                background-color: #2e2e2e;
+                border: 1px solid #90caf9;
+                color: #90caf9;
+                cursor: pointer;
+                padding: 12px 14px;
+                font-size: 14px;
+                text-align: left;
+                border-radius: 4px;
+            "
+        >Open test page</button>
+
         <div style="
             display: flex;
             justify-content: flex-end;
@@ -464,6 +479,13 @@ function openBetaFeaturesMenu(e) {
 
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
+
+    modal
+        .querySelector('#egodact-open-test-page')
+        .addEventListener('click', () => {
+            window.open(chrome.runtime.getURL('test-page.html'), '_blank');
+            sluitMenu();
+        });
 
     modal
         .querySelector('#egodact-beta-modal-sluiten')
