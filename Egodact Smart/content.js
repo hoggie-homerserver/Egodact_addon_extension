@@ -1,4 +1,65 @@
 // ============================================================
+// EGODACT THEMA-ONDERSTEUNING VOOR EIGEN MENU'S
+// ============================================================
+function egodactSyncModalTheme(backdrop) {
+    if (!backdrop) return;
+    const isLightTheme = () => {
+        const root = document.documentElement, body = document.body;
+        const classes = `${root.className || ""} ${body?.className || ""} ${root.getAttribute("data-theme") || ""} ${body?.getAttribute("data-theme") || ""}`.toLowerCase();
+        if (/light|lichte|day-mode/.test(classes)) return true;
+        if (/dark|donkere|night-mode/.test(classes)) return false;
+        for (const node of [body, root]) {
+            if (!node) continue;
+            const color = getComputedStyle(node).backgroundColor;
+            const m = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+            if (m && color !== "rgba(0, 0, 0, 0)") {
+                const lum = (Number(m[1])*299 + Number(m[2])*587 + Number(m[3])*114)/1000;
+                if (lum > 165) return true;
+                if (lum < 100) return false;
+            }
+        }
+        return false;
+    };
+    const update = () => { if (backdrop.isConnected) backdrop.dataset.egodactTheme = isLightTheme() ? "light" : "dark"; };
+    if (!document.getElementById("egodact-custom-theme-styles")) {
+        const style = document.createElement("style");
+        style.id = "egodact-custom-theme-styles";
+        style.textContent = `
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div { background-color:#fff !important;color:#202124 !important;border:1px solid #d5d9df; }
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div h1,
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div h2,
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div h3,
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div p,
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div label,
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div span,
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div strong { color:#202124; }
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div div[style*="#2e2e2e"],
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div div[style*="#333"],
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div div[style*="#424242"],
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div div[style*="#1e1e1e"],
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div div[style*="#2b2b2b"] { background-color:#f3f5f8 !important;color:#202124 !important;border-color:#cbd2dc !important; }
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div input,
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div textarea,
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div select { background-color:#fff !important;color:#202124 !important;border-color:#aeb7c4 !important;color-scheme:light; }
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div button { color:#174a7e;border-color:#9aaec4; }
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div button[style*="#90caf9"] { background-color:#1976d2 !important;color:#fff !important; }
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div button[style*="#333"],
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div button[style*="#2e2e2e"] { background-color:#e8edf3 !important;color:#17324d !important; }
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div [style*="color: #b0b0b0"],
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div [style*="color: #bbb"],
+          #egodact-custom-modal-backdrop[data-egodact-theme="light"] > div [style*="color: #ddd"] { color:#505a66 !important; }
+        `;
+        document.head.appendChild(style);
+    }
+    update();
+    const observer = new MutationObserver(update);
+    observer.observe(document.documentElement,{attributes:true,attributeFilter:["class","style","data-theme"]});
+    observer.observe(document.body,{attributes:true,attributeFilter:["class","style","data-theme"]});
+    const cleanup = new MutationObserver(() => { if (!backdrop.isConnected) { observer.disconnect(); cleanup.disconnect(); } });
+    cleanup.observe(document.documentElement,{childList:true,subtree:true});
+}
+
+// ============================================================
 // SMART MENU
 // ============================================================
 
@@ -329,6 +390,7 @@ function openSMARTMenu(e) {
 
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
+    egodactSyncModalTheme(backdrop);
 
     document
         .getElementById('egodact-modal-sluiten')
@@ -423,6 +485,7 @@ function openBetaFeaturesMenu(e) {
 
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
+    egodactSyncModalTheme(backdrop);
 
     modal
         .querySelector('#egodact-beta-modal-sluiten')
@@ -1127,6 +1190,7 @@ function openTakenMenu(e) {
 
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
+    egodactSyncModalTheme(backdrop);
 
     function renderPlanner(datum) {
 
@@ -1752,6 +1816,24 @@ function openWeekplanning(e) {
                 );
 
             if (!opgeslagen) {
+                const standaardWeek = localStorage.getItem("egodact_weekplanning_template");
+                if (standaardWeek) {
+                    try {
+                        const template = JSON.parse(standaardWeek);
+                        if (Array.isArray(template) && template.length) {
+                            const kopie = template.map(blok => ({
+                                ...blok,
+                                id: (typeof crypto !== "undefined" && crypto.randomUUID)
+                                    ? crypto.randomUUID()
+                                    : `weekblok-${Date.now()}-${Math.random().toString(16).slice(2)}`
+                            }));
+                            localStorage.setItem(weekStorageKey(), JSON.stringify(kopie));
+                            return kopie;
+                        }
+                    } catch (error) {
+                        console.error("Fout bij laden van standaard weekplanning:", error);
+                    }
+                }
                 return [];
             }
 
@@ -1953,6 +2035,14 @@ function openWeekplanning(e) {
                 ></span>
 
                 <button
+                    id="egodact-week-sla-standaard-op"
+                    type="button"
+                    style="background:#ff9800;color:#fff;border:none;border-radius:4px;padding:9px 12px;cursor:pointer;font-weight:bold;font-size:13px;"
+                >
+                    Sla op als standaard week
+                </button>
+
+                <button
                     id="egodact-week-blok-toevoegen"
                     type="button"
                     style="
@@ -2013,6 +2103,7 @@ function openWeekplanning(e) {
 
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
+    egodactSyncModalTheme(backdrop);
 
     // ========================================================
     // WEEK TITEL
@@ -5329,6 +5420,30 @@ function openWeekplanning(e) {
                 renderWeek();
             }
         );
+
+    // ========================================================
+    // STANDAARD WEEK OPSLAAN
+    // ========================================================
+    document.getElementById("egodact-week-sla-standaard-op").addEventListener("click", () => {
+        const actueleWeek = laadWeek();
+        if (!actueleWeek.length) {
+            alert("Voeg eerst een aantal blokken toe voordat je deze week als standaard opslaat.");
+            return;
+        }
+        try {
+            const template = actueleWeek.map(blok => {
+                const kopie = { ...blok };
+                delete kopie.id;
+                delete kopie.challengeId;
+                return kopie;
+            });
+            localStorage.setItem("egodact_weekplanning_template", JSON.stringify(template));
+            alert("Deze week is opgeslagen als jouw standaard week. Nieuwe lege weken krijgen deze planning automatisch.");
+        } catch (error) {
+            console.error("Fout bij opslaan van standaard weekplanning:", error);
+            alert("Er ging iets mis bij het opslaan van de standaard week.");
+        }
+    });
 
     // ========================================================
     // + BLOK TOEVOEGEN
