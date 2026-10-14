@@ -18,5 +18,15 @@
   ],
   "host_permissions": [
     "https://api.egodact.com/*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "test-page.html"
+      ],
+      "matches": [
+        "https://app.egodact.com/*"
+      ]
+    }
   ]
 }
