@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Egodact — Local Test</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #151922; color: #f3f5f8; }
+    main { width: min(560px, calc(100% - 40px)); padding: 32px; border: 1px solid #3c4658; border-radius: 18px; background: #202735; box-shadow: 0 18px 60px #0005; }
+    .tag { color: #9fc5ff; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    h1 { margin: 12px 0 8px; font-size: clamp(28px, 5vw, 40px); }
+    p { color: #c4ccda; line-height: 1.6; }
+    button { margin-top: 12px; padding: 11px 16px; border: 0; border-radius: 9px; background: #7daeff; color: #101827; font-weight: 700; cursor: pointer; }
+    button:hover { background: #a3c6ff; }
+    #result { margin-top: 16px; padding: 12px; border-radius: 8px; background: #151b25; color: #a7e5bd; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="tag">Extension local page</div>
+    <h1>It works 🎉</h1>
+    <p>This is a small test page bundled inside the Egodact extension. It loads locally from the extension package, not from an external website.</p>
+    <button id="test-button" type="button">Test interaction</button>
+    <div id="result" role="status">Waiting for your click…</div>
+  </main>
+  <script>
+    let clicks = 0;
+    document.getElementById("test-button").addEventListener("click", () => {
+      clicks += 1;
+      document.getElementById("result").textContent = `Button works — clicked ${clicks} time${clicks === 1 ? "" : "s"}.`;
+    });
+  </script>
+</body>
+</html>
