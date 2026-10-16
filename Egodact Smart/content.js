@@ -6014,12 +6014,12 @@ function voegKnoppenToe() {
                 height="22"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="var(--egd-tekst)"
+                stroke="currentColor"
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 style="
-                    opacity: 0.85;
+                    opacity: 1;
                     display: block;
                     pointer-events: none;
                 "
@@ -6095,7 +6095,7 @@ function voegKnoppenToe() {
                 height="22"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="var(--egd-tekst)"
+                stroke="currentColor"
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -6185,12 +6185,12 @@ function voegKnoppenToe() {
                 height="22"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="var(--egd-tekst)"
+                stroke="currentColor"
                 stroke-width="2.5"
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 style="
-                    opacity: 0.85;
+                    opacity: 1;
                     display: block;
                     pointer-events: none;
                 "
@@ -6300,12 +6300,12 @@ function voegKnoppenToe() {
                 height="22"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="var(--egd-tekst)"
+                stroke="currentColor"
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 style="
-                    opacity: 0.85;
+                    opacity: 1;
                     display: block;
                     pointer-events: none;
                 "
