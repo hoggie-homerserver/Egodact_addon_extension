@@ -6099,7 +6099,7 @@ function voegKnoppenToe() {
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                style="opacity:0.85;display:block;pointer-events:none;"
+                style="opacity:1;display:block;pointer-events:none;"
             >
                 <path d="M9 3h6"></path>
                 <path d="M10 3v7.2L4.8 19a1.5 1.5 0 0 0 1.3 2.2h11.8a1.5 1.5 0 0 0 1.3-2.2L14 10.2V3"></path>
