@@ -1,43 +1,278 @@
 // ============================================================
-// THEMAKLEUR VOOR DE VIER MENUKNOPPEN
+// THEMA: DONKER / LICHT
 // ============================================================
-function egodactSyncMenuButtonTheme() {
-    const isLightTheme = () => {
-        const root = document.documentElement, body = document.body;
-        const classes = `${root.className || ""} ${body?.className || ""} ${root.getAttribute("data-theme") || ""} ${body?.getAttribute("data-theme") || ""}`.toLowerCase();
-        if (/light|lichte|day-mode/.test(classes)) return true;
-        if (/dark|donkere|night-mode/.test(classes)) return false;
-        for (const node of [body, root]) {
-            if (!node) continue;
-            const color = getComputedStyle(node).backgroundColor;
-            const m = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-            if (m && color !== "rgba(0, 0, 0, 0)") {
-                const lum = (Number(m[1])*299 + Number(m[2])*587 + Number(m[3])*114)/1000;
-                if (lum > 165) return true;
-                if (lum < 100) return false;
-            }
+//
+// Egodact heeft een donkere en een lichte modus. Alle kleuren van de
+// extensie zijn CSS-variabelen (--egd-...) die hieronder voor beide
+// modi zijn gedefinieerd. De modus wordt uit de pagina zelf afgeleid
+// (eerst class/data-theme, dan de achtergrondkleur), en elke seconde
+// opnieuw gecontroleerd. Omschakelen terwijl een venster open staat
+// werkt direct, want alleen de variabelen veranderen.
+
+const EGODACT_THEMA_CSS = `
+:root {
+    --egd-modal: #424242;
+    --egd-veld: #2e2e2e;
+    --egd-paneel: #333333;
+    --egd-info: #2b2b2b;
+    --egd-rand: #555555;
+    --egd-lijn: #444444;
+    --egd-lijn-zacht: #3c3c3c;
+    --egd-tekst: #ffffff;
+    --egd-tekst-zacht: #b0b0b0;
+    --egd-uit: #777777;
+    --egd-accent: #90caf9;
+    --egd-accent-tekst: #0d47a1;
+    --egd-selectie: rgba(144, 202, 249, 0.35);
+    --egd-hover: rgba(144, 202, 249, 0.08);
+    --egd-gevaar: #ef5350;
+    --egd-fout: #ef9a9a;
+    --egd-backdrop: rgba(0, 0, 0, 0.65);
+    --egd-schaduw:
+        0px 11px 15px -7px rgba(0, 0, 0, 0.3),
+        0px 24px 38px 3px rgba(0, 0, 0, 0.2),
+        0px 9px 46px 8px rgba(0, 0, 0, 0.15);
+    --egd-s-streep: #0d47a1;
+    --egd-s-letter: #90caf9;
+    --egd-m-streep: #00b0ff;
+    --egd-m-letter: #40c4ff;
+    --egd-a-streep: #ffb300;
+    --egd-a-letter: #ffe082;
+    --egd-r-streep: #9c27b0;
+    --egd-r-letter: #f48fb1;
+    --egd-t-streep: #0288d1;
+    --egd-t-letter: #81d4fa;
+    --egd-header-icoon: #ffffff;
+}
+
+:root[data-egodact-thema="licht"] {
+    --egd-modal: #ffffff;
+    --egd-veld: #f5f6f8;
+    --egd-paneel: #edf0f4;
+    --egd-info: #f1f3f6;
+    --egd-rand: #c9d0d8;
+    --egd-lijn: #e1e5ea;
+    --egd-lijn-zacht: #eef0f3;
+    --egd-tekst: #1b2733;
+    --egd-tekst-zacht: #5d6975;
+    --egd-uit: #a3acb5;
+    --egd-accent: #1565c0;
+    --egd-accent-tekst: #ffffff;
+    --egd-selectie: rgba(21, 101, 192, 0.18);
+    --egd-hover: rgba(21, 101, 192, 0.06);
+    --egd-gevaar: #d32f2f;
+    --egd-fout: #c62828;
+    --egd-backdrop: rgba(15, 23, 42, 0.42);
+    --egd-schaduw:
+        0px 11px 15px -7px rgba(15, 23, 42, 0.16),
+        0px 24px 38px 3px rgba(15, 23, 42, 0.10),
+        0px 9px 46px 8px rgba(15, 23, 42, 0.08);
+    --egd-s-streep: #1565c0;
+    --egd-s-letter: #0d47a1;
+    --egd-m-streep: #0091ea;
+    --egd-m-letter: #0277bd;
+    --egd-a-streep: #ffa000;
+    --egd-a-letter: #a65f00;
+    --egd-r-streep: #8e24aa;
+    --egd-r-letter: #ad1457;
+    --egd-t-streep: #0277bd;
+    --egd-t-letter: #01579b;
+    --egd-header-icoon: #757575;
+}
+
+/* Formulierelementen, kiezers en scrollbalken in onze vensters volgen
+   het thema (bijvoorbeeld het klokje bij een tijdveld). */
+#egodact-custom-modal-backdrop {
+    color-scheme: dark;
+}
+
+#egodact-custom-modal-backdrop ::placeholder {
+    color: var(--egd-uit);
+    opacity: 1;
+}
+
+:root[data-egodact-thema="licht"] #egodact-custom-modal-backdrop {
+    color-scheme: light;
+}
+
+/* Lichte modus: een venster krijgt een fijne rand, zodat het loskomt
+   van een witte pagina erachter, en invoervelden een duidelijke focus. */
+:root[data-egodact-thema="licht"] #egodact-custom-modal-backdrop > div {
+    border: 1px solid #d9dee5;
+}
+
+:root[data-egodact-thema="licht"] #egodact-custom-modal-backdrop input:focus,
+:root[data-egodact-thema="licht"] #egodact-custom-modal-backdrop select:focus,
+:root[data-egodact-thema="licht"] #egodact-custom-modal-backdrop textarea:focus {
+    outline: 2px solid var(--egd-accent);
+    outline-offset: -1px;
+}
+
+/* Knoppen die we in de koptekst van Egodact zetten. */
+#egodact-info-knop,
+#egodact-taken-knop,
+#egodact-weekplanning-knop,
+#egodact-beta-features-knop {
+    color: var(--egd-header-icoon) !important;
+}
+`;
+
+function egodactParseRgb(waarde) {
+    const m =
+        /rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,/]+([\d.]+%?))?\s*\)/
+            .exec(waarde || '');
+
+    if (!m) return null;
+
+    let alpha = 1;
+
+    if (m[4] !== undefined) {
+        alpha = m[4].endsWith('%')
+            ? parseFloat(m[4]) / 100
+            : parseFloat(m[4]);
+    }
+
+    return { r: +m[1], g: +m[2], b: +m[3], a: alpha };
+}
+
+function egodactIsDonkerKleur(c) {
+    return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) < 140;
+}
+
+function egodactOpaakeAchtergrond(el) {
+    const c = egodactParseRgb(getComputedStyle(el).backgroundColor);
+    return c && c.a >= 0.9 ? c : null;
+}
+
+// Is de pagina (Egodact zelf, niet onze vensters) donker of licht?
+function egodactPaginaIsDonker() {
+    const eigen = el => !!(el.closest && el.closest('[id^="egodact-"]'));
+
+    // 1. Duidelijke aanwijzingen: classes en data-theme op html, body
+    //    en de eerste laag eronder (bijvoorbeeld "dark-theme").
+    let licht = false;
+    let donker = false;
+
+    const hint = tekst => {
+        for (const token of String(tekst || '').toLowerCase().split(/\s+/)) {
+            if (!token) continue;
+
+            if (/(^|[-_])(light|lichte?|day)([-_]|$)/.test(token)) licht = true;
+            if (/(^|[-_])(dark|donkere?|night)([-_]|$)/.test(token)) donker = true;
         }
-        return false;
     };
-    const update = () => {
-        const stroke = isLightTheme() ? "#757575" : "#ffffff";
-        ["egodact-info-knop", "egodact-beta-features-knop", "egodact-taken-knop", "egodact-weekplanning-knop"]
-            .forEach(id => {
-                const button = document.getElementById(id);
-                const svg = button?.querySelector("svg");
-                if (svg) svg.setAttribute("stroke", stroke);
-            });
-    };
-    update();
-    if (!document.documentElement.dataset.egodactButtonThemeObserver) {
-        document.documentElement.dataset.egodactButtonThemeObserver = "true";
-        const observer = new MutationObserver(update);
-        observer.observe(document.documentElement, {attributes:true, attributeFilter:["class","style","data-theme"]});
-        observer.observe(document.body, {attributes:true, attributeFilter:["class","style","data-theme"]});
-        const buttonsObserver = new MutationObserver(update);
-        buttonsObserver.observe(document.body, {childList:true, subtree:true});
+
+    const lagen = [
+        document.documentElement,
+        document.body,
+        ...(document.body ? document.body.children : [])
+    ];
+
+    for (const el of lagen) {
+        if (!el || eigen(el)) continue;
+
+        hint(el.getAttribute('class'));
+        hint(el.getAttribute('data-theme'));
+        hint(el.getAttribute('data-bs-theme'));
+        hint(el.getAttribute('data-mode'));
+    }
+
+    if (licht && !donker) return false;
+    if (donker && !licht) return true;
+
+    // 2. Grote omhullende vlakken van de app: de buitenste met een
+    //    effen achtergrond is de achtergrond van de pagina.
+    const breed = window.innerWidth * 0.8;
+    const hoog = window.innerHeight * 0.5;
+
+    const wrappers = document.querySelectorAll(
+        'body > *, body > * > *, body > * > * > *'
+    );
+
+    for (const el of wrappers) {
+        if (eigen(el)) continue;
+
+        const rect = el.getBoundingClientRect();
+        if (rect.width < breed || rect.height < hoog) continue;
+
+        const c = egodactOpaakeAchtergrond(el);
+        if (c) return egodactIsDonkerKleur(c);
+    }
+
+    // 3. body en html.
+    for (const el of [document.body, document.documentElement]) {
+        if (!el) continue;
+
+        const c = egodactOpaakeAchtergrond(el);
+        if (c) return egodactIsDonkerKleur(c);
+    }
+
+    // 4. Voorkeur van het systeem; anders donker (zoals voorheen).
+    try {
+        return window.matchMedia('(prefers-color-scheme: light)')
+            .matches === false;
+    } catch (err) {
+        return true;
     }
 }
+
+function egodactPasThemaToe() {
+    try {
+        const root = document.documentElement;
+        if (!root) return;
+
+        if (!document.getElementById('egodact-thema-stijl')) {
+            const stijl = document.createElement('style');
+            stijl.id = 'egodact-thema-stijl';
+            stijl.textContent = EGODACT_THEMA_CSS;
+            (document.head || root).appendChild(stijl);
+        }
+
+        const donker = egodactPaginaIsDonker();
+        const thema = donker ? 'donker' : 'licht';
+
+        if (root.getAttribute('data-egodact-thema') !== thema) {
+            root.setAttribute('data-egodact-thema', thema);
+        }
+
+        // Pictogramkleur voor onze knoppen in de koptekst: gebaseerd op
+        // de achtergrond van de koptekst zelf, want die kan anders zijn
+        // dan de pagina (bijvoorbeeld een gekleurde balk).
+        let koptekstDonker = donker;
+
+        const knop = document.getElementById('egodact-info-knop') ||
+            document.getElementById('egodact-taken-knop') ||
+            document.getElementById('egodact-weekplanning-knop') ||
+            document.getElementById('egodact-beta-features-knop');
+
+        if (knop) {
+            for (let el = knop.parentElement; el; el = el.parentElement) {
+                const c = egodactOpaakeAchtergrond(el);
+
+                if (c) {
+                    koptekstDonker = egodactIsDonkerKleur(c);
+                    break;
+                }
+            }
+        }
+
+        const icoon = koptekstDonker ? '#ffffff' : '#757575';
+
+        if (root.style.getPropertyValue('--egd-header-icoon') !== icoon) {
+            root.style.setProperty('--egd-header-icoon', icoon);
+        }
+    } catch (err) {
+        console.warn('Egodact thema bijwerken mislukt:', err);
+    }
+}
+
+// Blijft bestaan voor de aanroep in voegKnoppenToe().
+function egodactSyncMenuButtonTheme() {
+    egodactPasThemaToe();
+}
+
+egodactPasThemaToe();
+setInterval(egodactPasThemaToe, 1000);
 
 // ============================================================
 // SMART MENU
@@ -58,7 +293,7 @@ function openSMARTMenu(e) {
         left: '0',
         width: '100vw',
         height: '100vh',
-        backgroundColor: 'rgba(0, 0, 0, 0.65)',
+        backgroundColor: 'var(--egd-backdrop)',
         zIndex: '9999999',
         display: 'flex',
         alignItems: 'center',
@@ -69,8 +304,8 @@ function openSMARTMenu(e) {
     const modal = document.createElement('div');
 
     Object.assign(modal.style, {
-        backgroundColor: '#424242',
-        color: '#ffffff',
+        backgroundColor: 'var(--egd-modal)',
+        color: 'var(--egd-tekst)',
         width: '520px',
         borderRadius: '6px',
         padding: '24px',
@@ -78,9 +313,7 @@ function openSMARTMenu(e) {
         flexDirection: 'column',
         gap: '16px',
         boxShadow:
-            '0px 11px 15px -7px rgba(0,0,0,0.3), ' +
-            '0px 24px 38px 3px rgba(0,0,0,0.2), ' +
-            '0px 9px 46px 8px rgba(0,0,0,0.15)'
+            'var(--egd-schaduw)'
     });
 
     let currentModalPage = 0;
@@ -100,15 +333,15 @@ function openSMARTMenu(e) {
                             display: flex;
                             align-items: center;
                             gap: 14px;
-                            background: #2e2e2e;
+                            background: var(--egd-veld);
                             padding: 12px;
                             border-radius: 4px;
-                            border-left: 5px solid #0d47a1;
+                            border-left: 5px solid var(--egd-s-streep);
                         ">
                             <span style="
                                 font-size: 20px;
                                 font-weight: bold;
-                                color: #90caf9;
+                                color: var(--egd-s-letter);
                                 min-width: 20px;
                                 text-align: center;
                             ">S</span>
@@ -123,7 +356,7 @@ function openSMARTMenu(e) {
             
                                 <div style="
                                     font-size: 13px;
-                                    color: #b0b0b0;
+                                    color: var(--egd-tekst-zacht);
                                 ">
                                     Is het doel duidelijk en concreet omschreven?
                                 </div>
@@ -134,15 +367,15 @@ function openSMARTMenu(e) {
                             display: flex;
                             align-items: center;
                             gap: 14px;
-                            background: #2e2e2e;
+                            background: var(--egd-veld);
                             padding: 12px;
                             border-radius: 4px;
-                            border-left: 5px solid #00b0ff;
+                            border-left: 5px solid var(--egd-m-streep);
                         ">
                             <span style="
                                 font-size: 20px;
                                 font-weight: bold;
-                                color: #40c4ff;
+                                color: var(--egd-m-letter);
                                 min-width: 20px;
                                 text-align: center;
                             ">M</span>
@@ -157,7 +390,7 @@ function openSMARTMenu(e) {
             
                                 <div style="
                                     font-size: 13px;
-                                    color: #b0b0b0;
+                                    color: var(--egd-tekst-zacht);
                                 ">
                                     Kun je achteraf bewijzen of meten dat het doel is gehaald?
                                 </div>
@@ -168,15 +401,15 @@ function openSMARTMenu(e) {
                             display: flex;
                             align-items: center;
                             gap: 14px;
-                            background: #2e2e2e;
+                            background: var(--egd-veld);
                             padding: 12px;
                             border-radius: 4px;
-                            border-left: 5px solid #ffb300;
+                            border-left: 5px solid var(--egd-a-streep);
                         ">
                             <span style="
                                 font-size: 20px;
                                 font-weight: bold;
-                                color: #ffe082;
+                                color: var(--egd-a-letter);
                                 min-width: 20px;
                                 text-align: center;
                             ">A</span>
@@ -191,7 +424,7 @@ function openSMARTMenu(e) {
             
                                 <div style="
                                     font-size: 13px;
-                                    color: #b0b0b0;
+                                    color: var(--egd-tekst-zacht);
                                 ">
                                     Is het doel motiverend, uitdagend en de moeite waard?
                                 </div>
@@ -202,15 +435,15 @@ function openSMARTMenu(e) {
                             display: flex;
                             align-items: center;
                             gap: 14px;
-                            background: #2e2e2e;
+                            background: var(--egd-veld);
                             padding: 12px;
                             border-radius: 4px;
-                            border-left: 5px solid #9c27b0;
+                            border-left: 5px solid var(--egd-r-streep);
                         ">
                             <span style="
                                 font-size: 20px;
                                 font-weight: bold;
-                                color: #f48fb1;
+                                color: var(--egd-r-letter);
                                 min-width: 20px;
                                 text-align: center;
                             ">R</span>
@@ -225,7 +458,7 @@ function openSMARTMenu(e) {
             
                                 <div style="
                                     font-size: 13px;
-                                    color: #b0b0b0;
+                                    color: var(--egd-tekst-zacht);
                                 ">
                                     Is het doel haalbaar en uitvoerbaar binnen jouw planning?
                                 </div>
@@ -236,15 +469,15 @@ function openSMARTMenu(e) {
                             display: flex;
                             align-items: center;
                             gap: 14px;
-                            background: #2e2e2e;
+                            background: var(--egd-veld);
                             padding: 12px;
                             border-radius: 4px;
-                            border-left: 5px solid #0288d1;
+                            border-left: 5px solid var(--egd-t-streep);
                         ">
                             <span style="
                                 font-size: 20px;
                                 font-weight: bold;
-                                color: #81d4fa;
+                                color: var(--egd-t-letter);
                                 min-width: 20px;
                                 text-align: center;
                             ">T</span>
@@ -259,7 +492,7 @@ function openSMARTMenu(e) {
             
                                 <div style="
                                     font-size: 13px;
-                                    color: #b0b0b0;
+                                    color: var(--egd-tekst-zacht);
                                 ">
                                     Wanneer, op welke datum of na hoeveel weken is het klaar?
                                 </div>
@@ -273,37 +506,37 @@ function openSMARTMenu(e) {
             title: "Geheugenpaleis",
             content: `
                 <div style="display:flex; flex-direction:column; gap:10px; margin-top:5px;">
-                    <p style="margin:0 0 4px; color:#b0b0b0; font-size:13px;">Onthoud informatie door die te koppelen aan een plek die je goed kent.</p>
+                    <p style="margin:0 0 4px; color:var(--egd-tekst-zacht); font-size:13px;">Onthoud informatie door die te koppelen aan een plek die je goed kent.</p>
 
-                    <div style="display:flex; align-items:center; gap:12px; background:#2e2e2e; padding:12px; border-radius:4px; border-left:4px solid #0d47a1;">
-                        <span style="font-size:18px; font-weight:bold; color:#90caf9; min-width:20px;">1</span>
+                    <div style="display:flex; align-items:center; gap:12px; background:var(--egd-veld); padding:12px; border-radius:4px; border-left:4px solid var(--egd-s-streep);">
+                        <span style="font-size:18px; font-weight:bold; color:var(--egd-s-letter); min-width:20px;">1</span>
                         <div>
                             <div style="font-weight:bold; font-size:14px;">Kies een plek</div>
-                            <div style="font-size:13px; color:#b0b0b0;">Bijvoorbeeld je huis of klaslokaal.</div>
+                            <div style="font-size:13px; color:var(--egd-tekst-zacht);">Bijvoorbeeld je huis of klaslokaal.</div>
                         </div>
                     </div>
 
-                    <div style="display:flex; align-items:center; gap:12px; background:#2e2e2e; padding:12px; border-radius:4px; border-left:4px solid #00b0ff;">
-                        <span style="font-size:18px; font-weight:bold; color:#40c4ff; min-width:20px;">2</span>
+                    <div style="display:flex; align-items:center; gap:12px; background:var(--egd-veld); padding:12px; border-radius:4px; border-left:4px solid var(--egd-m-streep);">
+                        <span style="font-size:18px; font-weight:bold; color:var(--egd-m-letter); min-width:20px;">2</span>
                         <div>
                             <div style="font-weight:bold; font-size:14px;">Kies je route</div>
-                            <div style="font-size:13px; color:#b0b0b0;">Loop in gedachten langs vaste plekken.</div>
+                            <div style="font-size:13px; color:var(--egd-tekst-zacht);">Loop in gedachten langs vaste plekken.</div>
                         </div>
                     </div>
 
-                    <div style="display:flex; align-items:center; gap:12px; background:#2e2e2e; padding:12px; border-radius:4px; border-left:4px solid #ffb300;">
-                        <span style="font-size:18px; font-weight:bold; color:#ffe082; min-width:20px;">3</span>
+                    <div style="display:flex; align-items:center; gap:12px; background:var(--egd-veld); padding:12px; border-radius:4px; border-left:4px solid var(--egd-a-streep);">
+                        <span style="font-size:18px; font-weight:bold; color:var(--egd-a-letter); min-width:20px;">3</span>
                         <div>
                             <div style="font-weight:bold; font-size:14px;">Maak beelden</div>
-                            <div style="font-size:13px; color:#b0b0b0;">Koppel elk punt aan iets opvallends en iets dat je moet onthouden.</div>
+                            <div style="font-size:13px; color:var(--egd-tekst-zacht);">Koppel elk punt aan iets opvallends en iets dat je moet onthouden.</div>
                         </div>
                     </div>
 
-                    <div style="display:flex; align-items:center; gap:12px; background:#2e2e2e; padding:12px; border-radius:4px; border-left:4px solid #9c27b0;">
-                        <span style="font-size:18px; font-weight:bold; color:#f48fb1; min-width:20px;">4</span>
+                    <div style="display:flex; align-items:center; gap:12px; background:var(--egd-veld); padding:12px; border-radius:4px; border-left:4px solid var(--egd-r-streep);">
+                        <span style="font-size:18px; font-weight:bold; color:var(--egd-r-letter); min-width:20px;">4</span>
                         <div>
                             <div style="font-weight:bold; font-size:14px;">Oefen je route</div>
-                            <div style="font-size:13px; color:#b0b0b0;">Loop hem in gedachten na om alles terug te halen.</div>
+                            <div style="font-size:13px; color:var(--egd-tekst-zacht);">Loop hem in gedachten na om alles terug te halen.</div>
                         </div>
                     </div>
                 </div>
@@ -312,19 +545,19 @@ function openSMARTMenu(e) {
     ];  
 
     modal.innerHTML = `
-        <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #555; padding-bottom:10px; margin-bottom:5px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--egd-rand); padding-bottom:10px; margin-bottom:5px;">
             <h2 id="modal-title-text" style="margin:0; font-size:22px; font-weight:500;">${modalPagesData[currentModalPage].title}</h2>
             <div style="display:flex; align-items:center; gap:4px;">
-                <button id="modal-prev-btn" type="button" aria-label="Vorige pagina" title="Vorige pagina" style="background-color:transparent; border:1px solid #90caf9; border-radius:4px; color:#90caf9; cursor:pointer; padding:3px 9px; font-size:18px; font-weight:600; line-height:1.2; transition:background-color 120ms ease, color 120ms ease;" onmouseenter="this.style.backgroundColor='#90caf9'; this.style.color='#0d47a1';" onmouseleave="this.style.backgroundColor='transparent'; this.style.color='#90caf9';">‹</button>
-                <span id="modal-page-indicator" aria-live="polite" style="min-width:28px; text-align:center; color:#b0b0b0; font-size:12px;">1 / 2</span>
-                <button id="modal-next-btn" type="button" aria-label="Volgende pagina" title="Volgende pagina" style="background-color:transparent; border:1px solid #90caf9; border-radius:4px; color:#90caf9; cursor:pointer; padding:3px 9px; font-size:18px; font-weight:600; line-height:1.2; transition:background-color 120ms ease, color 120ms ease;" onmouseenter="this.style.backgroundColor='#90caf9'; this.style.color='#0d47a1';" onmouseleave="this.style.backgroundColor='transparent'; this.style.color='#90caf9';">›</button>
+                <button id="modal-prev-btn" type="button" aria-label="Vorige pagina" title="Vorige pagina" style="background-color:transparent; border:1px solid var(--egd-accent); border-radius:4px; color:var(--egd-accent); cursor:pointer; padding:3px 9px; font-size:18px; font-weight:600; line-height:1.2; transition:background-color 120ms ease, color 120ms ease;" onmouseenter="this.style.backgroundColor='var(--egd-accent)'; this.style.color='var(--egd-accent-tekst)';" onmouseleave="this.style.backgroundColor='transparent'; this.style.color='var(--egd-accent)';">‹</button>
+                <span id="modal-page-indicator" aria-live="polite" style="min-width:28px; text-align:center; color:var(--egd-tekst-zacht); font-size:12px;">1 / 2</span>
+                <button id="modal-next-btn" type="button" aria-label="Volgende pagina" title="Volgende pagina" style="background-color:transparent; border:1px solid var(--egd-accent); border-radius:4px; color:var(--egd-accent); cursor:pointer; padding:3px 9px; font-size:18px; font-weight:600; line-height:1.2; transition:background-color 120ms ease, color 120ms ease;" onmouseenter="this.style.backgroundColor='var(--egd-accent)'; this.style.color='var(--egd-accent-tekst)';" onmouseleave="this.style.backgroundColor='transparent'; this.style.color='var(--egd-accent)';">›</button>
             </div>
         </div>
         <div id="modal-dynamic-content" style="display:flex; flex-direction:column; gap:10px; margin-top:5px;">
             ${modalPagesData[currentModalPage].content}
         </div>
         <div style="display:flex; justify-content:flex-end; margin-top:15px;">
-            <button id="egodact-modal-sluiten" style="background-color:#90caf9; border:none; color:#0d47a1; cursor:pointer; padding:10px 20px; font-weight:bold; font-size:14px; text-transform:uppercase; border-radius:4px; box-shadow:0px 3px 1px -2px rgba(0,0,0,0.2);">Sluiten</button>
+            <button id="egodact-modal-sluiten" style="background-color:var(--egd-accent); border:none; color:var(--egd-accent-tekst); cursor:pointer; padding:10px 20px; font-weight:bold; font-size:14px; text-transform:uppercase; border-radius:4px; box-shadow:0px 3px 1px -2px rgba(0,0,0,0.2);">Sluiten</button>
         </div>
     `;
 
@@ -344,8 +577,8 @@ function openSMARTMenu(e) {
         [prevButton, nextButton].forEach(button => {
             button.style.opacity = button.disabled ? '0.35' : '1';
             button.style.cursor = button.disabled ? 'default' : 'pointer';
-            button.style.color = button.disabled ? '#777777' : '#90caf9';
-            button.style.borderColor = button.disabled ? '#777777' : '#90caf9';
+            button.style.color = button.disabled ? 'var(--egd-uit)' : 'var(--egd-accent)';
+            button.style.borderColor = button.disabled ? 'var(--egd-uit)' : 'var(--egd-accent)';
         });
     }
 
@@ -402,7 +635,7 @@ function openBetaFeaturesMenu(e) {
         left: '0',
         width: '100vw',
         height: '100vh',
-        backgroundColor: 'rgba(0, 0, 0, 0.65)',
+        backgroundColor: 'var(--egd-backdrop)',
         zIndex: '9999999',
         display: 'flex',
         alignItems: 'center',
@@ -413,8 +646,8 @@ function openBetaFeaturesMenu(e) {
     const modal = document.createElement('div');
 
     Object.assign(modal.style, {
-        backgroundColor: '#424242',
-        color: '#ffffff',
+        backgroundColor: 'var(--egd-modal)',
+        color: 'var(--egd-tekst)',
         width: '520px',
         maxWidth: 'calc(100vw - 32px)',
         borderRadius: '6px',
@@ -423,9 +656,7 @@ function openBetaFeaturesMenu(e) {
         flexDirection: 'column',
         gap: '16px',
         boxShadow:
-            '0px 11px 15px -7px rgba(0,0,0,0.3), ' +
-            '0px 24px 38px 3px rgba(0,0,0,0.2), ' +
-            '0px 9px 46px 8px rgba(0,0,0,0.15)'
+            'var(--egd-schaduw)'
     });
 
     modal.innerHTML = `
@@ -433,7 +664,7 @@ function openBetaFeaturesMenu(e) {
             margin: 0;
             font-size: 22px;
             font-weight: 500;
-            border-bottom: 1px solid #555;
+            border-bottom: 1px solid var(--egd-rand);
             padding-bottom: 10px;
         ">Beta Features</h2>
 
@@ -441,9 +672,9 @@ function openBetaFeaturesMenu(e) {
             id="egodact-open-test-page"
             type="button"
             style="
-                background-color: #2e2e2e;
-                border: 1px solid #90caf9;
-                color: #90caf9;
+                background-color: var(--egd-veld);
+                border: 1px solid var(--egd-accent);
+                color: var(--egd-accent);
                 cursor: pointer;
                 padding: 12px 14px;
                 font-size: 14px;
@@ -460,9 +691,9 @@ function openBetaFeaturesMenu(e) {
             <button
                 id="egodact-beta-modal-sluiten"
                 style="
-                    background-color: #90caf9;
+                    background-color: var(--egd-accent);
                     border: none;
-                    color: #0d47a1;
+                    color: var(--egd-accent-tekst);
                     cursor: pointer;
                     padding: 10px 20px;
                     font-weight: bold;
@@ -866,11 +1097,11 @@ function egodactMaakInfoBlok(c, afb, compact) {
     const blok = document.createElement('div');
 
     Object.assign(blok.style, {
-        background: '#2b2b2b',
+        background: 'var(--egd-info)',
         borderRadius: '4px',
         padding: '8px',
         fontSize: '11px',
-        color: '#e0e0e0',
+        color: 'var(--egd-tekst)',
         display: 'flex',
         flexDirection: 'column',
         gap: '8px',
@@ -907,7 +1138,7 @@ function egodactMaakInfoBlok(c, afb, compact) {
 
     const metaEl = document.createElement('div');
     metaEl.textContent = meta;
-    metaEl.style.color = '#bdbdbd';
+    metaEl.style.color = 'var(--egd-tekst-zacht)';
     blok.appendChild(metaEl);
 
     const kopje = tekst => {
@@ -918,7 +1149,7 @@ function egodactMaakInfoBlok(c, afb, compact) {
             fontWeight: 'bold',
             textTransform: 'uppercase',
             letterSpacing: '0.5px',
-            color: '#9e9e9e',
+            color: 'var(--egd-tekst-zacht)',
             marginBottom: '4px'
         });
         return el;
@@ -970,7 +1201,7 @@ function egodactMaakInfoBlok(c, afb, compact) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
-                background: '#424242',
+                background: 'var(--egd-paneel)',
                 borderRadius: '10px',
                 padding: '2px 7px 2px 3px'
             });
@@ -1045,7 +1276,7 @@ function openTakenMenu(e) {
         left: "0",
         width: "100vw",
         height: "100vh",
-        backgroundColor: "rgba(0, 0, 0, 0.65)",
+        backgroundColor: "var(--egd-backdrop)",
         zIndex: "9999999",
         display: "flex",
         alignItems: "center",
@@ -1056,8 +1287,8 @@ function openTakenMenu(e) {
     const modal = document.createElement("div");
 
     Object.assign(modal.style, {
-        backgroundColor: "#424242",
-        color: "#ffffff",
+        backgroundColor: "var(--egd-modal)",
+        color: "var(--egd-tekst)",
         width: "580px",
         maxWidth: "90vw",
         maxHeight: "90vh",
@@ -1067,9 +1298,7 @@ function openTakenMenu(e) {
         flexDirection: "column",
         gap: "16px",
         boxShadow:
-            "0px 11px 15px -7px rgba(0,0,0,0.3), " +
-            "0px 24px 38px 3px rgba(0,0,0,0.2), " +
-            "0px 9px 46px 8px rgba(0,0,0,0.15)"
+            "var(--egd-schaduw)"
     });
 
     modal.innerHTML = `
@@ -1077,7 +1306,7 @@ function openTakenMenu(e) {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #555;
+            border-bottom: 1px solid var(--egd-rand);
             padding-bottom: 10px;
         ">
             <h2 style="
@@ -1092,16 +1321,16 @@ function openTakenMenu(e) {
                 type="text"
                 id="egodact-planner-search"
                 placeholder="Search.."
-                style="background:#2e2e2e;color:#fff;border:1px solid #555;padding:4px 8px;border-radius:4px;font-family:inherit;width:150px;"
+                style="background:var(--egd-veld);color:var(--egd-tekst);border:1px solid var(--egd-rand);padding:4px 8px;border-radius:4px;font-family:inherit;width:150px;"
             >
             <input
                 type="date"
                 id="egodact-planner-datum"
                 value="${vandaag}"
                 style="
-                    background-color: #2e2e2e;
-                    color: #fff;
-                    border: 1px solid #555;
+                    background-color: var(--egd-veld);
+                    color: var(--egd-tekst);
+                    border: 1px solid var(--egd-rand);
                     padding: 4px 8px;
                     border-radius: 4px;
                     cursor: pointer;
@@ -1115,7 +1344,7 @@ function openTakenMenu(e) {
             gap: 10px;
             justify-content: space-between;
             align-items: center;
-            background: #333;
+            background: var(--egd-paneel);
             padding: 8px 12px;
             border-radius: 4px;
         ">
@@ -1172,9 +1401,9 @@ function openTakenMenu(e) {
             <button
                 id="egodact-taken-sluiten"
                 style="
-                    background-color: #90caf9;
+                    background-color: var(--egd-accent);
                     border: none;
-                    color: #0d47a1;
+                    color: var(--egd-accent-tekst);
                     cursor: pointer;
                     padding: 10px 20px;
                     font-weight: bold;
@@ -1295,11 +1524,11 @@ function openTakenMenu(e) {
                         display: "flex",
                         alignItems: "center",
                         gap: "10px",
-                        background: "#2e2e2e",
+                        background: "var(--egd-veld)",
                         padding: "8px 12px",
                         borderRadius: "4px",
                         borderLeft:
-                            "4px solid #90caf9"
+                            "4px solid var(--egd-accent)"
                     }
                 );
 
@@ -1316,9 +1545,9 @@ function openTakenMenu(e) {
                     tijdInput.style,
                     {
                         width: "90px",
-                        background: "#1e1e1e",
-                        border: "1px solid #444",
-                        color: "#90caf9",
+                        background: "var(--egd-veld)",
+                        border: "1px solid var(--egd-lijn)",
+                        color: "var(--egd-accent)",
                         fontSize: "14px",
                         fontWeight: "bold",
                         padding: "4px 6px",
@@ -1360,7 +1589,7 @@ function openTakenMenu(e) {
                         flex: "1",
                         background: "none",
                         border: "none",
-                        color: "#ffffff",
+                        color: "var(--egd-tekst)",
                         fontSize: "15px",
                         outline: "none",
                         fontFamily: "inherit"
@@ -1387,7 +1616,7 @@ function openTakenMenu(e) {
                     {
                         background: "none",
                         border: "none",
-                        color: "#ef5350",
+                        color: "var(--egd-gevaar)",
                         cursor: "pointer",
                         fontSize: "16px",
                         padding: "0 6px",
@@ -1890,7 +2119,7 @@ function openWeekplanning(e) {
             width: "100vw",
             height: "100vh",
             backgroundColor:
-                "rgba(0, 0, 0, 0.65)",
+                "var(--egd-backdrop)",
             zIndex: "9999999",
             display: "flex",
             alignItems: "center",
@@ -1910,8 +2139,8 @@ function openWeekplanning(e) {
     Object.assign(
         modal.style,
         {
-            backgroundColor: "#424242",
-            color: "#ffffff",
+            backgroundColor: "var(--egd-modal)",
+            color: "var(--egd-tekst)",
             width: "1200px",
             maxWidth: "95vw",
             maxHeight: "90vh",
@@ -1921,9 +2150,7 @@ function openWeekplanning(e) {
             flexDirection: "column",
             gap: "14px",
             boxShadow:
-                "0px 11px 15px -7px rgba(0,0,0,0.3), " +
-                "0px 24px 38px 3px rgba(0,0,0,0.2), " +
-                "0px 9px 46px 8px rgba(0,0,0,0.15)",
+                "var(--egd-schaduw)",
             position: "relative"
         }
     );
@@ -1938,7 +2165,7 @@ function openWeekplanning(e) {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #555;
+            border-bottom: 1px solid var(--egd-rand);
             padding-bottom: 12px;
             gap: 15px;
         ">
@@ -1961,9 +2188,9 @@ function openWeekplanning(e) {
                     id="egodact-vorige-week"
                     type="button"
                     style="
-                        background: #333;
-                        color: white;
-                        border: 1px solid #555;
+                        background: var(--egd-paneel);
+                        color: var(--egd-tekst);
+                        border: 1px solid var(--egd-rand);
                         border-radius: 4px;
                         padding: 7px 12px;
                         cursor: pointer;
@@ -1977,9 +2204,9 @@ function openWeekplanning(e) {
                     id="egodact-vandaag-week"
                     type="button"
                     style="
-                        background: #333;
-                        color: white;
-                        border: 1px solid #555;
+                        background: var(--egd-paneel);
+                        color: var(--egd-tekst);
+                        border: 1px solid var(--egd-rand);
                         border-radius: 4px;
                         padding: 7px 12px;
                         cursor: pointer;
@@ -1993,9 +2220,9 @@ function openWeekplanning(e) {
                     id="egodact-volgende-week"
                     type="button"
                     style="
-                        background: #333;
-                        color: white;
-                        border: 1px solid #555;
+                        background: var(--egd-paneel);
+                        color: var(--egd-tekst);
+                        border: 1px solid var(--egd-rand);
                         border-radius: 4px;
                         padding: 7px 12px;
                         cursor: pointer;
@@ -2011,9 +2238,9 @@ function openWeekplanning(e) {
                     placeholder="Zoek challenge of vak..."
                     autocomplete="off"
                     style="
-                        background: #2e2e2e;
-                        color: white;
-                        border: 1px solid #555;
+                        background: var(--egd-veld);
+                        color: var(--egd-tekst);
+                        border: 1px solid var(--egd-rand);
                         border-radius: 4px;
                         padding: 8px 10px;
                         font-size: 13px;
@@ -2029,7 +2256,7 @@ function openWeekplanning(e) {
                         min-width: 150px;
                         text-align: center;
                         font-size: 14px;
-                        color: #ddd;
+                        color: var(--egd-tekst);
                     "
                 ></span>
 
@@ -2045,8 +2272,8 @@ function openWeekplanning(e) {
                     id="egodact-week-blok-toevoegen"
                     type="button"
                     style="
-                        background: #90caf9;
-                        color: #0d47a1;
+                        background: var(--egd-accent);
+                        color: var(--egd-accent-tekst);
                         border: none;
                         border-radius: 4px;
                         padding: 9px 14px;
@@ -2083,9 +2310,9 @@ function openWeekplanning(e) {
                 id="egodact-weekplanning-sluiten"
                 type="button"
                 style="
-                    background-color: #90caf9;
+                    background-color: var(--egd-accent);
                     border: none;
-                    color: #0d47a1;
+                    color: var(--egd-accent-tekst);
                     cursor: pointer;
                     padding: 10px 20px;
                     font-weight: bold;
@@ -2171,7 +2398,7 @@ function openWeekplanning(e) {
                 position: "absolute",
                 inset: "0",
                 background:
-                    "rgba(0,0,0,0.55)",
+                    "var(--egd-backdrop)",
                 zIndex: "20",
                 display: "flex",
                 alignItems: "center",
@@ -2185,7 +2412,7 @@ function openWeekplanning(e) {
         Object.assign(
             editor.style,
             {
-                background: "#424242",
+                background: "var(--egd-modal)",
                 width: "420px",
                 maxWidth: "90%",
                 maxHeight:
@@ -2228,7 +2455,7 @@ function openWeekplanning(e) {
                 display: block;
                 margin-bottom: 6px;
                 font-size: 13px;
-                color: #bbb;
+                color: var(--egd-tekst-zacht);
             ">
                 Naam
             </label>
@@ -2243,9 +2470,9 @@ function openWeekplanning(e) {
                 style="
                     width: 100%;
                     box-sizing: border-box;
-                    background: #2e2e2e;
-                    color: white;
-                    border: 1px solid #555;
+                    background: var(--egd-veld);
+                    color: var(--egd-tekst);
+                    border: 1px solid var(--egd-rand);
                     border-radius: 4px;
                     padding: 9px;
                     margin-bottom: 14px;
@@ -2257,7 +2484,7 @@ function openWeekplanning(e) {
                 display: block;
                 margin-bottom: 6px;
                 font-size: 13px;
-                color: #bbb;
+                color: var(--egd-tekst-zacht);
             ">
                 Beschrijving
             </label>
@@ -2270,9 +2497,9 @@ function openWeekplanning(e) {
                     width: 100%;
                     box-sizing: border-box;
                     resize: vertical;
-                    background: #2e2e2e;
-                    color: white;
-                    border: 1px solid #555;
+                    background: var(--egd-veld);
+                    color: var(--egd-tekst);
+                    border: 1px solid var(--egd-rand);
                     border-radius: 4px;
                     padding: 9px;
                     margin-bottom: 14px;
@@ -2287,7 +2514,7 @@ function openWeekplanning(e) {
                 display: block;
                 margin-bottom: 6px;
                 font-size: 13px;
-                color: #bbb;
+                color: var(--egd-tekst-zacht);
             ">
                 Dag
             </label>
@@ -2297,9 +2524,9 @@ function openWeekplanning(e) {
                 style="
                     width: 100%;
                     box-sizing: border-box;
-                    background: #2e2e2e;
-                    color: white;
-                    border: 1px solid #555;
+                    background: var(--egd-veld);
+                    color: var(--egd-tekst);
+                    border: 1px solid var(--egd-rand);
                     border-radius: 4px;
                     padding: 9px;
                     margin-bottom: 14px;
@@ -2327,7 +2554,7 @@ function openWeekplanning(e) {
                         display: block;
                         margin-bottom: 6px;
                         font-size: 13px;
-                        color: #bbb;
+                        color: var(--egd-tekst-zacht);
                     ">
                         Van
                     </label>
@@ -2339,9 +2566,9 @@ function openWeekplanning(e) {
                         style="
                             width: 100%;
                             box-sizing: border-box;
-                            background: #2e2e2e;
-                            color: white;
-                            border: 1px solid #555;
+                            background: var(--egd-veld);
+                            color: var(--egd-tekst);
+                            border: 1px solid var(--egd-rand);
                             border-radius: 4px;
                             padding: 9px;
                         "
@@ -2355,7 +2582,7 @@ function openWeekplanning(e) {
                         display: block;
                         margin-bottom: 6px;
                         font-size: 13px;
-                        color: #bbb;
+                        color: var(--egd-tekst-zacht);
                     ">
                         Tot
                     </label>
@@ -2367,9 +2594,9 @@ function openWeekplanning(e) {
                         style="
                             width: 100%;
                             box-sizing: border-box;
-                            background: #2e2e2e;
-                            color: white;
-                            border: 1px solid #555;
+                            background: var(--egd-veld);
+                            color: var(--egd-tekst);
+                            border: 1px solid var(--egd-rand);
                             border-radius: 4px;
                             padding: 9px;
                         "
@@ -2418,9 +2645,9 @@ function openWeekplanning(e) {
                         id="egodact-blok-annuleren"
                         type="button"
                         style="
-                            background: #333;
-                            color: white;
-                            border: 1px solid #555;
+                            background: var(--egd-paneel);
+                            color: var(--egd-tekst);
+                            border: 1px solid var(--egd-rand);
                             border-radius: 4px;
                             padding: 9px 15px;
                             cursor: pointer;
@@ -2433,8 +2660,8 @@ function openWeekplanning(e) {
                         id="egodact-blok-opslaan"
                         type="button"
                         style="
-                            background: #90caf9;
-                            color: #0d47a1;
+                            background: var(--egd-accent);
+                            color: var(--egd-accent-tekst);
                             border: none;
                             border-radius: 4px;
                             padding: 9px 15px;
@@ -2472,7 +2699,7 @@ function openWeekplanning(e) {
             Object.assign(
                 wrap.style,
                 {
-                    background: "#2b2b2b",
+                    background: "var(--egd-info)",
                     borderRadius: "4px",
                     marginBottom: "14px"
                 }
@@ -2690,7 +2917,7 @@ function openWeekplanning(e) {
                 display: "block",
                 marginBottom: "6px",
                 fontSize: "13px",
-                color: "#bbb"
+                color: "var(--egd-tekst-zacht)"
             }
         );
 
@@ -2739,8 +2966,8 @@ function openWeekplanning(e) {
 
                     knop.style.border =
                         gekozen
-                            ? "3px solid #ffffff"
-                            : "2px solid rgba(255,255,255,0.2)";
+                            ? "3px solid var(--egd-tekst)"
+                            : "2px solid var(--egd-rand)";
 
                     knop.dataset.gekozen =
                         gekozen
@@ -2895,7 +3122,7 @@ function openWeekplanning(e) {
             knoppenRij.style,
             {
                 padding: "12px 20px 20px",
-                borderTop: "1px solid #555",
+                borderTop: "1px solid var(--egd-rand)",
                 flexShrink: "0"
             }
         );
@@ -3732,7 +3959,7 @@ function openWeekplanning(e) {
             {
                 fontSize: "11px",
                 fontWeight: "bold",
-                color: "#bdbdbd",
+                color: "var(--egd-tekst-zacht)",
                 textTransform:
                     "uppercase",
                 letterSpacing:
@@ -3781,7 +4008,7 @@ function openWeekplanning(e) {
             uitleg.style,
             {
                 fontSize: "11px",
-                color: "#aaa",
+                color: "var(--egd-tekst-zacht)",
                 marginTop: "3px"
             }
         );
@@ -3817,7 +4044,7 @@ function openWeekplanning(e) {
                 fout.style,
                 {
                     fontSize: "11px",
-                    color: "#ef9a9a",
+                    color: "var(--egd-fout)",
                     marginTop: "10px"
                 }
             );
@@ -3840,7 +4067,7 @@ function openWeekplanning(e) {
                 laden.style,
                 {
                     fontSize: "12px",
-                    color: "#aaa",
+                    color: "var(--egd-tekst-zacht)",
                     marginTop: "10px"
                 }
             );
@@ -3899,7 +4126,7 @@ function openWeekplanning(e) {
                     leeg.style,
                     {
                         fontSize: "12px",
-                        color: "#aaa",
+                        color: "var(--egd-tekst-zacht)",
                         marginTop: "10px"
                     }
                 );
@@ -3988,9 +4215,9 @@ function openWeekplanning(e) {
             calendar.style,
             {
                 minWidth: "0",
-                background: "#2e2e2e",
+                background: "var(--egd-veld)",
                 border:
-                    "1px solid #555",
+                    "1px solid var(--egd-rand)",
                 borderRadius: "5px",
                 overflow: "auto",
                 maxHeight: "620px"
@@ -4013,9 +4240,9 @@ function openWeekplanning(e) {
                 position: "sticky",
                 top: "0",
                 zIndex: "15",
-                background: "#333",
+                background: "var(--egd-paneel)",
                 borderBottom:
-                    "1px solid #555"
+                    "1px solid var(--egd-rand)"
             }
         );
 
@@ -4057,7 +4284,7 @@ function openWeekplanning(e) {
                 dag.innerHTML = `
                     <div style="
                         font-size: 11px;
-                        color: #aaa;
+                        color: var(--egd-tekst-zacht);
                     ">
                         ${dagNaam}
                     </div>
@@ -4077,7 +4304,7 @@ function openWeekplanning(e) {
                         textAlign: "center",
                         padding: "8px 3px",
                         borderLeft:
-                            "1px solid #444"
+                            "1px solid var(--egd-lijn)"
                     }
                 );
 
@@ -4143,11 +4370,11 @@ function openWeekplanning(e) {
                     padding:
                         "4px 5px",
                     color:
-                        "#aaa",
+                        "var(--egd-tekst-zacht)",
                     fontSize:
                         "11px",
                     borderBottom:
-                        "1px solid #444"
+                        "1px solid var(--egd-lijn)"
                 }
             );
 
@@ -4293,9 +4520,9 @@ function openWeekplanning(e) {
                         60 *
                         hoogtePerUur}px`,
                     background:
-                        "rgba(144, 202, 249, 0.35)",
+                        "var(--egd-selectie)",
                     border:
-                        "2px solid #90caf9",
+                        "2px solid var(--egd-accent)",
                     borderRadius:
                         "4px",
                     boxSizing:
@@ -4307,7 +4534,7 @@ function openWeekplanning(e) {
                     fontWeight:
                         "bold",
                     color:
-                        "#ffffff",
+                        "var(--egd-tekst)",
                     pointerEvents:
                         "none",
                     zIndex: "4",
@@ -4518,7 +4745,7 @@ function openWeekplanning(e) {
                 {
                     position: "relative",
                     borderLeft:
-                        "1px solid #444",
+                        "1px solid var(--egd-lijn)",
                     height:
                         `${(
                             laatsteUur -
@@ -4567,7 +4794,7 @@ function openWeekplanning(e) {
                         boxSizing:
                             "border-box",
                         borderBottom:
-                            "1px solid #444",
+                            "1px solid var(--egd-lijn)",
                         position:
                             "relative",
                         userSelect:
@@ -4613,7 +4840,7 @@ function openWeekplanning(e) {
                             top:
                                 `${half * 30}px`,
                             borderTop:
-                                "1px dashed #3c3c3c",
+                                "1px dashed var(--egd-lijn-zacht)",
                             pointerEvents:
                                 "none"
                         }
@@ -4821,7 +5048,7 @@ function openWeekplanning(e) {
                                         ? "4px solid rgba(255,255,255,0.55)"
                                         : "4px solid rgba(0,0,0,0.35)"
                                 )
-                                : "4px solid #90caf9"
+                                : "4px solid var(--egd-accent)"
                     }
                 );
 
@@ -5002,9 +5229,9 @@ function openWeekplanning(e) {
         Object.assign(
             vakken.style,
             {
-                background: "#333",
+                background: "var(--egd-paneel)",
                 border:
-                    "1px solid #555",
+                    "1px solid var(--egd-rand)",
                 borderRadius: "5px",
                 padding: "12px",
                 overflowY: "auto",
@@ -5062,7 +5289,7 @@ function openWeekplanning(e) {
                         }
 
                         dagKolom.style.background =
-                            "rgba(144, 202, 249, 0.08)";
+                            "var(--egd-hover)";
                     }
                 );
 
@@ -5787,7 +6014,7 @@ function voegKnoppenToe() {
                 height="22"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#ffffff"
+                stroke="var(--egd-tekst)"
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -5868,7 +6095,7 @@ function voegKnoppenToe() {
                 height="22"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#ffffff"
+                stroke="var(--egd-tekst)"
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -5958,7 +6185,7 @@ function voegKnoppenToe() {
                 height="22"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#ffffff"
+                stroke="var(--egd-tekst)"
                 stroke-width="2.5"
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -6073,7 +6300,7 @@ function voegKnoppenToe() {
                 height="22"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#ffffff"
+                stroke="var(--egd-tekst)"
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
