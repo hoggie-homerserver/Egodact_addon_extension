@@ -697,6 +697,21 @@ function openBetaFeaturesMenu(e) {
             "
         >Open test page</button>
 
+        <button
+            id="egodact-open-tetris"
+            type="button"
+            style="
+                background-color: var(--egd-veld);
+                border: 1px solid var(--egd-accent);
+                color: var(--egd-accent);
+                cursor: pointer;
+                padding: 12px 14px;
+                font-size: 14px;
+                text-align: left;
+                border-radius: 4px;
+            "
+        >Tetris</button>
+
         <div style="
             display: flex;
             justify-content: flex-end;
@@ -733,12 +748,261 @@ function openBetaFeaturesMenu(e) {
         });
 
     modal
+        .querySelector('#egodact-open-tetris')
+        .addEventListener('click', () => {
+            sluitMenu();
+            openTetris();
+        });
+
+    modal
         .querySelector('#egodact-beta-modal-sluiten')
         .addEventListener('click', sluitMenu);
 
     backdrop.addEventListener('click', event => {
         if (event.target === backdrop) sluitMenu();
     });
+}
+
+
+// ============================================================
+// TETRIS (beta)
+// ============================================================
+
+function openTetris(e) {
+    e?.preventDefault();
+    e?.stopPropagation();
+    if (document.getElementById('egodact-custom-modal-backdrop')) return;
+
+    const COLS = 10, ROWS = 20, CEL = 24;
+    const VORMEN = {
+        I: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+        O: [[1,1],[1,1]],
+        T: [[0,1,0],[1,1,1],[0,0,0]],
+        S: [[0,1,1],[1,1,0],[0,0,0]],
+        Z: [[1,1,0],[0,1,1],[0,0,0]],
+        J: [[1,0,0],[1,1,1],[0,0,0]],
+        L: [[0,0,1],[1,1,1],[0,0,0]]
+    };
+    const KLEUREN = {
+        I:'#00b0ff', O:'#ffb300', T:'#9c27b0', S:'#43a047',
+        Z:'#e53935', J:'#1e88e5', L:'#fb8c00'
+    };
+    const RECORD_KEY = 'egodact_tetris_record';
+
+    // ---------- venster ----------
+    const backdrop = document.createElement('div');
+    backdrop.id = 'egodact-custom-modal-backdrop';
+    Object.assign(backdrop.style, {
+        position: 'fixed', inset: '0', zIndex: '9999999',
+        backgroundColor: 'var(--egd-backdrop)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center'
+    });
+
+    const modal = document.createElement('div');
+    Object.assign(modal.style, {
+        backgroundColor: 'var(--egd-modal)', color: 'var(--egd-tekst)',
+        padding: '20px', borderRadius: '4px', boxShadow: 'var(--egd-schaduw)',
+        display: 'flex', gap: '20px',
+        fontFamily: 'inherit'
+    });
+    modal.innerHTML = `
+        <canvas width="${COLS * CEL}" height="${ROWS * CEL}"
+            style="background:var(--egd-veld); border:1px solid var(--egd-rand);"></canvas>
+        <div style="width:150px; display:flex; flex-direction:column; gap:10px;">
+            <h2 style="margin:0; font-weight:500;">Tetris</h2>
+            <div>Score: <b id="egd-tetris-score">0</b></div>
+            <div>Level: <b id="egd-tetris-level">1</b></div>
+            <div>Record: <b id="egd-tetris-record">0</b></div>
+            <div style="color:var(--egd-tekst-zacht); font-size:12px; line-height:1.7;">
+                ← → bewegen<br>↑ draaien<br>↓ sneller<br>
+                Spatie: laten vallen<br>P: pauze<br>Esc: sluiten
+            </div>
+            <button id="egd-tetris-sluiten" type="button" style="
+                margin-top:auto; background:var(--egd-accent);
+                color:var(--egd-accent-tekst); border:none; border-radius:4px;
+                padding:10px 20px; font-weight:bold; cursor:pointer;">SLUITEN</button>
+        </div>`;
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+
+    const canvas = modal.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    const $ = id => modal.querySelector('#' + id);
+
+    // ---------- spelstatus ----------
+    let bord, stuk, score, lijnen, einde, pauze, teller, raf;
+    let record = 0;
+    try { record = Number(localStorage.getItem(RECORD_KEY)) || 0; } catch (err) {}
+    const level = () => Math.floor(lijnen / 10) + 1;
+
+    const nieuwStuk = () => {
+        const namen = Object.keys(VORMEN);
+        const naam = namen[Math.floor(Math.random() * namen.length)];
+        const vorm = VORMEN[naam].map(r => [...r]);
+        return { naam, vorm, x: Math.floor((COLS - vorm[0].length) / 2), y: 0 };
+    };
+
+    const botst = (vorm, x, y) => vorm.some((rij, r) => rij.some((v, c) => {
+        if (!v) return false;
+        const nx = x + c, ny = y + r;
+        return nx < 0 || nx >= COLS || ny >= ROWS || (ny >= 0 && bord[ny][nx]);
+    }));
+
+    const draai = vorm => vorm[0].map((_, i) => vorm.map(r => r[i]).reverse());
+
+    const updateUi = () => {
+        $('egd-tetris-score').textContent = score;
+        $('egd-tetris-level').textContent = level();
+        $('egd-tetris-record').textContent = record;
+    };
+
+    const reset = () => {
+        bord = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+        score = 0; lijnen = 0; einde = false; pauze = false; teller = 0;
+        stuk = nieuwStuk();
+        updateUi();
+    };
+
+    const vergrendel = () => {
+        stuk.vorm.forEach((rij, r) => rij.forEach((v, c) => {
+            if (v && stuk.y + r >= 0) bord[stuk.y + r][stuk.x + c] = stuk.naam;
+        }));
+
+        let weg = 0;
+        for (let r = ROWS - 1; r >= 0; r--) {
+            if (bord[r].every(Boolean)) {
+                bord.splice(r, 1);
+                bord.unshift(Array(COLS).fill(null));
+                weg++;
+                r++; // deze rij opnieuw controleren
+            }
+        }
+        if (weg) {
+            score += [0, 100, 300, 500, 800][weg] * level();
+            lijnen += weg;
+        }
+
+        stuk = nieuwStuk();
+        if (botst(stuk.vorm, stuk.x, stuk.y)) {
+            einde = true;
+            if (score > record) {
+                record = score;
+                try { localStorage.setItem(RECORD_KEY, String(record)); } catch (err) {}
+            }
+        }
+        updateUi();
+    };
+
+    const stap = () => {
+        if (!botst(stuk.vorm, stuk.x, stuk.y + 1)) stuk.y++;
+        else vergrendel();
+    };
+
+    const beweeg = dx => {
+        if (!botst(stuk.vorm, stuk.x + dx, stuk.y)) stuk.x += dx;
+    };
+
+    const roteer = () => {
+        const nieuw = draai(stuk.vorm);
+        for (const kick of [0, -1, 1, -2, 2]) { // "wall kick"
+            if (!botst(nieuw, stuk.x + kick, stuk.y)) {
+                stuk.vorm = nieuw;
+                stuk.x += kick;
+                return;
+            }
+        }
+    };
+
+    const valNeer = () => {
+        while (!botst(stuk.vorm, stuk.x, stuk.y + 1)) { stuk.y++; score += 2; }
+        vergrendel();
+    };
+
+    // ---------- tekenen ----------
+    const kleurVar = naam =>
+        getComputedStyle(backdrop).getPropertyValue(naam).trim();
+
+    const cel = (c, r, kleur) => {
+        ctx.fillStyle = kleur;
+        ctx.fillRect(c * CEL + 1, r * CEL + 1, CEL - 2, CEL - 2);
+    };
+
+    const teken = () => {
+        ctx.fillStyle = kleurVar('--egd-veld');
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = kleurVar('--egd-lijn-zacht');
+        for (let c = 1; c < COLS; c++) {
+            ctx.beginPath(); ctx.moveTo(c * CEL, 0); ctx.lineTo(c * CEL, canvas.height); ctx.stroke();
+        }
+        for (let r = 1; r < ROWS; r++) {
+            ctx.beginPath(); ctx.moveTo(0, r * CEL); ctx.lineTo(canvas.width, r * CEL); ctx.stroke();
+        }
+
+        bord.forEach((rij, r) => rij.forEach((naam, c) => {
+            if (naam) cel(c, r, KLEUREN[naam]);
+        }));
+        stuk.vorm.forEach((rij, r) => rij.forEach((v, c) => {
+            if (v) cel(stuk.x + c, stuk.y + r, KLEUREN[stuk.naam]);
+        }));
+
+        if (einde || pauze) {
+            ctx.fillStyle = 'rgba(0,0,0,0.55)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.font = 'bold 22px sans-serif';
+            ctx.fillText(einde ? 'Game over' : 'Pauze', canvas.width / 2, canvas.height / 2 - 6);
+            ctx.font = '14px sans-serif';
+            if (einde) ctx.fillText('Enter = opnieuw', canvas.width / 2, canvas.height / 2 + 18);
+        }
+    };
+
+    // ---------- spelloop ----------
+    let laatste = performance.now();
+    const lus = nu => {
+        raf = requestAnimationFrame(lus);
+        const dt = nu - laatste;
+        laatste = nu;
+        if (!einde && !pauze) {
+            teller += dt;
+            const snelheid = Math.max(100, 800 - (level() - 1) * 70);
+            if (teller >= snelheid) { teller = 0; stap(); }
+        }
+        teken();
+    };
+
+    // ---------- sluiten en toetsen ----------
+    const sluit = () => {
+        cancelAnimationFrame(raf);
+        document.removeEventListener('keydown', toets, true);
+        backdrop.remove();
+    };
+
+    function toets(ev) {
+        const k = ev.key;
+        if (!['ArrowLeft','ArrowRight','ArrowDown','ArrowUp',' ','p','P','Escape','Enter'].includes(k)) return;
+        ev.preventDefault();
+        ev.stopPropagation(); // Egodact zelf reageert er niet op
+
+        if (k === 'Escape') return sluit();
+        if (einde) { if (k === 'Enter') reset(); return; }
+        if (k === 'p' || k === 'P') { pauze = !pauze; return; }
+        if (pauze) return;
+
+        if (k === 'ArrowLeft') beweeg(-1);
+        else if (k === 'ArrowRight') beweeg(1);
+        else if (k === 'ArrowDown') { stap(); teller = 0; }
+        else if (k === 'ArrowUp') roteer();
+        else if (k === ' ') valNeer();
+    }
+
+    $('egd-tetris-sluiten').addEventListener('click', sluit);
+    backdrop.addEventListener('click', ev => { if (ev.target === backdrop) sluit(); });
+    document.addEventListener('keydown', toets, true);
+
+    reset();
+    raf = requestAnimationFrame(lus);
 }
 
 

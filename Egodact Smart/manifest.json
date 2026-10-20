@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Egodact Pantagora",
+  "name": "Egodact Pantagora Dev Build",
   "version": "2.0",
-  "description": "Extension to add some useful features to the Egodact platform.",
+  "description": "Development build of the Egodact Pantagora extension for testing purposes.",
   "content_scripts": [
     {
       "matches": [
@@ -35,5 +35,5 @@
         ]
       }
     }
-  } 
+  }
 }
