@@ -817,6 +817,16 @@ function openGamesMenu(e) {
             <path d="M28 26 L35 28 L28 30 Z" fill="#ff7043"/>
         </svg>`;
 
+    const snakeIcoon = `
+        <svg width="56" height="56" viewBox="0 0 50 50" aria-hidden="true"
+            style="display:block; flex-shrink:0; border-radius:10px; background:#43a047;">
+            <rect x="2" y="2" width="46" height="46" rx="8" fill="#1b5e20"/>
+            <rect x="6" y="6" width="38" height="38" rx="6" fill="#43a047"/>
+            <rect x="10" y="10" width="30" height="30" rx="4" fill="#1b5e20"/>
+            <rect x="14" y="14" width="22" height="22" rx="3" fill="#43a047"/>
+            <circle cx="25" cy="25" r="3.5" fill="#1b5e20"/>
+        </svg>`;    
+
     const controllerIcoon = `
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -904,6 +914,42 @@ function openGamesMenu(e) {
                 <span style="font-size:17px; font-weight:bold;">Challenge Flappy</span>
                 <span style="font-size:13px; color:var(--egd-tekst-zacht); line-height:1.4;">
                     Vlieg tussen jouw challenges door. Hoe ver kom je?
+                </span>
+            </span>
+            <span style="
+                background-color: var(--egd-accent);
+                color: var(--egd-accent-tekst);
+                border-radius: 4px;
+                padding: 8px 14px;
+                font-size: 13px;
+                font-weight: bold;
+                text-transform: uppercase;
+            ">Spelen</span>
+        </button>
+
+        <button
+            id="egodact-game-snake"
+            type="button"
+            style="
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                width: 100%;
+                text-align: left;
+                background-color: var(--egd-veld);
+                color: var(--egd-tekst);
+                border: 1px solid var(--egd-rand);
+                border-radius: 6px;
+                padding: 14px;
+                cursor: pointer;
+                font-family: inherit;
+            "
+        >
+            ${snakeIcoon}
+            <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:4px;">
+                <span style="font-size:17px; font-weight:bold;">Challenge Snake</span>
+                <span style="font-size:13px; color:var(--egd-tekst-zacht); line-height:1.4;">
+                    Speel het klassieke Snake-spel. Hoeveel punten kun je halen?
                 </span>
             </span>
             <span style="
