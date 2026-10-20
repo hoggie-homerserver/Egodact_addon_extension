@@ -697,21 +697,6 @@ function openBetaFeaturesMenu(e) {
             "
         >Open test page</button>
 
-        <button
-            id="egodact-open-tetris"
-            type="button"
-            style="
-                background-color: var(--egd-veld);
-                border: 1px solid var(--egd-accent);
-                color: var(--egd-accent);
-                cursor: pointer;
-                padding: 12px 14px;
-                font-size: 14px;
-                text-align: left;
-                border-radius: 4px;
-            "
-        >Tetris</button>
-
         <div style="
             display: flex;
             justify-content: flex-end;
@@ -748,14 +733,185 @@ function openBetaFeaturesMenu(e) {
         });
 
     modal
-        .querySelector('#egodact-open-tetris')
-        .addEventListener('click', () => {
-            sluitMenu();
-            openTetris();
-        });
+        .querySelector('#egodact-beta-modal-sluiten')
+        .addEventListener('click', sluitMenu);
+
+    backdrop.addEventListener('click', event => {
+        if (event.target === backdrop) sluitMenu();
+    });
+}
+
+
+// ============================================================
+// GAMES MENU
+// ============================================================
+//
+// Geheim menu: typ "games" in de zoekbalk van de weekplanning.
+
+function openGamesMenu(e) {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+
+    if (document.getElementById('egodact-custom-modal-backdrop')) return;
+
+    const backdrop = document.createElement('div');
+    backdrop.id = 'egodact-custom-modal-backdrop';
+
+    Object.assign(backdrop.style, {
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: 'var(--egd-backdrop)',
+        zIndex: '9999999',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: 'Arial, sans-serif'
+    });
+
+    const modal = document.createElement('div');
+
+    Object.assign(modal.style, {
+        backgroundColor: 'var(--egd-modal)',
+        color: 'var(--egd-tekst)',
+        width: '520px',
+        maxWidth: 'calc(100vw - 32px)',
+        borderRadius: '6px',
+        padding: '24px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+        boxShadow: 'var(--egd-schaduw)'
+    });
+
+    // Tetris-icoon: een paar gekleurde blokjes op een donkere tegel.
+    const tetrisBlokjes = [
+        ['#00b0ff', [[0,1],[0,2],[0,3],[0,4]]],
+        ['#ffb300', [[1,3],[2,3],[1,4],[2,4]]],
+        ['#e53935', [[1,1],[2,1],[2,2],[3,2]]],
+        ['#43a047', [[4,2],[4,3],[4,4],[3,4]]],
+        ['#ab47bc', [[2,0],[3,0],[4,0],[3,1]]]
+    ];
+
+    const tetrisIcoon = `
+        <svg width="56" height="56" viewBox="0 0 50 50" aria-hidden="true"
+            style="display:block; flex-shrink:0; border-radius:10px; background:#1b2333;">
+            ${tetrisBlokjes.map(([kleur, cellen]) => cellen.map(([c, r]) =>
+                `<rect x="${2.5 + c * 9}" y="${2.5 + r * 9}" width="8" height="8" rx="1.5" fill="${kleur}"/>`
+            ).join('')).join('')}
+        </svg>`;
+
+    const controllerIcoon = `
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true"
+            style="display:block; flex-shrink:0; color:var(--egd-accent);">
+            <line x1="6" y1="12" x2="10" y2="12"/>
+            <line x1="8" y1="10" x2="8" y2="14"/>
+            <line x1="15" y1="13" x2="15.01" y2="13"/>
+            <line x1="18" y1="11" x2="18.01" y2="11"/>
+            <rect x="2" y="6" width="20" height="12" rx="2"/>
+        </svg>`;
+
+    modal.innerHTML = `
+        <div style="
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--egd-rand);
+            padding-bottom: 10px;
+        ">
+            ${controllerIcoon}
+            <h2 style="
+                margin: 0;
+                font-size: 22px;
+                font-weight: 500;
+            ">Games</h2>
+        </div>
+
+        <button
+            id="egodact-game-tetris"
+            type="button"
+            style="
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                width: 100%;
+                text-align: left;
+                background-color: var(--egd-veld);
+                color: var(--egd-tekst);
+                border: 1px solid var(--egd-rand);
+                border-radius: 6px;
+                padding: 14px;
+                cursor: pointer;
+                font-family: inherit;
+            "
+        >
+            ${tetrisIcoon}
+            <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:4px;">
+                <span style="font-size:17px; font-weight:bold;">Challenge Tetris</span>
+                <span style="font-size:13px; color:var(--egd-tekst-zacht); line-height:1.4;">
+                    Tetris met jouw challenges als blokjes. Je spel wordt bewaard.
+                </span>
+            </span>
+            <span style="
+                background-color: var(--egd-accent);
+                color: var(--egd-accent-tekst);
+                border-radius: 4px;
+                padding: 8px 14px;
+                font-size: 13px;
+                font-weight: bold;
+                text-transform: uppercase;
+            ">Spelen</span>
+        </button>
+
+        <div style="
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 5px;
+        ">
+            <button
+                id="egodact-games-sluiten"
+                type="button"
+                style="
+                    background-color: var(--egd-accent);
+                    border: none;
+                    color: var(--egd-accent-tekst);
+                    cursor: pointer;
+                    padding: 10px 20px;
+                    font-weight: bold;
+                    font-size: 14px;
+                    text-transform: uppercase;
+                    border-radius: 4px;
+                    box-shadow: 0px 3px 1px -2px rgba(0,0,0,0.2);
+                "
+            >Sluiten</button>
+        </div>
+    `;
+
+    const sluitMenu = () => backdrop.remove();
+
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+
+    const tetrisKaart = modal.querySelector('#egodact-game-tetris');
+
+    tetrisKaart.addEventListener('mouseenter', () => {
+        tetrisKaart.style.borderColor = 'var(--egd-accent)';
+    });
+    tetrisKaart.addEventListener('mouseleave', () => {
+        tetrisKaart.style.borderColor = 'var(--egd-rand)';
+    });
+    tetrisKaart.addEventListener('click', () => {
+        sluitMenu();
+        // Na het spelen terug naar het gamesmenu.
+        openTetris(null, openGamesMenu);
+    });
 
     modal
-        .querySelector('#egodact-beta-modal-sluiten')
+        .querySelector('#egodact-games-sluiten')
         .addEventListener('click', sluitMenu);
 
     backdrop.addEventListener('click', event => {
@@ -772,9 +928,9 @@ function openBetaFeaturesMenu(e) {
 // Egodact. Het spel wordt bewaard in localStorage, dus je kunt het
 // menu sluiten (of de pagina verversen) en later verder spelen.
 
-function openTetris(e) {
-    e?.preventDefault();
-    e?.stopPropagation();
+function openTetris(e, naSluiten) {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
     if (document.getElementById('egodact-custom-modal-backdrop')) return;
 
     const COLS = 10, ROWS = 20, CEL = 24;
@@ -1190,6 +1346,7 @@ function openTetris(e) {
         document.removeEventListener('keydown', toets, true);
         window.removeEventListener('pagehide', bewaar);
         backdrop.remove();
+        if (typeof naSluiten === 'function') naSluiten();
     };
 
     function toets(ev) {
@@ -6215,6 +6372,18 @@ function openWeekplanning(e) {
         .addEventListener(
             "input",
             event => {
+
+                // Geheim: "games" in de zoekbalk opent het gamesmenu.
+                if (
+                    event.target.value
+                        .trim()
+                        .toLowerCase() === "games"
+                ) {
+                    event.target.value = "";
+                    sluitMenu();
+                    openGamesMenu();
+                    return;
+                }
 
                 zoekTerm =
                     event.target.value;
