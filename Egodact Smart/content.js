@@ -1196,6 +1196,45 @@ function openSnakeMenu() {
     const scoreEl = modal.querySelector('#egd-snake-score');
     const statusEl = modal.querySelector('#egd-snake-status');
 
+    // Gebruik dezelfde account-avatar die de weekplanning uit het Egodact-bord haalt.
+    const accountAvatar = new Image();
+    let accountAvatarGeladen = false;
+
+    accountAvatar.onload = () => {
+        accountAvatarGeladen = true;
+        if (!gesloten) teken();
+    };
+
+    async function laadAccountAvatar() {
+        try {
+            const challenges = await egodactLaadChallenges();
+            const telling = {};
+
+            challenges.forEach(c => {
+                (c.users || []).forEach(u => {
+                    if (u.picture) {
+                        telling[u.name] = (telling[u.name] || 0) + 1;
+                    }
+                });
+            });
+
+            const mijnNaam = Object.entries(telling)
+                .sort((a, b) => b[1] - a[1])[0]?.[0];
+
+            if (!mijnNaam || gesloten) return;
+
+            const bordAfb = egodactSchraapBord(
+                challenges.map(c => c.raw),
+                backdrop
+            );
+
+            const avatarUrl = bordAfb.users[mijnNaam];
+            if (avatarUrl) accountAvatar.src = avatarUrl;
+        } catch (error) {
+            console.warn('Snake: account-avatar kon niet worden geladen.', error);
+        }
+    }
+
     let slang;
     let richting;
     let volgendeRichting;
@@ -1259,25 +1298,42 @@ function openSnakeMenu() {
             ctx.stroke();
         }
 
-        // Appel
+        // De account-avatar is het eten, net als de avatar in de weekplanning.
         const ex = eten.x * CEL + CEL / 2;
         const ey = eten.y * CEL + CEL / 2;
+        const avatarRadius = CEL * 0.43;
 
-        ctx.fillStyle = '#ef5350';
+        ctx.save();
         ctx.beginPath();
-        ctx.arc(ex, ey + 1, CEL * 0.36, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.arc(ex, ey, avatarRadius, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
 
-        ctx.fillStyle = '#66bb6a';
-        ctx.beginPath();
-        ctx.ellipse(ex + 4, ey - 6, 4, 2, -0.6, 0, Math.PI * 2);
-        ctx.fill();
+        if (accountAvatarGeladen && accountAvatar.complete && accountAvatar.naturalWidth) {
+            // object-fit: cover in een ronde uitsnede
+            const maat = Math.max(
+                (avatarRadius * 2) / accountAvatar.naturalWidth,
+                (avatarRadius * 2) / accountAvatar.naturalHeight
+            );
+            const w = accountAvatar.naturalWidth * maat;
+            const h = accountAvatar.naturalHeight * maat;
+            ctx.drawImage(accountAvatar, ex - w / 2, ey - h / 2, w, h);
+        } else {
+            // Tijdelijke weergave tot de echte account-avatar klaar is.
+            ctx.fillStyle = '#43a047';
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('?', ex, ey);
+        }
+        ctx.restore();
 
         ctx.strokeStyle = '#a5d6a7';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.moveTo(ex, ey - 5);
-        ctx.lineTo(ex + 1, ey - 9);
+        ctx.arc(ex, ey, avatarRadius, 0, Math.PI * 2);
         ctx.stroke();
 
         // Slang
@@ -1511,6 +1567,7 @@ function openSnakeMenu() {
     });
 
     nieuwSpel();
+    laadAccountAvatar();
     raf = requestAnimationFrame(lus);
 }
 
