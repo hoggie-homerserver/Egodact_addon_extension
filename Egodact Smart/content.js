@@ -1061,12 +1061,12 @@ function openGamesMenu(e) {
 function openSnakeMenu() {
     if (document.getElementById('egodact-custom-modal-backdrop')) return;
 
-    const B = 300;
-    const H = 450;
-    const CEL = 15;
+    const CEL = 24;
+    const KOLOMMEN = 12;
+    const RIJEN = 16;
+    const B = KOLOMMEN * CEL;
+    const H = RIJEN * CEL;
     const SAVE_KEY = 'egodact_snake_save_v1';
-    const KOLOMMEN = B / CEL;
-    const RIJEN = H / CEL;
     const SNELHEID = 115;
 
     const backdrop = document.createElement('div');
@@ -1106,7 +1106,7 @@ function openSnakeMenu() {
             aria-label="Snake speelveld"
             style="
                 display:block;
-                width:min(300px, 40vw);
+                width:min(288px, 40vw);
                 height:auto;
                 aspect-ratio:2 / 3;
                 background:var(--egd-veld);
@@ -1297,9 +1297,9 @@ function openSnakeMenu() {
 
     function nieuwSpel() {
         slang = [
-            { x: 5, y: 15 },
-            { x: 4, y: 15 },
-            { x: 3, y: 15 }
+            { x: 5, y: 8 },
+            { x: 4, y: 8 },
+            { x: 3, y: 8 }
         ];
 
         richting = { x: 1, y: 0 };
