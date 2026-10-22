@@ -1058,39 +1058,25 @@ function openGamesMenu(e) {
 // Snake (beta)
 // ============================================================
 function openSnakeMenu() {
-    // Maar één menu tegelijk
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
     if (document.getElementById('egodact-custom-modal-backdrop')) return;
 
-    // Donkere achtergrond
+    // ---------- venster ----------
     const backdrop = document.createElement('div');
     backdrop.id = 'egodact-custom-modal-backdrop';
     Object.assign(backdrop.style, {
-        position: 'fixed',
-        top: '0',
-        left: '0',
-        width: '100vw',
-        height: '100vh',
+        position: 'fixed', inset: '0', zIndex: '9999999',
         backgroundColor: 'var(--egd-backdrop)',
-        zIndex: '9999999',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: 'Arial, sans-serif'
+        display: 'flex', alignItems: 'center', justifyContent: 'center'
     });
 
-    // Het venster
     const modal = document.createElement('div');
     Object.assign(modal.style, {
-        backgroundColor: 'var(--egd-modal)',
-        color: 'var(--egd-tekst)',
-        width: '520px',
-        maxWidth: 'calc(100vw - 32px)',
-        borderRadius: '6px',
-        padding: '24px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '16px',
-        boxShadow: 'var(--egd-schaduw)'
+        backgroundColor: 'var(--egd-modal)', color: 'var(--egd-tekst)',
+        padding: '20px', borderRadius: '4px', boxShadow: 'var(--egd-schaduw)',
+        display: 'flex', gap: '20px', fontFamily: 'inherit',
+        maxHeight: '96vh', boxSizing: 'border-box'
     });
 
     modal.innerHTML = `
