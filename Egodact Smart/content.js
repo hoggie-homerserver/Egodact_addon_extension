@@ -1634,6 +1634,7 @@ function openSnakeMenu() {
     if (!herstel()) nieuwSpel();
     else teken();
     laadAccountAvatar();
+    window.addEventListener('pagehide', bewaar);
     raf = requestAnimationFrame(lus);
 }
 
