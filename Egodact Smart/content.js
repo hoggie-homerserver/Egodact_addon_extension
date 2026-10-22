@@ -817,15 +817,39 @@ function openGamesMenu(e) {
             <path d="M28 26 L35 28 L28 30 Z" fill="#ff7043"/>
         </svg>`;
 
+    
+
+
     const snakeIcoon = `
         <svg width="56" height="56" viewBox="0 0 50 50" aria-hidden="true"
-            style="display:block; flex-shrink:0; border-radius:10px; background:#43a047;">
-            <rect x="2" y="2" width="46" height="46" rx="8" fill="#1b5e20"/>
-            <rect x="6" y="6" width="38" height="38" rx="6" fill="#43a047"/>
-            <rect x="10" y="10" width="30" height="30" rx="4" fill="#1b5e20"/>
-            <rect x="14" y="14" width="22" height="22" rx="3" fill="#43a047"/>
-            <circle cx="25" cy="25" r="3.5" fill="#1b5e20"/>
-        </svg>`;    
+            style="display:block; flex-shrink:0; border-radius:10px; background:#1b2333;">
+
+            <path d="M15 15 H29 Q35 15 35 21 V27 Q35 33 29 33 H20"
+                fill="none"
+                stroke="#43a047"
+                stroke-width="8"
+                stroke-linecap="round"
+                stroke-linejoin="round"/>
+
+            <rect x="8" y="8" width="14" height="14" rx="4" fill="#66bb6a"/>
+
+            <circle cx="13" cy="12.5" r="1.5" fill="#1b2333"/>
+            <circle cx="18" cy="12.5" r="1.5" fill="#1b2333"/>
+
+            <path d="M20 33 H12"
+                stroke="#43a047"
+                stroke-width="6"
+                stroke-linecap="round"/>
+
+            <path d="M8 16 H4"
+                fill="none"
+                stroke="#ef5350"
+                stroke-width="1.5"
+                stroke-linecap="round"/>
+        </svg>`;
+
+
+
 
     const controllerIcoon = `
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
@@ -1020,7 +1044,7 @@ function openGamesMenu(e) {
             sluitMenu();
             openSnakeMenu();
         });
-        
+
     modal
         .querySelector('#egodact-games-sluiten')
         .addEventListener('click', sluitMenu);
