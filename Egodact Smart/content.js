@@ -1571,7 +1571,7 @@ function openSnakeMenu() {
         const k = ev.key.toLowerCase();
         const toetsen = [
             'arrowup', 'arrowdown', 'arrowleft', 'arrowright',
-            'w', 'a', 's', 'd', 'enter', ' '
+            'w', 'a', 's', 'd', 'enter', ' ', 'p'
         ];
 
         if (!toetsen.includes(k)) return;
