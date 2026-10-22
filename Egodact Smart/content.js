@@ -1061,9 +1061,10 @@ function openGamesMenu(e) {
 function openSnakeMenu() {
     if (document.getElementById('egodact-custom-modal-backdrop')) return;
 
-    const B = 360;
-    const H = 540;
-    const CEL = 18;
+    const B = 300;
+    const H = 450;
+    const CEL = 15;
+    const SAVE_KEY = 'egodact_snake_save_v1';
     const KOLOMMEN = B / CEL;
     const RIJEN = H / CEL;
     const SNELHEID = 115;
@@ -1105,10 +1106,10 @@ function openSnakeMenu() {
             aria-label="Snake speelveld"
             style="
                 display:block;
-                width:min(360px, 45vw);
+                width:min(300px, 40vw);
                 height:auto;
                 aspect-ratio:2 / 3;
-                background:#111923;
+                background:var(--egd-veld);
                 border:1px solid var(--egd-rand);
                 align-self:flex-start;
                 box-sizing:border-box;
@@ -1162,6 +1163,7 @@ function openSnakeMenu() {
                 ↑ ↓ ← → bewegen<br>
                 WASD bewegen<br>
                 Enter opnieuw starten<br>
+                P pauze/hervatten<br>
                 Esc terug naar Games
             </div>
 
@@ -1244,6 +1246,43 @@ function openSnakeMenu() {
     let laatsteStap = 0;
     let raf;
     let gesloten = false;
+    let laatsteBewaar = 0;
+
+    function bewaar() {
+        try {
+            localStorage.setItem(SAVE_KEY, JSON.stringify({
+                slang, richting, volgendeRichting, eten, score,
+                status: status === 'bezig' ? 'pauze' : status,
+                tijd: Date.now()
+            }));
+        } catch (error) {}
+    }
+
+    function herstel() {
+        try {
+            const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+            if (!s || !Array.isArray(s.slang) || !s.slang.length || !s.eten ||
+                !s.richting || !s.volgendeRichting || !Number.isFinite(Number(s.score))) {
+                return false;
+            }
+            const geldigPunt = p => p && Number.isInteger(p.x) && Number.isInteger(p.y) &&
+                p.x >= 0 && p.x < KOLOMMEN && p.y >= 0 && p.y < RIJEN;
+            if (!s.slang.every(geldigPunt) || !geldigPunt(s.eten)) return false;
+            slang = s.slang;
+            richting = s.richting;
+            volgendeRichting = s.volgendeRichting;
+            eten = s.eten;
+            score = Number(s.score) || 0;
+            status = ['dood', 'gewonnen'].includes(s.status) ? s.status : 'pauze';
+            scoreEl.textContent = String(score);
+            statusEl.textContent = status === 'dood' ? 'Game over' :
+                status === 'gewonnen' ? 'Je hebt gewonnen!' : 'Spel bewaard — druk op P of een pijltje om verder te gaan';
+            statusEl.style.color = status === 'dood' ? '#ef5350' : '#66bb6a';
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
 
     function plaatsEten() {
         do {
@@ -1273,15 +1312,16 @@ function openSnakeMenu() {
         statusEl.style.color = '#66bb6a';
 
         plaatsEten();
+        bewaar();
         teken();
     }
 
     function teken() {
-        ctx.fillStyle = '#111923';
+        ctx.fillStyle = getComputedStyle(backdrop).getPropertyValue('--egd-veld').trim() || '#1b2333';
         ctx.fillRect(0, 0, B, H);
 
-        // Subtiel raster
-        ctx.strokeStyle = 'rgba(255,255,255,0.045)';
+        // Subtiel raster in dezelfde stijl als Tetris.
+        ctx.strokeStyle = getComputedStyle(backdrop).getPropertyValue('--egd-lijn-zacht').trim() || 'rgba(255,255,255,0.045)';
         ctx.lineWidth = 1;
 
         for (let x = 0; x <= B; x += CEL) {
@@ -1384,7 +1424,7 @@ function openSnakeMenu() {
         });
 
         // Bericht in het speelveld
-        if (status === 'wacht' || status === 'dood' || status === 'gewonnen') {
+        if (status === 'wacht' || status === 'dood' || status === 'gewonnen' || status === 'pauze') {
             ctx.fillStyle = 'rgba(0,0,0,0.72)';
             ctx.fillRect(18, H / 2 - 55, B - 36, 110);
 
@@ -1394,20 +1434,18 @@ function openSnakeMenu() {
             ctx.fillStyle = status === 'gewonnen' ? '#66bb6a' : '#ffffff';
             ctx.font = 'bold 23px Arial';
 
-            const titel = status === 'wacht'
-                ? 'SNAKE'
-                : status === 'gewonnen'
-                    ? 'Gewonnen!'
-                    : 'Game over';
+            const titel = status === 'wacht' ? 'SNAKE' :
+                status === 'pauze' ? 'Pauze' :
+                status === 'gewonnen' ? 'Gewonnen!' : 'Game over';
 
             ctx.fillText(titel, B / 2, H / 2 - 19);
 
             ctx.fillStyle = '#c6d0dc';
             ctx.font = '13px Arial';
 
-            const uitleg = status === 'wacht'
-                ? 'Druk op een pijltjestoets'
-                : 'Score: ' + score + '  ·  Enter = opnieuw';
+            const uitleg = status === 'wacht' ? 'Druk op een pijltjestoets' :
+                status === 'pauze' ? 'P of een pijltje = verder' :
+                'Score: ' + score + '  ·  Enter = opnieuw';
 
             ctx.fillText(uitleg, B / 2, H / 2 + 17);
         }
@@ -1452,6 +1490,7 @@ function openSnakeMenu() {
                 status = 'gewonnen';
                 statusEl.textContent = 'Je hebt gewonnen!';
                 statusEl.style.color = '#66bb6a';
+                bewaar();
                 teken();
                 return;
             }
@@ -1461,6 +1500,7 @@ function openSnakeMenu() {
             slang.pop();
         }
 
+        bewaar();
         teken();
     }
 
@@ -1468,6 +1508,7 @@ function openSnakeMenu() {
         status = 'dood';
         statusEl.textContent = 'Game over';
         statusEl.style.color = '#ef5350';
+        bewaar();
         teken();
     }
 
@@ -1480,10 +1521,15 @@ function openSnakeMenu() {
         laatsteStap = 0;
         statusEl.textContent = 'Aan het spelen';
         statusEl.style.color = '#66bb6a';
+        bewaar();
     }
 
     function kiesRichting(x, y) {
         if (status === 'dood' || status === 'gewonnen') return;
+        if (status === 'pauze') {
+            status = 'bezig';
+            statusEl.textContent = 'Aan het spelen';
+        }
 
         // Voorkom dat de slang direct omkeert.
         if (x === -richting.x && y === -richting.y) return;
@@ -1498,9 +1544,14 @@ function openSnakeMenu() {
     function lus(nu) {
         if (gesloten) return;
 
-        raf = requestAnimationFrame(lus);
+        window.addEventListener('pagehide', bewaar);
+    raf = requestAnimationFrame(lus);
 
         if (status === 'bezig') {
+            if (nu - laatsteBewaar > 2000) {
+                laatsteBewaar = nu;
+                bewaar();
+            }
             if (!laatsteStap) laatsteStap = nu;
 
             if (nu - laatsteStap >= SNELHEID) {
@@ -1530,7 +1581,20 @@ function openSnakeMenu() {
         ev.stopPropagation();
 
         if (k === 'enter' || k === ' ') {
-            if (status !== 'bezig') start();
+            if (status === 'dood' || status === 'gewonnen') nieuwSpel();
+            else if (status !== 'bezig') start();
+            return;
+        }
+
+        if (k === 'p') {
+            if (status === 'bezig') {
+                status = 'pauze';
+                statusEl.textContent = 'Gepauzeerd';
+                bewaar();
+                teken();
+            } else if (status === 'pauze') {
+                start();
+            }
             return;
         }
 
@@ -1544,8 +1608,10 @@ function openSnakeMenu() {
         if (gesloten) return;
 
         gesloten = true;
+        bewaar();
         cancelAnimationFrame(raf);
         document.removeEventListener('keydown', toets, true);
+        window.removeEventListener('pagehide', bewaar);
         backdrop.remove();
 
         openGamesMenu();
@@ -1566,7 +1632,8 @@ function openSnakeMenu() {
         if (status !== 'bezig') start();
     });
 
-    nieuwSpel();
+    if (!herstel()) nieuwSpel();
+    else teken();
     laadAccountAvatar();
     raf = requestAnimationFrame(lus);
 }
