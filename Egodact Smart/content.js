@@ -1057,70 +1057,463 @@ function openGamesMenu(e) {
 // ============================================================
 // Snake (beta)
 // ============================================================
+
 function openSnakeMenu() {
-    e?.preventDefault?.();
-    e?.stopPropagation?.();
     if (document.getElementById('egodact-custom-modal-backdrop')) return;
 
-    // ---------- venster ----------
+    const B = 360;
+    const H = 540;
+    const CEL = 18;
+    const KOLOMMEN = B / CEL;
+    const RIJEN = H / CEL;
+    const SNELHEID = 115;
+
     const backdrop = document.createElement('div');
     backdrop.id = 'egodact-custom-modal-backdrop';
+
     Object.assign(backdrop.style, {
-        position: 'fixed', inset: '0', zIndex: '9999999',
+        position: 'fixed',
+        inset: '0',
+        zIndex: '9999999',
         backgroundColor: 'var(--egd-backdrop)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center'
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
     });
 
     const modal = document.createElement('div');
+
     Object.assign(modal.style, {
-        backgroundColor: 'var(--egd-modal)', color: 'var(--egd-tekst)',
-        padding: '20px', borderRadius: '4px', boxShadow: 'var(--egd-schaduw)',
-        display: 'flex', gap: '20px', fontFamily: 'inherit',
-        maxHeight: '96vh', boxSizing: 'border-box'
+        backgroundColor: 'var(--egd-modal)',
+        color: 'var(--egd-tekst)',
+        padding: '20px',
+        borderRadius: '4px',
+        boxShadow: 'var(--egd-schaduw)',
+        display: 'flex',
+        gap: '20px',
+        fontFamily: 'inherit',
+        maxHeight: '96vh',
+        maxWidth: 'calc(100vw - 24px)',
+        boxSizing: 'border-box'
     });
 
     modal.innerHTML = `
-        <h2 style="
-            margin: 0;
-            font-size: 22px;
-            font-weight: 500;
-            border-bottom: 1px solid var(--egd-rand);
-            padding-bottom: 10px;
-        ">Snake</h2>
+        <canvas
+            width="${B}"
+            height="${H}"
+            tabindex="0"
+            aria-label="Snake speelveld"
+            style="
+                display:block;
+                width:min(360px, 45vw);
+                height:auto;
+                aspect-ratio:2 / 3;
+                background:#111923;
+                border:1px solid var(--egd-rand);
+                align-self:flex-start;
+                box-sizing:border-box;
+                outline:none;
+            "
+        ></canvas>
 
-        <div style="display:flex; justify-content:flex-end;">
+        <div style="
+            width:200px;
+            min-width:0;
+            display:flex;
+            flex-direction:column;
+            gap:10px;
+            font-size:13px;
+        ">
+            <h2 style="margin:0; font-weight:500;">
+                Challenge Snake
+            </h2>
+
+            <div style="
+                background:var(--egd-veld);
+                border:1px solid var(--egd-rand);
+                border-radius:4px;
+                padding:10px;
+            ">
+                <div style="
+                    color:var(--egd-tekst-zacht);
+                    font-size:11px;
+                    text-transform:uppercase;
+                    letter-spacing:.5px;
+                ">Score</div>
+                <div id="egd-snake-score" style="
+                    font-size:28px;
+                    font-weight:bold;
+                    margin-top:3px;
+                ">0</div>
+            </div>
+
+            <div style="
+                color:var(--egd-tekst-zacht);
+                font-size:11px;
+                text-transform:uppercase;
+                letter-spacing:.5px;
+                margin-top:4px;
+            ">Besturing</div>
+
+            <div style="
+                color:var(--egd-tekst);
+                line-height:1.8;
+            ">
+                ↑ ↓ ← → bewegen<br>
+                WASD bewegen<br>
+                Enter opnieuw starten<br>
+                Esc terug naar Games
+            </div>
+
+            <div id="egd-snake-status" style="
+                color:#66bb6a;
+                font-weight:bold;
+                margin-top:auto;
+            ">Klaar om te spelen</div>
+
             <button
-                id="egodact-test-sluiten"
+                id="egd-snake-sluiten"
                 type="button"
                 style="
-                    background-color: var(--egd-accent);
-                    border: none;
-                    color: var(--egd-accent-tekst);
-                    cursor: pointer;
-                    padding: 10px 20px;
-                    font-weight: bold;
-                    font-size: 14px;
-                    text-transform: uppercase;
-                    border-radius: 4px;
+                    background:var(--egd-accent);
+                    color:var(--egd-accent-tekst);
+                    border:none;
+                    border-radius:4px;
+                    padding:8px 12px;
+                    font-weight:bold;
+                    font-size:13px;
+                    cursor:pointer;
                 "
-            >Sluiten</button>
+            >SLUITEN</button>
         </div>
     `;
 
-    // Tonen
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
 
-    // Sluiten
-    const sluit = () => backdrop.remove();
+    const canvas = modal.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = modal.querySelector('#egd-snake-score');
+    const statusEl = modal.querySelector('#egd-snake-status');
 
-    modal.querySelector('#egodact-test-sluiten')
-        .addEventListener('click', sluit);
+    let slang;
+    let richting;
+    let volgendeRichting;
+    let eten;
+    let score;
+    let status;
+    let laatsteStap = 0;
+    let raf;
+    let gesloten = false;
 
-    backdrop.addEventListener('click', event => {
-        if (event.target === backdrop) sluit();
+    function plaatsEten() {
+        do {
+            eten = {
+                x: Math.floor(Math.random() * KOLOMMEN),
+                y: Math.floor(Math.random() * RIJEN)
+            };
+        } while (slang.some(deel =>
+            deel.x === eten.x && deel.y === eten.y
+        ));
+    }
+
+    function nieuwSpel() {
+        slang = [
+            { x: 5, y: 15 },
+            { x: 4, y: 15 },
+            { x: 3, y: 15 }
+        ];
+
+        richting = { x: 1, y: 0 };
+        volgendeRichting = { x: 1, y: 0 };
+        score = 0;
+        status = 'wacht';
+
+        scoreEl.textContent = '0';
+        statusEl.textContent = 'Klaar om te spelen';
+        statusEl.style.color = '#66bb6a';
+
+        plaatsEten();
+        teken();
+    }
+
+    function teken() {
+        ctx.fillStyle = '#111923';
+        ctx.fillRect(0, 0, B, H);
+
+        // Subtiel raster
+        ctx.strokeStyle = 'rgba(255,255,255,0.045)';
+        ctx.lineWidth = 1;
+
+        for (let x = 0; x <= B; x += CEL) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, H);
+            ctx.stroke();
+        }
+
+        for (let y = 0; y <= H; y += CEL) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(B, y);
+            ctx.stroke();
+        }
+
+        // Appel
+        const ex = eten.x * CEL + CEL / 2;
+        const ey = eten.y * CEL + CEL / 2;
+
+        ctx.fillStyle = '#ef5350';
+        ctx.beginPath();
+        ctx.arc(ex, ey + 1, CEL * 0.36, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#66bb6a';
+        ctx.beginPath();
+        ctx.ellipse(ex + 4, ey - 6, 4, 2, -0.6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#a5d6a7';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(ex, ey - 5);
+        ctx.lineTo(ex + 1, ey - 9);
+        ctx.stroke();
+
+        // Slang
+        slang.forEach((deel, i) => {
+            const marge = i === 0 ? 1 : 2;
+
+            ctx.fillStyle = i === 0 ? '#a5d6a7' : '#43a047';
+            ctx.fillRect(
+                deel.x * CEL + marge,
+                deel.y * CEL + marge,
+                CEL - marge * 2,
+                CEL - marge * 2
+            );
+
+            if (i === 0) {
+                // Ogen kijken in de bewegingsrichting
+                ctx.fillStyle = '#102015';
+
+                let oog1;
+                let oog2;
+
+                if (richting.x === 1) {
+                    oog1 = [12, 5];
+                    oog2 = [12, 12];
+                } else if (richting.x === -1) {
+                    oog1 = [5, 5];
+                    oog2 = [5, 12];
+                } else if (richting.y === -1) {
+                    oog1 = [5, 5];
+                    oog2 = [12, 5];
+                } else {
+                    oog1 = [5, 12];
+                    oog2 = [12, 12];
+                }
+
+                [oog1, oog2].forEach(([ox, oy]) => {
+                    ctx.beginPath();
+                    ctx.arc(
+                        deel.x * CEL + ox,
+                        deel.y * CEL + oy,
+                        1.6,
+                        0,
+                        Math.PI * 2
+                    );
+                    ctx.fill();
+                });
+            }
+        });
+
+        // Bericht in het speelveld
+        if (status === 'wacht' || status === 'dood' || status === 'gewonnen') {
+            ctx.fillStyle = 'rgba(0,0,0,0.72)';
+            ctx.fillRect(18, H / 2 - 55, B - 36, 110);
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            ctx.fillStyle = status === 'gewonnen' ? '#66bb6a' : '#ffffff';
+            ctx.font = 'bold 23px Arial';
+
+            const titel = status === 'wacht'
+                ? 'SNAKE'
+                : status === 'gewonnen'
+                    ? 'Gewonnen!'
+                    : 'Game over';
+
+            ctx.fillText(titel, B / 2, H / 2 - 19);
+
+            ctx.fillStyle = '#c6d0dc';
+            ctx.font = '13px Arial';
+
+            const uitleg = status === 'wacht'
+                ? 'Druk op een pijltjestoets'
+                : 'Score: ' + score + '  ·  Enter = opnieuw';
+
+            ctx.fillText(uitleg, B / 2, H / 2 + 17);
+        }
+    }
+
+    function stap() {
+        richting = { ...volgendeRichting };
+
+        const kop = {
+            x: slang[0].x + richting.x,
+            y: slang[0].y + richting.y
+        };
+
+        // Muur geraakt?
+        if (
+            kop.x < 0 || kop.x >= KOLOMMEN ||
+            kop.y < 0 || kop.y >= RIJEN
+        ) {
+            eindig();
+            return;
+        }
+
+        const eet = kop.x === eten.x && kop.y === eten.y;
+
+        // De staart beweegt normaal weg, behalve als er gegeten wordt.
+        const lichaam = eet ? slang : slang.slice(0, -1);
+
+        if (lichaam.some(deel =>
+            deel.x === kop.x && deel.y === kop.y
+        )) {
+            eindig();
+            return;
+        }
+
+        slang.unshift(kop);
+
+        if (eet) {
+            score++;
+            scoreEl.textContent = String(score);
+
+            if (slang.length === KOLOMMEN * RIJEN) {
+                status = 'gewonnen';
+                statusEl.textContent = 'Je hebt gewonnen!';
+                statusEl.style.color = '#66bb6a';
+                teken();
+                return;
+            }
+
+            plaatsEten();
+        } else {
+            slang.pop();
+        }
+
+        teken();
+    }
+
+    function eindig() {
+        status = 'dood';
+        statusEl.textContent = 'Game over';
+        statusEl.style.color = '#ef5350';
+        teken();
+    }
+
+    function start() {
+        if (status === 'dood' || status === 'gewonnen') {
+            nieuwSpel();
+        }
+
+        status = 'bezig';
+        laatsteStap = 0;
+        statusEl.textContent = 'Aan het spelen';
+        statusEl.style.color = '#66bb6a';
+    }
+
+    function kiesRichting(x, y) {
+        if (status === 'dood' || status === 'gewonnen') return;
+
+        // Voorkom dat de slang direct omkeert.
+        if (x === -richting.x && y === -richting.y) return;
+
+        volgendeRichting = { x, y };
+
+        if (status === 'wacht') {
+            start();
+        }
+    }
+
+    function lus(nu) {
+        if (gesloten) return;
+
+        raf = requestAnimationFrame(lus);
+
+        if (status === 'bezig') {
+            if (!laatsteStap) laatsteStap = nu;
+
+            if (nu - laatsteStap >= SNELHEID) {
+                laatsteStap = nu;
+                stap();
+            }
+        }
+    }
+
+    function toets(ev) {
+        if (ev.key === 'Escape') {
+            ev.preventDefault();
+            ev.stopPropagation();
+            terugNaarGames();
+            return;
+        }
+
+        const k = ev.key.toLowerCase();
+        const toetsen = [
+            'arrowup', 'arrowdown', 'arrowleft', 'arrowright',
+            'w', 'a', 's', 'd', 'enter', ' '
+        ];
+
+        if (!toetsen.includes(k)) return;
+
+        ev.preventDefault();
+        ev.stopPropagation();
+
+        if (k === 'enter' || k === ' ') {
+            if (status !== 'bezig') start();
+            return;
+        }
+
+        if (k === 'arrowup' || k === 'w') kiesRichting(0, -1);
+        if (k === 'arrowdown' || k === 's') kiesRichting(0, 1);
+        if (k === 'arrowleft' || k === 'a') kiesRichting(-1, 0);
+        if (k === 'arrowright' || k === 'd') kiesRichting(1, 0);
+    }
+
+    function terugNaarGames() {
+        if (gesloten) return;
+
+        gesloten = true;
+        cancelAnimationFrame(raf);
+        document.removeEventListener('keydown', toets, true);
+        backdrop.remove();
+
+        openGamesMenu();
+    }
+
+    document.addEventListener('keydown', toets, true);
+
+    modal.querySelector('#egd-snake-sluiten')
+        .addEventListener('click', terugNaarGames);
+
+    backdrop.addEventListener('click', ev => {
+        if (ev.target === backdrop) terugNaarGames();
     });
+
+    canvas.addEventListener('pointerdown', () => {
+        canvas.focus();
+
+        if (status !== 'bezig') start();
+    });
+
+    nieuwSpel();
+    raf = requestAnimationFrame(lus);
 }
+
 
 // ============================================================
 // FLAPPY BIRD MET CHALLENGES (beta)
