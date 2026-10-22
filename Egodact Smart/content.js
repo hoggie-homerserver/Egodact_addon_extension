@@ -1015,6 +1015,13 @@ function openGamesMenu(e) {
         });
 
     modal
+        .querySelector('#egodact-game-snake')
+        .addEventListener('click', () => {
+            sluitMenu();
+            openSnakeMenu();
+        });
+        
+    modal
         .querySelector('#egodact-games-sluiten')
         .addEventListener('click', sluitMenu);
 
