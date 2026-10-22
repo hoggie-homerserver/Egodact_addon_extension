@@ -1544,8 +1544,7 @@ function openSnakeMenu() {
     function lus(nu) {
         if (gesloten) return;
 
-        window.addEventListener('pagehide', bewaar);
-    raf = requestAnimationFrame(lus);
+        raf = requestAnimationFrame(lus);
 
         if (status === 'bezig') {
             if (nu - laatsteBewaar > 2000) {
