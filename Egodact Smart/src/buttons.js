@@ -31,8 +31,17 @@ function voegKnoppenToe() {
                 'egodact-beta-features-knop'
             );
 
+        const bestaandeTest =
+            document.getElementById(
+                'egodact-test-features-knop'
+            );
+
         if (bestaandeBetaFeatures) {
             bestaandeBetaFeatures.remove();
+        }
+
+        if (bestaandeTest) {
+            bestaandeTest.remove();
         }
 
         if (bestaandeInfo) {
@@ -74,11 +83,17 @@ function voegKnoppenToe() {
             'egodact-beta-features-knop'
         );
 
+    const bestaandeTest =
+        document.getElementById(
+            'egodact-test-features-knop'
+        );
+
     if (
         bestaandeInfo &&
         bestaandeTaken &&
         bestaandeWeekplanning &&
-        (bestaandeBetaFeatures || !EGODACT_BETA_ZICHTBAAR)
+        (bestaandeBetaFeatures || !EGODACT_BETA_ZICHTBAAR) &&
+        (bestaandeTest || !EGODACT_TEST_ZICHTBAAR)
     ) {
         return;
     }
@@ -359,10 +374,10 @@ function voegKnoppenToe() {
             'egodact-test-features-knop'
         )
     ) {
-        const betaKnop = document.createElement('button');
-        betaKnop.id = 'egodact-test-features-knop';
-        betaKnop.type = 'button';
-        betaKnop.title = 'Test Features';
+        const testKnop = document.createElement('button');
+        testKnop.id = 'egodact-test-features-knop';
+        testKnop.type = 'button';
+        testKnop.title = 'Test Features';
 
         Object.assign(testKnop.style, {
             background: 'none',
@@ -407,7 +422,7 @@ function voegKnoppenToe() {
         if (infoKnopVoorTest) {
             infoKnopVoorTest.insertAdjacentElement('afterend', testKnop);
         } else {
-            menuContainer.insertBefore(testknop, menuContainer.firstChild);
+            menuContainer.insertBefore(testKnop, menuContainer.firstChild);
         }
     }
     // ========================================================
