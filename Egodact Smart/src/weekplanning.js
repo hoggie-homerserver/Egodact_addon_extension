@@ -514,9 +514,9 @@ function openWeekplanning(e) {
                 }
             </h3>
             ${isBewerken ? `
-                <button id="egodact-blok-kopieer-huidig" type="button" title="Kopieer dit blok" aria-label="Kopieer dit blok" style="align-self:flex-start;margin:0 0 14px 0;background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:4px 6px;cursor:pointer;font-size:13px;line-height:1;min-width:26px;min-height:25px;">⧉</button>
+                <button id="egodact-blok-kopieer-huidig" type="button" title="Kopieer dit blok" aria-label="Kopieer dit blok" style="align-self:flex-start;margin:0 0 14px 0;background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:2px 4px;cursor:pointer;font-size:11px;line-height:1;min-width:21px;min-height:21px;">⧉</button>
             ` : `
-                <button id="egodact-blok-plak-gekopieerd" type="button" style="align-self:flex-start;margin:0 0 14px 0;background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:8px 10px;cursor:pointer;font-size:13px;">📋 Plakken</button>
+                <button id="egodact-blok-plak-gekopieerd" type="button" style="align-self:flex-start;margin:0 0 14px 0;background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:5px 8px;cursor:pointer;font-size:12px;">📋 Plakken</button>
             `}
 
             <label style="
