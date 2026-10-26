@@ -31,17 +31,17 @@ function voegKnoppenToe() {
                 'egodact-beta-features-knop'
             );
 
-        const bestaandeTest =
+        const bestaandeTijd =
             document.getElementById(
-                'egodact-test-features-knop'
+                'egodact-tijd-knop'
             );
 
         if (bestaandeBetaFeatures) {
             bestaandeBetaFeatures.remove();
         }
 
-        if (bestaandeTest) {
-            bestaandeTest.remove();
+        if (bestaandeTijd) {
+            bestaandeTijd.remove();
         }
 
         if (bestaandeInfo) {
@@ -83,9 +83,9 @@ function voegKnoppenToe() {
             'egodact-beta-features-knop'
         );
 
-    const bestaandeTest =
+    const bestaandeTijd =
         document.getElementById(
-            'egodact-test-features-knop'
+            'egodact-tijd-knop'
         );
 
     if (
@@ -93,7 +93,7 @@ function voegKnoppenToe() {
         bestaandeTaken &&
         bestaandeWeekplanning &&
         (bestaandeBetaFeatures || !EGODACT_BETA_ZICHTBAAR) &&
-        (bestaandeTest || !EGODACT_TEST_ZICHTBAAR)
+        (bestaandeTijd || !EGODACT_TIJD_ZICHTBAAR)
     ) {
         return;
     }
@@ -365,21 +365,21 @@ function voegKnoppenToe() {
 
 
     // ========================================================
-    // TEST FEATURES
+    // TIJD (klok, timer, stopwatch, wekker)
     // ========================================================
 
     if (
-        EGODACT_TEST_ZICHTBAAR &&
+        EGODACT_TIJD_ZICHTBAAR &&
         !document.getElementById(
-            'egodact-test-features-knop'
+            'egodact-tijd-knop'
         )
     ) {
-        const testKnop = document.createElement('button');
-        testKnop.id = 'egodact-test-features-knop';
-        testKnop.type = 'button';
-        testKnop.title = 'Test Features';
+        const tijdKnop = document.createElement('button');
+        tijdKnop.id = 'egodact-tijd-knop';
+        tijdKnop.type = 'button';
+        tijdKnop.title = 'Klok, timer, stopwatch en wekker';
 
-        Object.assign(testKnop.style, {
+        Object.assign(tijdKnop.style, {
             background: 'none',
             border: 'none',
             cursor: 'pointer',
@@ -398,31 +398,34 @@ function voegKnoppenToe() {
             flexShrink: '0'
         });
 
-        // Icon: "vial" from Font Awesome Free v7.3.1
-        // https://fontawesome.com - License: https://fontawesome.com/license/free
-        // Copyright 2026 Fonticons, Inc. (CC BY 4.0)
-        testKnop.innerHTML = `
+        // Klok-icoon (zelf getekend, in dezelfde lijnstijl als de andere knoppen)
+        tijdKnop.innerHTML = `
             <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 640 640"
-                fill="currentColor"
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
                 style="opacity:1;display:block;pointer-events:none;"
             >
-                <path d="M406.6 73.4C394.1 60.9 373.8 60.9 361.3 73.4C348.8 85.9 348.8 106.2 361.3 118.7L370.7 128L92.1 406.6C74.1 424.6 64 449 64 474.5L64 480C64 533 107 576 160 576L165.5 576C191 576 215.4 565.9 233.4 547.9L512 269.3L521.4 278.7C533.9 291.2 554.2 291.2 566.7 278.7C579.2 266.2 579.2 245.9 566.7 233.4L406.7 73.4zM269.3 320L416 173.3L466.7 224L370.7 320L269.2 320z"/>
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 7v5l3 2"></path>
             </svg>
         `;
 
-        testKnop.addEventListener('click', openTestMenu);
+        tijdKnop.addEventListener('click', openTijdMenu);
 
-        const infoKnopVoorTest = document.getElementById('egodact-info-knop');
-        if (infoKnopVoorTest) {
-            infoKnopVoorTest.insertAdjacentElement('afterend', testKnop);
+        const infoKnopVoorTijd = document.getElementById('egodact-info-knop');
+        if (infoKnopVoorTijd) {
+            infoKnopVoorTijd.insertAdjacentElement('afterend', tijdKnop);
         } else {
-            menuContainer.insertBefore(testKnop, menuContainer.firstChild);
+            menuContainer.insertBefore(tijdKnop, menuContainer.firstChild);
         }
     }
+
     // ========================================================
     // TAKENLIJST
     // ========================================================

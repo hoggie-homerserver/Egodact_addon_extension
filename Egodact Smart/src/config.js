@@ -13,9 +13,10 @@ const EGODACT_BETA_ZICHTBAAR = (() => {
 })();
 
 // ============================================================
-// TEST FEATURES ALLEEN IN DE DEV BUILD
+// TIJD-KNOP (klok, timer, stopwatch, wekker)
 // ============================================================
-// Zelfde regel als de Beta-knop: alleen zichtbaar in een build
-// waarvan de naam in manifest.json "Dev" bevat.
-const EGODACT_TEST_ZICHTBAAR = EGODACT_BETA_ZICHTBAAR;
+// Voorlopig zelfde regel als de Beta-knop: alleen zichtbaar in een
+// build waarvan de naam in manifest.json "Dev" bevat. Zet dit op
+// true om de Tijd-knop voor iedereen te tonen.
+const EGODACT_TIJD_ZICHTBAAR = EGODACT_BETA_ZICHTBAAR;
 
