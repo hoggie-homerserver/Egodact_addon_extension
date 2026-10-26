@@ -344,6 +344,7 @@ function openWeekplanning(e) {
             border-radius:4px;
         ">
             <button id="egodact-week-kopieer" type="button" style="background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:7px 10px;cursor:pointer;font-size:12px;">Kopieer week</button>
+            <button id="egodact-week-plak-blok" type="button" style="background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:7px 10px;cursor:pointer;font-size:12px;">Plak blok</button>
             <button id="egodact-week-plak" type="button" style="background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:7px 10px;cursor:pointer;font-size:12px;">Plak week</button>
             <span style="width:1px;height:22px;background:var(--egd-rand);margin:0 2px;"></span>
             <button id="egodact-week-export" type="button" style="background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:7px 10px;cursor:pointer;font-size:12px;">Exporteer week</button>
@@ -3152,6 +3153,8 @@ function openWeekplanning(e) {
 
                 blokElement.innerHTML = `
 
+                    <button type="button" class="egodact-week-blok-kopieer" title="Blok kopiëren" aria-label="Blok kopiëren" style="position:absolute;top:2px;right:2px;z-index:2;border:0;border-radius:3px;background:rgba(0,0,0,0.22);color:inherit;cursor:pointer;font-size:12px;line-height:16px;padding:0 4px;opacity:0.9;">⧉</button>
+
                     <div style="
                         font-weight: bold;
                         font-size: 11px;
@@ -3207,6 +3210,26 @@ function openWeekplanning(e) {
                             : ""
                     }
                 `;
+
+                // ============================================
+                // INDIVIDUEEL BLOK KOPIËREN
+                // ============================================
+
+                const kopieerBlokKnop = blokElement.querySelector(".egodact-week-blok-kopieer");
+                kopieerBlokKnop.addEventListener("mousedown", event => event.stopPropagation());
+                kopieerBlokKnop.addEventListener("click", event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    try {
+                        const kopie = { ...blok };
+                        delete kopie.id;
+                        localStorage.setItem("egodact_weekplanning_block_clipboard_v1", JSON.stringify(kopie));
+                        alert(`Blok "${blok.naam || "zonder naam"}" gekopieerd. Navigeer eventueel naar een andere week en klik op "Plak blok".`);
+                    } catch (error) {
+                        console.error("Fout bij kopiëren weekblok:", error);
+                        alert("Het blok kon niet worden gekopieerd.");
+                    }
+                });
 
                 // ============================================
                 // KLIK = BEWERKEN
@@ -3839,6 +3862,30 @@ function openWeekplanning(e) {
     const weekImportKnop = document.getElementById("egodact-week-import-knop");
     const weekImportBestand = document.getElementById("egodact-week-import-bestand");
     const weekClipboardKey = "egodact_weekplanning_clipboard_v1";
+    const weekBlokClipboardKey = "egodact_weekplanning_block_clipboard_v1";
+
+    document.getElementById("egodact-week-plak-blok").addEventListener("click", () => {
+        const opgeslagen = localStorage.getItem(weekBlokClipboardKey);
+        if (!opgeslagen) {
+            alert("Er is nog geen blok gekopieerd. Klik op het ⧉-icoon op een blok om het te kopiëren.");
+            return;
+        }
+
+        let blok;
+        try {
+            blok = JSON.parse(opgeslagen);
+            if (!blok || typeof blok !== "object" || Array.isArray(blok)) throw new Error("Ongeldig blok");
+        } catch (error) {
+            alert("Het gekopieerde blok is ongeldig of beschadigd.");
+            return;
+        }
+
+        const nieuwBlok = maakNieuwWeekBlok(blok);
+        weekData.push(nieuwBlok);
+        slaWeekOp(weekData);
+        renderWeek();
+        alert(`Blok "${nieuwBlok.naam || "zonder naam"}" geplakt. Je kunt het verslepen of openen om dag en tijd aan te passen.`);
+    });
 
     function maakWeekExport(data) {
         const start = datumKey(weekStart);
