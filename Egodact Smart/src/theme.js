@@ -82,28 +82,34 @@ const EGODACT_THEMA_CSS = `
 
 /* Formulierelementen, kiezers en scrollbalken in onze vensters volgen
    het thema (bijvoorbeeld het klokje bij een tijdveld). */
-#egodact-custom-modal-backdrop {
+#egodact-custom-modal-backdrop,
+#egodact-ideeenbus-backdrop {
     color-scheme: dark;
 }
 
-#egodact-custom-modal-backdrop ::placeholder {
+#egodact-custom-modal-backdrop ::placeholder,
+#egodact-ideeenbus-backdrop ::placeholder {
     color: var(--egd-uit);
     opacity: 1;
 }
 
-:root[data-egodact-thema="licht"] #egodact-custom-modal-backdrop {
+:root[data-egodact-thema="licht"] #egodact-custom-modal-backdrop,
+:root[data-egodact-thema="licht"] #egodact-ideeenbus-backdrop {
     color-scheme: light;
 }
 
 /* Lichte modus: een venster krijgt een fijne rand, zodat het loskomt
    van een witte pagina erachter, en invoervelden een duidelijke focus. */
-:root[data-egodact-thema="licht"] #egodact-custom-modal-backdrop > div {
+:root[data-egodact-thema="licht"] #egodact-custom-modal-backdrop > div,
+:root[data-egodact-thema="licht"] #egodact-ideeenbus-backdrop > div {
     border: 1px solid #d9dee5;
 }
 
 :root[data-egodact-thema="licht"] #egodact-custom-modal-backdrop input:focus,
 :root[data-egodact-thema="licht"] #egodact-custom-modal-backdrop select:focus,
-:root[data-egodact-thema="licht"] #egodact-custom-modal-backdrop textarea:focus {
+:root[data-egodact-thema="licht"] #egodact-custom-modal-backdrop textarea:focus,
+:root[data-egodact-thema="licht"] #egodact-ideeenbus-backdrop input:focus,
+:root[data-egodact-thema="licht"] #egodact-ideeenbus-backdrop textarea:focus {
     outline: 2px solid var(--egd-accent);
     outline-offset: -1px;
 }
@@ -112,6 +118,7 @@ const EGODACT_THEMA_CSS = `
 #egodact-info-knop,
 #egodact-taken-knop,
 #egodact-weekplanning-knop,
+#egodact-ideeenbus-knop,
 #egodact-beta-features-knop,
 #egodact-tijd-knop {
     color: var(--egd-header-icoon) !important;
@@ -244,6 +251,7 @@ function egodactPasThemaToe() {
         const knop = document.getElementById('egodact-info-knop') ||
             document.getElementById('egodact-taken-knop') ||
             document.getElementById('egodact-weekplanning-knop') ||
+            document.getElementById('egodact-ideeenbus-knop') ||
             document.getElementById('egodact-beta-features-knop') ||
             document.getElementById('egodact-tijd-knop');
 
