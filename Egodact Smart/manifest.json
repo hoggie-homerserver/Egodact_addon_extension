@@ -18,6 +18,8 @@
         "src/games/snake.js",
         "src/games/flappy.js",
         "src/games/tetris.js",
+        "src/games/minesweeper.js",
+        "src/games/2048.js",
         "src/challenges.js",
         "src/tasks.js",
         "src/weekplanning.js",
