@@ -1261,15 +1261,34 @@ function openWeekplanning(e) {
                 const eindeVeld = document.getElementById("egodact-blok-einde");
                 const doelDag = Number(dagVeld.value);
                 const doelStart = tijdNaarMinuten(startVeld.value);
-                const doelEinde = tijdNaarMinuten(eindeVeld.value);
 
-                if (!startVeld.value || !eindeVeld.value || doelEinde <= doelStart) {
-                    alert("Kies eerst een geldige dag, begin- en eindtijd voor de nieuwe plek.");
+                // Behoud de volledige duur van het gekopieerde blok.
+                // Bloktijden zijn normaal minuten vanaf middernacht, maar
+                // accepteer ook HH:MM voor oudere/opgeslagen clipboarddata.
+                const leesBloktijd = (waarde) => {
+                    if (typeof waarde === "string" && waarde.includes(":")) {
+                        return tijdNaarMinuten(waarde);
+                    }
+                    const getal = Number(waarde);
+                    return Number.isFinite(getal) ? getal : NaN;
+                };
+                const origineleStart = leesBloktijd(kopie.start);
+                const origineleEinde = leesBloktijd(kopie.einde);
+                const origineleDuur = origineleEinde - origineleStart;
+                const doelEinde = doelStart + origineleDuur;
+
+                if (!dagVeld || !startVeld.value ||
+                    !Number.isFinite(doelStart) ||
+                    !Number.isFinite(origineleDuur) || origineleDuur <= 0 ||
+                    doelEinde > 24 * 60) {
+                    alert("Het gekopieerde blok heeft geen geldige begin- en eindtijd, of past niet meer op deze dag.");
                     return;
                 }
 
-                // Plakken maakt direct een NIEUW blok op de huidige bestemming.
-                // Zo kan de oude dag/tijd uit de clipboard niet terugkomen.
+                // Plakken maakt direct een NIEUW blok op de gekozen dag en
+                // begintijd, met exact dezelfde duur als het origineel.
+                // De vooraf ingevulde eindtijd wordt bewust niet gebruikt,
+                // want die staat standaard vaak op één uur na de start.
                 weekData.push({
                     id: (typeof crypto !== "undefined" && crypto.randomUUID)
                         ? crypto.randomUUID()
