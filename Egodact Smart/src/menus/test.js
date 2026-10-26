@@ -75,7 +75,22 @@ function openTestMenu(e) {
         </div>
     `;
 
-    const sluitMenu = () => backdrop.remove();
+    // Esc sluit het venster. De listener wordt weer verwijderd zodra het
+    // venster dicht is, zodat er geen losse listeners achterblijven.
+    // "true" = capture: wij krijgen de toets eerst, en stopPropagation
+    // voorkomt dat Egodact zelf ook op Esc reageert.
+    function opEscape(event) {
+        if (event.key !== 'Escape') return;
+        event.stopPropagation();
+        sluitMenu();
+    }
+
+    const sluitMenu = () => {
+        document.removeEventListener('keydown', opEscape, true);
+        backdrop.remove();
+    };
+
+    document.addEventListener('keydown', opEscape, true);
 
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
