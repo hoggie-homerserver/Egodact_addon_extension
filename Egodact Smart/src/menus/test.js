@@ -58,7 +58,7 @@ function openTestMenu(e) {
             margin-top: 5px;
         ">
             <button
-                id="egodact-beta-modal-sluiten"
+                id="egodact-test-modal-sluiten"
                 style="
                     background-color: var(--egd-accent);
                     border: none;
