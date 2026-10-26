@@ -514,9 +514,9 @@ function openWeekplanning(e) {
                 }
             </h3>
             ${isBewerken ? `
-                <button id="egodact-blok-kopieer-huidig" type="button" title="Kopieer dit blok" aria-label="Kopieer dit blok" style="align-self:flex-start;margin:0 0 14px 0;background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:2px 4px;cursor:pointer;font-size:11px;line-height:1;min-width:21px;min-height:21px;">⧉</button>
+                <button id="egodact-blok-kopieer-huidig" type="button" title="Kopieer dit blok" aria-label="Kopieer dit blok" style="align-self:flex-start;margin:0 0 10px 0;background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:2px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;line-height:1;">⧉</button>
             ` : `
-                <button id="egodact-blok-plak-gekopieerd" type="button" style="align-self:flex-start;margin:0 0 14px 0;background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:5px 8px;cursor:pointer;font-size:12px;">📋 Plakken</button>
+                <button id="egodact-blok-plak-gekopieerd" type="button" title="Plak gekopieerd blok op deze dag en tijd" aria-label="Plak gekopieerd blok" style="align-self:flex-start;margin:0 0 10px 0;background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:2px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;line-height:1;">⧉</button>
             `}
 
             <label style="
@@ -1239,9 +1239,10 @@ function openWeekplanning(e) {
             plakBlokKnop.addEventListener("click", () => {
                 const opgeslagen = localStorage.getItem(weekBlokClipboardKey);
                 if (!opgeslagen) {
-                    alert("Er is nog geen blok gekopieerd. Open een bestaand blok en klik op het kopieericoon.");
+                    alert("Er is nog geen blok gekopieerd. Open eerst een bestaand blok en klik op het kopieericoon.");
                     return;
                 }
+
                 let kopie;
                 try {
                     kopie = JSON.parse(opgeslagen);
@@ -1253,13 +1254,39 @@ function openWeekplanning(e) {
                     return;
                 }
 
-                // Neem de inhoud en kleur over, maar behoud de nieuwe plek
-                // (dag en tijden) die bij het aanmaken van dit blok gekozen zijn.
-                document.getElementById("egodact-blok-naam").value = kopie.naam || "";
-                document.getElementById("egodact-blok-beschrijving").value = kopie.beschrijving || "";
-                gekozenKleur = kopie.kleur || null;
-                updateKleurKnoppen();
-                plakBlokKnop.textContent = "✓ Geplakt";
+                // Lees de bestemming uit het NIEUWE blokvenster. De dag en
+                // tijden uit het gekopieerde blok worden nooit gebruikt.
+                const dagVeld = document.getElementById("egodact-blok-dag");
+                const startVeld = document.getElementById("egodact-blok-start");
+                const eindeVeld = document.getElementById("egodact-blok-einde");
+                const doelDag = Number(dagVeld.value);
+                const doelStart = tijdNaarMinuten(startVeld.value);
+                const doelEinde = tijdNaarMinuten(eindeVeld.value);
+
+                if (!startVeld.value || !eindeVeld.value || doelEinde <= doelStart) {
+                    alert("Kies eerst een geldige dag, begin- en eindtijd voor de nieuwe plek.");
+                    return;
+                }
+
+                // Plakken maakt direct een NIEUW blok op de huidige bestemming.
+                // Zo kan de oude dag/tijd uit de clipboard niet terugkomen.
+                weekData.push({
+                    id: (typeof crypto !== "undefined" && crypto.randomUUID)
+                        ? crypto.randomUUID()
+                        : Date.now() + Math.random(),
+                    dag: doelDag,
+                    start: doelStart,
+                    einde: doelEinde,
+                    naam: String(kopie.naam || "Gekopieerd blok"),
+                    beschrijving: String(kopie.beschrijving || ""),
+                    onderwerp: "",
+                    challengeId: null,
+                    kleur: kopie.kleur || null
+                });
+
+                slaWeekOp(weekData);
+                editorBackdrop.remove();
+                renderWeek();
             });
         }
 
