@@ -50,7 +50,7 @@ function openMinesweeper(e, naSluiten) {
             '<span>Tijd: <b id="egd-minesweeper-time">0:00</b></span>' +
             '<button id="egd-minesweeper-mark" type="button">Markeermodus: uit</button>' +
         '</div>' +
-        '<div id="egd-minesweeper-board" aria-label="Minesweeper speelbord" style="display:grid;gap:3px;width:100%;max-width:500px;align-self:center;padding:7px;background:#172238;border-radius:6px;box-sizing:border-box;touch-action:manipulation;"></div>' +
+        '<div id="egd-minesweeper-board" aria-label="Minesweeper speelbord" style="display:grid;gap:3px;width:100%;max-width:500px;align-self:center;padding:7px;background:var(--egd-veld);border:1px solid var(--egd-rand);border-radius:6px;box-sizing:border-box;touch-action:manipulation;"></div>' +
         '<div id="egd-minesweeper-status" role="status" style="font-size:13px;min-height:18px;color:var(--egd-tekst-zacht);text-align:center;">Klik op een vakje om te beginnen.</div>' +
         '<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">' +
             '<button id="egd-minesweeper-new" type="button">Nieuw spel</button>' +
@@ -142,7 +142,7 @@ function openMinesweeper(e, naSluiten) {
             btn.setAttribute('aria-label', 'Vakje ' + (index + 1));
             Object.assign(btn.style, {
                 minWidth: '0', width: '100%', aspectRatio: '1 / 1',
-                padding: '0', borderRadius: '3px', border: '1px solid #35435c',
+                padding: '0', borderRadius: '3px', border: '1px solid var(--egd-rand)',
                 fontFamily: 'Arial, sans-serif', fontWeight: 'bold',
                 fontSize: cols >= 16 ? '11px' : '14px',
                 cursor: over || cell.revealed ? 'default' : 'pointer',
@@ -150,18 +150,18 @@ function openMinesweeper(e, naSluiten) {
                 lineHeight: '1', userSelect: 'none'
             });
             if (cell.revealed) {
-                btn.style.background = cell.mine ? '#ef5350' : '#d9e0ea';
-                btn.style.borderColor = '#c1cad7';
-                btn.style.color = cell.mine ? '#fff' : '#1b2333';
+                btn.style.background = cell.mine ? 'var(--egd-gevaar)' : 'var(--egd-modal)';
+                btn.style.borderColor = 'var(--egd-rand)';
+                btn.style.color = cell.mine ? '#ffffff' : 'var(--egd-tekst)';
                 if (cell.mine) btn.textContent = '✹';
                 else if (cell.adjacent) {
                     btn.textContent = String(cell.adjacent);
                     btn.style.color = ({1:'#1976d2',2:'#2e7d32',3:'#d32f2f',4:'#4527a0',5:'#6d4c41',6:'#00838f',7:'#263238',8:'#616161'})[cell.adjacent];
                 }
             } else {
-                btn.style.background = '#2a3851';
-                btn.style.color = '#ffd54f';
-                btn.style.borderColor = cell.flagged ? '#ffca28' : '#3b4b65';
+                btn.style.background = 'var(--egd-paneel)';
+                btn.style.color = cell.flagged ? 'var(--egd-accent)' : 'var(--egd-tekst-zacht)';
+                btn.style.borderColor = cell.flagged ? 'var(--egd-accent)' : 'var(--egd-rand)';
                 btn.textContent = cell.flagged ? '⚑' : '';
             }
             btn.addEventListener('click', () => markMode ? toggleFlag(index) : openCell(index));
