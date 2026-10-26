@@ -323,6 +323,24 @@ function openWeekplanning(e) {
 
         </div>
 
+        <div style="
+            display:flex;
+            flex-wrap:wrap;
+            gap:8px;
+            align-items:center;
+            padding:8px 10px;
+            background:var(--egd-paneel);
+            border:1px solid var(--egd-rand);
+            border-radius:4px;
+        ">
+            <button id="egodact-week-kopieer" type="button" style="background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:7px 10px;cursor:pointer;font-size:12px;">Kopieer week</button>
+            <button id="egodact-week-plak" type="button" style="background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:7px 10px;cursor:pointer;font-size:12px;">Plak week</button>
+            <span style="width:1px;height:22px;background:var(--egd-rand);margin:0 2px;"></span>
+            <button id="egodact-week-export" type="button" style="background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:7px 10px;cursor:pointer;font-size:12px;">Exporteer week</button>
+            <button id="egodact-week-import-knop" type="button" style="background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:7px 10px;cursor:pointer;font-size:12px;">Importeer week</button>
+            <input id="egodact-week-import-bestand" type="file" accept=".json,application/json" style="display:none;">
+        </div>
+
         <div
             id="egodact-weekplanning-content"
             style="
@@ -3754,6 +3772,113 @@ function openWeekplanning(e) {
                 ververszijbalk();
             }
         );
+
+
+    // ========================================================
+    // KOPIËREN, PLAKKEN, EXPORTEREN EN IMPORTEREN
+    // ========================================================
+    const weekKopieerKnop = document.getElementById("egodact-week-kopieer");
+    const weekPlakKnop = document.getElementById("egodact-week-plak");
+    const weekExportKnop = document.getElementById("egodact-week-export");
+    const weekImportKnop = document.getElementById("egodact-week-import-knop");
+    const weekImportBestand = document.getElementById("egodact-week-import-bestand");
+    const weekClipboardKey = "egodact_weekplanning_clipboard_v1";
+
+    function maakWeekExport(data) {
+        const start = datumKey(weekStart);
+        const einde = new Date(weekStart);
+        einde.setDate(einde.getDate() + 6);
+        return {
+            format: "egodact-weekplanning",
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            weekStart: start,
+            weekEnd: datumKey(einde),
+            data
+        };
+    }
+
+    function downloadJSON(bestandsnaam, inhoud) {
+        const blob = new Blob([JSON.stringify(inhoud, null, 2)], { type: "application/json;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = bestandsnaam;
+        link.style.display = "none";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function maakNieuwWeekBlok(blok) {
+        const kopie = { ...blok };
+        kopie.id = (typeof crypto !== "undefined" && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : `weekblok-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        return kopie;
+    }
+
+    weekKopieerKnop.addEventListener("click", () => {
+        try {
+            localStorage.setItem(weekClipboardKey, JSON.stringify(weekData));
+            alert(`Week gekopieerd (${weekData.length} blokken). Ga naar een andere week en klik op "Plak week".`);
+        } catch (error) {
+            console.error("Fout bij kopiëren weekplanning:", error);
+            alert("De week kon niet worden gekopieerd.");
+        }
+    });
+
+    weekPlakKnop.addEventListener("click", () => {
+        const opgeslagen = localStorage.getItem(weekClipboardKey);
+        if (!opgeslagen) {
+            alert("Er is nog geen week gekopieerd.");
+            return;
+        }
+        let kopie;
+        try {
+            kopie = JSON.parse(opgeslagen);
+            if (!Array.isArray(kopie) || !kopie.every(blok => blok && typeof blok === "object")) {
+                throw new Error("Ongeldige weekgegevens");
+            }
+        } catch (error) {
+            alert("De gekopieerde week is ongeldig of beschadigd.");
+            return;
+        }
+        if (!confirm("De huidige week vervangen door de gekopieerde week?")) return;
+        weekData = kopie.map(maakNieuwWeekBlok);
+        slaWeekOp(weekData);
+        renderWeek();
+        alert("De gekopieerde week is geplakt.");
+    });
+
+    weekExportKnop.addEventListener("click", () => {
+        slaWeekOp(weekData);
+        downloadJSON(`egodact-weekplanning-${datumKey(weekStart)}.json`, maakWeekExport(weekData));
+    });
+
+    weekImportKnop.addEventListener("click", () => weekImportBestand.click());
+
+    weekImportBestand.addEventListener("change", async event => {
+        const bestand = event.target.files && event.target.files[0];
+        event.target.value = "";
+        if (!bestand) return;
+        try {
+            const inhoud = JSON.parse(await bestand.text());
+            const gegevens = Array.isArray(inhoud) ? inhoud : inhoud && inhoud.format === "egodact-weekplanning" ? inhoud.data : null;
+            if (!Array.isArray(gegevens) || !gegevens.every(blok => blok && typeof blok === "object" && !Array.isArray(blok))) {
+                throw new Error("Dit is geen geldig weekplanningbestand.");
+            }
+            if (!confirm(`Importeer ${gegevens.length} blokken naar de week ${datumKey(weekStart)} t/m ${(() => { const e = new Date(weekStart); e.setDate(e.getDate()+6); return datumKey(e); })()}? De huidige week wordt vervangen.`)) return;
+            weekData = gegevens.map(maakNieuwWeekBlok);
+            slaWeekOp(weekData);
+            renderWeek();
+            alert("Weekplanning geïmporteerd.");
+        } catch (error) {
+            console.error("Fout bij importeren weekplanning:", error);
+            alert("Importeren mislukt. Kies een geldig Egodact-weekplanning JSON-bestand.");
+        }
+    });
 
     // ========================================================
     // START
