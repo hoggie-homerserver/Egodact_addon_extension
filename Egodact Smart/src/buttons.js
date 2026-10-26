@@ -348,6 +348,68 @@ function voegKnoppenToe() {
         }
     }
 
+
+    // ========================================================
+    // TEST FEATURES
+    // ========================================================
+
+    if (
+        EGODACT_TEST_ZICHTBAAR &&
+        !document.getElementById(
+            'egodact-test-features-knop'
+        )
+    ) {
+        const betaKnop = document.createElement('button');
+        betaKnop.id = 'egodact-test-features-knop';
+        betaKnop.type = 'button';
+        betaKnop.title = 'Test Features';
+
+        Object.assign(testKnop.style, {
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '0',
+            margin: '0 8px 0 0',
+            width: '28px',
+            minWidth: '28px',
+            height: '32px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            verticalAlign: 'middle',
+            outline: 'none',
+            position: 'relative',
+            zIndex: '999999',
+            flexShrink: '0'
+        });
+
+        testKnop.innerHTML = `
+            <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                style="opacity:1;display:block;pointer-events:none;"
+            >
+                <path d="M9 3h6"></path>
+                <path d="M10 3v7.2L4.8 19a1.5 1.5 0 0 0 1.3 2.2h11.8a1.5 1.5 0 0 0 1.3-2.2L14 10.2V3"></path>
+                <path d="M7.5 16h9"></path>
+            </svg>
+        `;
+
+        testKnop.addEventListener('click', openTestMenu);
+
+        const infoKnopVoorTest = document.getElementById('egodact-info-knop');
+        if (infoKnopVoorTest) {
+            infoKnopVoorTest.insertAdjacentElement('afterend', testKnop);
+        } else {
+            menuContainer.insertBefore(testknop, menuContainer.firstChild);
+        }
+    }
     // ========================================================
     // TAKENLIJST
     // ========================================================
