@@ -30,7 +30,10 @@ function openSMARTMenu(e) {
     Object.assign(modal.style, {
         backgroundColor: 'var(--egd-modal)',
         color: 'var(--egd-tekst)',
-        width: '520px',
+        width: 'min(520px, calc(100vw - 32px))',
+        maxHeight: 'calc(100vh - 32px)',
+        boxSizing: 'border-box',
+        overflow: 'hidden',
         borderRadius: '6px',
         padding: '24px',
         display: 'flex',
@@ -317,6 +320,12 @@ function openSMARTMenu(e) {
 
     const modalTitle = modal.querySelector('#modal-title-text');
     const modalBody = modal.querySelector('#modal-dynamic-content');
+    Object.assign(modalBody.style, {
+        overflowY: 'auto',
+        minHeight: '0',
+        maxHeight: 'calc(100vh - 190px)',
+        paddingRight: '4px'
+    });
     const prevButton = modal.querySelector('#modal-prev-btn');
     const nextButton = modal.querySelector('#modal-next-btn');
     const pageIndicator = modal.querySelector('#modal-page-indicator');
@@ -358,6 +367,7 @@ function openSMARTMenu(e) {
         let ideeën = [];
         let tags = [];
         let bewerkId = null;
+        const ideeOpen = Object.create(null);
 
         function laadIdeeën() {
             try {
@@ -501,18 +511,38 @@ function openSMARTMenu(e) {
             ideeën.forEach(idee => {
                 const kaart = document.createElement('article');
                 Object.assign(kaart.style, {
-                    padding: '12px',
+                    padding: '0',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '7px',
                     background: 'var(--egd-veld)',
                     border: '1px solid var(--egd-rand)',
-                    borderRadius: '4px'
+                    borderRadius: '4px',
+                    overflow: 'hidden'
                 });
 
+                const open = ideeOpen[idee.id] === true;
+                const kop = document.createElement('button');
+                kop.type = 'button';
+                kop.setAttribute('aria-expanded', String(open));
+                kop.style.cssText = 'display:flex; align-items:center; gap:9px; width:100%; padding:12px; text-align:left; border:0; background:transparent; color:var(--egd-tekst); cursor:pointer; font:inherit;';
+                const pijl = document.createElement('span');
+                pijl.textContent = open ? '▾' : '▸';
+                pijl.style.cssText = 'flex-shrink:0; width:14px; color:var(--egd-accent); font-size:16px;';
                 const kaartTitel = document.createElement('strong');
                 kaartTitel.textContent = idee.titel;
-                Object.assign(kaartTitel.style, { fontSize: '14px', overflowWrap: 'anywhere' });
+                Object.assign(kaartTitel.style, { fontSize: '14px', overflowWrap: 'anywhere', flex: '1' });
+                const tagAantal = document.createElement('span');
+                tagAantal.textContent = idee.tags.length ? idee.tags.length + (idee.tags.length === 1 ? ' tag' : ' tags') : '';
+                tagAantal.style.cssText = 'flex-shrink:0; color:var(--egd-tekst-zacht); font-size:11px;';
+                kop.append(pijl, kaartTitel, tagAantal);
+                kop.addEventListener('click', () => {
+                    if (open) delete ideeOpen[idee.id];
+                    else ideeOpen[idee.id] = true;
+                    render();
+                });
+
+                const inhoud = document.createElement('div');
+                inhoud.style.cssText = 'display:flex; flex-direction:column; gap:8px; padding:0 12px 12px;';
 
                 const kaartBeschrijving = document.createElement('div');
                 kaartBeschrijving.textContent = idee.beschrijving;
@@ -559,9 +589,10 @@ function openSMARTMenu(e) {
                     render();
                 }));
 
-                kaart.append(kaartTitel, kaartBeschrijving);
-                if (idee.tags.length) kaart.appendChild(kaartTags);
-                kaart.appendChild(acties);
+                if (idee.tags.length) inhoud.appendChild(kaartTags);
+                inhoud.append(kaartBeschrijving, acties);
+                if (open) kaart.append(kop, inhoud);
+                else kaart.appendChild(kop);
                 lijst.appendChild(kaart);
             });
         }
