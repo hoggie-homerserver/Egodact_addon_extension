@@ -14,7 +14,7 @@
         "src/menus/smart-menu.js",
         "src/menus/beta-menu.js",
         "src/menus/games-menu.js",
-        "src/menus/test.js",
+        "src/menus/tijd.js",
         "src/games/snake.js",
         "src/games/flappy.js",
         "src/games/tetris.js",

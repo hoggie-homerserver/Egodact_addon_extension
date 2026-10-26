@@ -22,4 +22,7 @@ observer.observe(
 // EERSTE UITVOERING
 // ============================================================
 
+// Timer en wekkers moeten ook zonder open venster blijven lopen.
+egodactTijdStart();
+
 voegKnoppenToe();
