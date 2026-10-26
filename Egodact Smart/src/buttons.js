@@ -26,6 +26,11 @@ function voegKnoppenToe() {
                 'egodact-weekplanning-knop'
             );
 
+        const bestaandeIdeeenbus =
+            document.getElementById(
+                'egodact-ideeenbus-knop'
+            );
+
         const bestaandeBetaFeatures =
             document.getElementById(
                 'egodact-beta-features-knop'
@@ -56,6 +61,10 @@ function voegKnoppenToe() {
             bestaandeWeekplanning.remove();
         }
 
+        if (bestaandeIdeeenbus) {
+            bestaandeIdeeenbus.remove();
+        }
+
         return;
     }
 
@@ -78,6 +87,11 @@ function voegKnoppenToe() {
             'egodact-weekplanning-knop'
         );
 
+    const bestaandeIdeeenbus =
+        document.getElementById(
+            'egodact-ideeenbus-knop'
+        );
+
     const bestaandeBetaFeatures =
         document.getElementById(
             'egodact-beta-features-knop'
@@ -92,6 +106,7 @@ function voegKnoppenToe() {
         bestaandeInfo &&
         bestaandeTaken &&
         bestaandeWeekplanning &&
+        bestaandeIdeeenbus &&
         (bestaandeBetaFeatures || !EGODACT_BETA_ZICHTBAAR) &&
         (bestaandeTijd || !EGODACT_TIJD_ZICHTBAAR)
     ) {
@@ -676,6 +691,68 @@ function voegKnoppenToe() {
                 weekplanningKnop,
                 menuContainer.firstChild
             );
+        }
+    }
+
+    // ========================================================
+    // IDEEËNBUS
+    // ========================================================
+
+    if (!document.getElementById('egodact-ideeenbus-knop')) {
+        const ideeenbusKnop = document.createElement('button');
+        ideeenbusKnop.id = 'egodact-ideeenbus-knop';
+        ideeenbusKnop.type = 'button';
+        ideeenbusKnop.title = 'Ideeënbus';
+        ideeenbusKnop.setAttribute('aria-label', 'Ideeënbus');
+
+        Object.assign(ideeenbusKnop.style, {
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '0',
+            margin: '0 8px 0 0',
+            width: '28px',
+            minWidth: '28px',
+            height: '32px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            verticalAlign: 'middle',
+            outline: 'none',
+            position: 'relative',
+            zIndex: '999999',
+            flexShrink: '0'
+        });
+
+        ideeenbusKnop.innerHTML = `
+            <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                style="opacity:1;display:block;pointer-events:none;"
+            >
+                <path d="M9 18h6"></path>
+                <path d="M10 22h4"></path>
+                <path d="M15.1 14.5c-.6.5-1.1 1.1-1.1 2h-4c0-.9-.5-1.5-1.1-2A6 6 0 1 1 15.1 14.5Z"></path>
+                <path d="M12 3v1"></path>
+                <path d="M4.9 5.9l.7.7"></path>
+                <path d="M19.1 5.9l-.7.7"></path>
+            </svg>
+        `;
+
+        ideeenbusKnop.addEventListener('click', openIdeeenbusMenu);
+
+        const weekplanningKnopVoorIdeeenbus =
+            document.getElementById('egodact-weekplanning-knop');
+        if (weekplanningKnopVoorIdeeenbus) {
+            weekplanningKnopVoorIdeeenbus.insertAdjacentElement('afterend', ideeenbusKnop);
+        } else {
+            menuContainer.insertBefore(ideeenbusKnop, menuContainer.firstChild);
         }
     }
 
