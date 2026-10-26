@@ -38,7 +38,7 @@ function open2048(e, naSluiten) {
             '<div style="flex:1;background:var(--egd-veld);border:1px solid var(--egd-rand);border-radius:5px;padding:8px;text-align:center;"><div style="font-size:10px;color:var(--egd-tekst-zacht);text-transform:uppercase;letter-spacing:.5px;">Record</div><b id="egd-2048-best" style="font-size:19px;">0</b></div>' +
         '</div>' +
         '<div id="egd-2048-status" role="status" style="font-size:12px;color:var(--egd-tekst-zacht);min-height:17px;text-align:center;">Gebruik de pijltjestoetsen of WASD. Swipen kan ook.</div>' +
-        '<div id="egd-2048-board" aria-label="2048 speelbord" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:9px;border-radius:7px;background:#172238;width:100%;max-width:370px;align-self:center;box-sizing:border-box;touch-action:none;user-select:none;"></div>' +
+        '<div id="egd-2048-board" aria-label="2048 speelbord" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:9px;border-radius:7px;background:var(--egd-veld);border:1px solid var(--egd-rand);width:100%;max-width:370px;align-self:center;box-sizing:border-box;touch-action:none;user-select:none;"></div>' +
         '<div style="display:grid;grid-template-columns:repeat(3,52px);gap:5px;justify-content:center;">' +
             '<span></span><button type="button" data-move="up" aria-label="Omhoog">↑</button><span></span>' +
             '<button type="button" data-move="left" aria-label="Links">←</button><button type="button" data-move="down" aria-label="Omlaag">↓</button><button type="button" data-move="right" aria-label="Rechts">→</button>' +
@@ -73,12 +73,12 @@ function open2048(e, naSluiten) {
     };
     const tileColors = value => {
         const colors = {
-            0:['#26344b','#26344b'], 2:['#eee4da','#5b5148'], 4:['#ede0c8','#5b5148'],
+            0:['var(--egd-paneel)','var(--egd-paneel)'], 2:['var(--egd-modal)','var(--egd-tekst)'], 4:['var(--egd-info)','var(--egd-tekst)'],
             8:['#f2b179','#fff'], 16:['#f59563','#fff'], 32:['#f67c5f','#fff'],
             64:['#f65e3b','#fff'], 128:['#edcf72','#fff'], 256:['#edcc61','#fff'],
             512:['#edc850','#fff'], 1024:['#edc53f','#fff'], 2048:['#edc22e','#fff']
         };
-        return colors[value] || (value > 2048 ? ['#3c3a32','#fff'] : colors[0]);
+        return colors[value] || (value > 2048 ? ['var(--egd-accent)','var(--egd-accent-tekst)'] : colors[0]);
     };
     const updateStatus = () => {
         scoreEl.textContent = score.toLocaleString('nl-NL');
