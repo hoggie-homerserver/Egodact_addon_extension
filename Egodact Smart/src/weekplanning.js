@@ -514,7 +514,7 @@ function openWeekplanning(e) {
                 }
             </h3>
             ${isBewerken ? `
-                <button id="egodact-blok-kopieer-huidig" type="button" title="Kopieer dit blok" aria-label="Kopieer dit blok" style="align-self:flex-start;margin:0 0 14px 0;background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:7px 9px;cursor:pointer;font-size:18px;line-height:1;">⧉</button>
+                <button id="egodact-blok-kopieer-huidig" type="button" title="Kopieer dit blok" aria-label="Kopieer dit blok" style="align-self:flex-start;margin:0 0 14px 0;background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:4px 6px;cursor:pointer;font-size:13px;line-height:1;min-width:26px;min-height:25px;">⧉</button>
             ` : `
                 <button id="egodact-blok-plak-gekopieerd" type="button" style="align-self:flex-start;margin:0 0 14px 0;background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:8px 10px;cursor:pointer;font-size:13px;">📋 Plakken</button>
             `}
@@ -1253,11 +1253,10 @@ function openWeekplanning(e) {
                     return;
                 }
 
+                // Neem de inhoud en kleur over, maar behoud de nieuwe plek
+                // (dag en tijden) die bij het aanmaken van dit blok gekozen zijn.
                 document.getElementById("egodact-blok-naam").value = kopie.naam || "";
                 document.getElementById("egodact-blok-beschrijving").value = kopie.beschrijving || "";
-                document.getElementById("egodact-blok-dag").value = String(Number.isFinite(Number(kopie.dag)) ? kopie.dag : dag);
-                document.getElementById("egodact-blok-start").value = tijdAlsString(Number.isFinite(Number(kopie.start)) ? Number(kopie.start) : start);
-                document.getElementById("egodact-blok-einde").value = tijdAlsString(Number.isFinite(Number(kopie.einde)) ? Number(kopie.einde) : einde);
                 gekozenKleur = kopie.kleur || null;
                 updateKleurKnoppen();
                 plakBlokKnop.textContent = "✓ Geplakt";
