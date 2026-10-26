@@ -1279,8 +1279,8 @@ function openWeekplanning(e) {
                     einde: doelEinde,
                     naam: String(kopie.naam || "Gekopieerd blok"),
                     beschrijving: String(kopie.beschrijving || ""),
-                    onderwerp: "",
-                    challengeId: null,
+                    onderwerp: String(kopie.onderwerp || ""),
+                    challengeId: kopie.challengeId || null,
                     kleur: kopie.kleur || null
                 });
 
@@ -1526,25 +1526,9 @@ function openWeekplanning(e) {
                 }
             );
 
-        const plakGekopieerdBlokKnop = document.getElementById("egodact-blok-plak-gekopieerd");
-        if (plakGekopieerdBlokKnop) {
-            plakGekopieerdBlokKnop.addEventListener("click", () => {
-                const opgeslagen = localStorage.getItem("egodact_weekplanning_block_clipboard_v1");
-                if (!opgeslagen) { alert("Er is nog geen blok gekopieerd. Gebruik eerst de knop Kopieer blok in het Weekplanning-menu."); return; }
-                try {
-                    const kopie = JSON.parse(opgeslagen);
-                    if (!kopie || typeof kopie !== "object" || Array.isArray(kopie)) throw new Error("Ongeldig blok");
-                    document.getElementById("egodact-blok-naam").value = kopie.naam || "";
-                    document.getElementById("egodact-blok-beschrijving").value = kopie.beschrijving || "";
-                    document.getElementById("egodact-blok-dag").value = String(Number.isInteger(Number(kopie.dag)) ? Number(kopie.dag) : dag);
-                    document.getElementById("egodact-blok-start").value = tijdAlsString(Number.isFinite(Number(kopie.start)) ? Number(kopie.start) : start);
-                    document.getElementById("egodact-blok-einde").value = tijdAlsString(Number.isFinite(Number(kopie.einde)) ? Number(kopie.einde) : einde);
-                    const kleurSelect = document.getElementById("egodact-blok-kleur");
-                    if (kleurSelect && kopie.kleur) kleurSelect.value = kopie.kleur;
-                    alert("Het gekopieerde blok is ingevuld. Klik op Opslaan om het nieuwe blok te maken.");
-                } catch (error) { console.error("Fout bij plakken weekblok in editor:", error); alert("Het gekopieerde blok is ongeldig of beschadigd."); }
-            });
-        }
+        // Oude dubbele plak-handler verwijderd. De knop heeft hieronder
+        // nog maar één handler, zodat de gekopieerde tijden de nieuwe
+        // bestemming niet ongemerkt kunnen overschrijven.
 
         document
             .getElementById(
