@@ -34,6 +34,8 @@ function openGamesMenu(e) {
         color: 'var(--egd-tekst)',
         width: '520px',
         maxWidth: 'calc(100vw - 32px)',
+        maxHeight: 'calc(100vh - 32px)',
+        overflowY: 'auto',
         borderRadius: '6px',
         padding: '24px',
         display: 'flex',
@@ -106,6 +108,28 @@ function openGamesMenu(e) {
 
 
 
+
+    const minesweeperIcoon = `
+        <svg width="56" height="56" viewBox="0 0 50 50" aria-hidden="true"
+            style="display:block; flex-shrink:0; border-radius:10px; background:#1b2333;">
+            <circle cx="25" cy="25" r="9" fill="#90caf9"/>
+            <path d="M25 8 V15 M25 35 V42 M8 25 H15 M35 25 H42 M13 13 L18 18 M32 32 L37 37 M37 13 L32 18 M18 32 L13 37"
+                stroke="#90caf9" stroke-width="4" stroke-linecap="round"/>
+            <circle cx="22" cy="22" r="2.5" fill="#1b2333"/>
+        </svg>`;
+
+    const icoon2048 = `
+        <svg width="56" height="56" viewBox="0 0 50 50" aria-hidden="true"
+            style="display:block; flex-shrink:0; border-radius:10px; background:#1b2333;">
+            <rect x="4" y="4" width="19" height="19" rx="3" fill="#eee4da"/>
+            <rect x="27" y="4" width="19" height="19" rx="3" fill="#f2b179"/>
+            <rect x="4" y="27" width="19" height="19" rx="3" fill="#edcf72"/>
+            <rect x="27" y="27" width="19" height="19" rx="3" fill="#edc22e"/>
+            <text x="13.5" y="17" text-anchor="middle" font-size="10" font-weight="bold" fill="#5b5148">2</text>
+            <text x="36.5" y="17" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">8</text>
+            <text x="13.5" y="40" text-anchor="middle" font-size="10" font-weight="bold" fill="#fff">16</text>
+            <text x="36.5" y="40" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">2048</text>
+        </svg>`;
 
     const controllerIcoon = `
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
@@ -243,6 +267,48 @@ function openGamesMenu(e) {
             ">Spelen</span>
         </button>
 
+        <button
+            id="egodact-game-minesweeper"
+            type="button"
+            style="
+                display: flex; align-items: center; gap: 16px; width: 100%;
+                text-align: left; background-color: var(--egd-veld);
+                color: var(--egd-tekst); border: 1px solid var(--egd-rand);
+                border-radius: 6px; padding: 14px; cursor: pointer;
+                font-family: inherit;
+            "
+        >
+            ${minesweeperIcoon}
+            <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:4px;">
+                <span style="font-size:17px; font-weight:bold;">Minesweeper</span>
+                <span style="font-size:13px; color:var(--egd-tekst-zacht); line-height:1.4;">
+                    Zoek de mijnen en probeer het bord leeg te maken.
+                </span>
+            </span>
+            <span style="background-color:var(--egd-accent);color:var(--egd-accent-tekst);border-radius:4px;padding:8px 14px;font-size:13px;font-weight:bold;text-transform:uppercase;">Spelen</span>
+        </button>
+
+        <button
+            id="egodact-game-2048"
+            type="button"
+            style="
+                display: flex; align-items: center; gap: 16px; width: 100%;
+                text-align: left; background-color: var(--egd-veld);
+                color: var(--egd-tekst); border: 1px solid var(--egd-rand);
+                border-radius: 6px; padding: 14px; cursor: pointer;
+                font-family: inherit;
+            "
+        >
+            ${icoon2048}
+            <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:4px;">
+                <span style="font-size:17px; font-weight:bold;">2048</span>
+                <span style="font-size:13px; color:var(--egd-tekst-zacht); line-height:1.4;">
+                    Schuif en combineer tegels om 2048 te halen.
+                </span>
+            </span>
+            <span style="background-color:var(--egd-accent);color:var(--egd-accent-tekst);border-radius:4px;padding:8px 14px;font-size:13px;font-weight:bold;text-transform:uppercase;">Spelen</span>
+        </button>
+
         <div style="
             display: flex;
             justify-content: flex-end;
@@ -300,6 +366,16 @@ function openGamesMenu(e) {
             sluitMenu();
             openSnakeMenu();
         });
+
+    modal.querySelector('#egodact-game-minesweeper').addEventListener('click', () => {
+        sluitMenu();
+        openMinesweeper(null, openGamesMenu);
+    });
+
+    modal.querySelector('#egodact-game-2048').addEventListener('click', () => {
+        sluitMenu();
+        open2048(null, openGamesMenu);
+    });
 
     modal
         .querySelector('#egodact-games-sluiten')
