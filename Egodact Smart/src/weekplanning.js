@@ -175,14 +175,17 @@ function openWeekplanning(e) {
         {
             backgroundColor: "var(--egd-modal)",
             color: "var(--egd-tekst)",
-            width: "1200px",
-            maxWidth: "95vw",
-            maxHeight: "90vh",
+            width: "min(1400px, 96vw)",
+            maxWidth: "96vw",
+            maxHeight: "94vh",
+            boxSizing: "border-box",
+            minHeight: "0",
+            overflow: "hidden",
             borderRadius: "6px",
-            padding: "20px",
+            padding: "clamp(10px, 1.5vw, 20px)",
             display: "flex",
             flexDirection: "column",
-            gap: "14px",
+            gap: "12px",
             boxShadow:
                 "var(--egd-schaduw)",
             position: "relative"
@@ -197,23 +200,30 @@ function openWeekplanning(e) {
 
         <div style="
             display: flex;
+            flex-wrap: wrap;
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid var(--egd-rand);
             padding-bottom: 12px;
-            gap: 15px;
+            gap: 10px;
+            min-width: 0;
         ">
 
             <h2 style="
                 margin: 0;
                 font-size: 22px;
                 font-weight: 500;
+                flex: 0 0 auto;
             ">
                 Weekplanning
             </h2>
 
             <div style="
                 display: flex;
+                flex: 1 1 700px;
+                min-width: 0;
+                flex-wrap: wrap;
+                justify-content: flex-end;
                 align-items: center;
                 gap: 8px;
             ">
@@ -345,9 +355,10 @@ function openWeekplanning(e) {
             id="egodact-weekplanning-content"
             style="
                 display: grid;
-                grid-template-columns: minmax(0, 1fr) 230px;
+                grid-template-columns: minmax(0, 1fr) minmax(190px, 230px);
                 gap: 12px;
                 min-height: 0;
+                flex: 1 1 auto;
                 overflow: hidden;
             "
         ></div>
@@ -2289,6 +2300,7 @@ function openWeekplanning(e) {
                 display: "grid",
                 gridTemplateColumns:
                     "55px repeat(7, minmax(90px, 1fr))",
+                minWidth: "685px",
                 position: "sticky",
                 top: "0",
                 zIndex: "15",
@@ -2382,7 +2394,8 @@ function openWeekplanning(e) {
             {
                 display: "grid",
                 gridTemplateColumns:
-                    "55px repeat(7, minmax(90px, 1fr))"
+                    "55px repeat(7, minmax(90px, 1fr))",
+                minWidth: "685px"
             }
         );
 
@@ -3008,6 +3021,36 @@ function openWeekplanning(e) {
         // BESTAANDE BLOKKEN
         // ====================================================
 
+        // Verdeel blokken die qua tijd overlappen over aparte banen,
+        // zodat blokken en hun tekst niet boven op elkaar vallen.
+        const blokLayout = new Map();
+        const blokkenPerDag = Array.from({ length: 7 }, () => []);
+        weekData.forEach(blok => {
+            const dag = Number(blok.dag);
+            if (dag >= 0 && dag < 7 && Number.isFinite(Number(blok.start)) && Number.isFinite(Number(blok.einde))) {
+                blokkenPerDag[dag].push(blok);
+            }
+        });
+        blokkenPerDag.forEach(dagBlokken => {
+            dagBlokken.sort((a, b) => Number(a.start) - Number(b.start) || Number(a.einde) - Number(b.einde));
+            const baanEindes = [];
+            dagBlokken.forEach(blok => {
+                let baan = baanEindes.findIndex(einde => einde <= Number(blok.start));
+                if (baan === -1) {
+                    baan = baanEindes.length;
+                    baanEindes.push(Number(blok.einde));
+                } else {
+                    baanEindes[baan] = Number(blok.einde);
+                }
+                blokLayout.set(String(blok.id), { baan, aantalBanen: 0 });
+            });
+            const aantalBanen = Math.max(1, baanEindes.length);
+            dagBlokken.forEach(blok => {
+                const layout = blokLayout.get(String(blok.id));
+                if (layout) layout.aantalBanen = aantalBanen;
+            });
+        });
+
         weekData.forEach(
             blok => {
 
@@ -3050,6 +3093,8 @@ function openWeekplanning(e) {
                     60 *
                     hoogtePerUur;
 
+                const layout = blokLayout.get(String(blok.id)) || { baan: 0, aantalBanen: 1 };
+                const baanBreedte = 100 / layout.aantalBanen;
                 const blokKleur =
                     blok.kleur ||
                     EGODACT_STANDAARD_BLOKKLEUR;
@@ -3067,9 +3112,10 @@ function openWeekplanning(e) {
                         top:
                             `${top}px`,
                         left:
-                            "4px",
+                            `calc(${layout.baan * baanBreedte}% + 3px)`,
                         right:
-                            "4px",
+                            `calc(${(layout.aantalBanen - layout.baan - 1) * baanBreedte}% + 3px)`,
+                        minWidth: "0",
                         height:
                             `${Math.max(
                                 hoogte - 4,
@@ -3108,10 +3154,14 @@ function openWeekplanning(e) {
 
                     <div style="
                         font-weight: bold;
-                        font-size: 12px;
-                        white-space: nowrap;
+                        font-size: 11px;
+                        line-height: 1.2;
+                        white-space: normal;
                         overflow: hidden;
-                        text-overflow: ellipsis;
+                        overflow-wrap: anywhere;
+                        display: -webkit-box;
+                        -webkit-line-clamp: 2;
+                        -webkit-box-orient: vertical;
                         pointer-events: none;
                     ">
                         ${escapeHTML(
@@ -3121,8 +3171,10 @@ function openWeekplanning(e) {
 
                     <div style="
                         font-size: 10px;
+                        line-height: 1.15;
                         opacity: 0.85;
-                        margin-top: 2px;
+                        margin-top: 3px;
+                        overflow-wrap: anywhere;
                         pointer-events: none;
                     ">
                         ${formatTijd(
@@ -3139,8 +3191,12 @@ function openWeekplanning(e) {
                             ? `
                                 <div style="
                                     font-size: 10px;
+                                    line-height: 1.15;
                                     margin-top: 4px;
                                     opacity: 0.85;
+                                    overflow: hidden;
+                                    overflow-wrap: anywhere;
+                                    max-height: 2.3em;
                                     pointer-events: none;
                                 ">
                                     ${escapeHTML(
