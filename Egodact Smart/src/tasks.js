@@ -125,6 +125,14 @@ function openTakenMenu(e) {
             </button>
         </div>
 
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+            <button id="egodact-dag-kopieer" type="button" style="background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);padding:7px 10px;border-radius:4px;cursor:pointer;font-size:12px;">Kopieer dag</button>
+            <button id="egodact-dag-plak" type="button" style="background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);padding:7px 10px;border-radius:4px;cursor:pointer;font-size:12px;">Plak dag</button>
+            <button id="egodact-dag-export" type="button" style="background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);padding:7px 10px;border-radius:4px;cursor:pointer;font-size:12px;">Exporteer dag</button>
+            <button id="egodact-dag-import-knop" type="button" style="background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);padding:7px 10px;border-radius:4px;cursor:pointer;font-size:12px;">Importeer dag</button>
+            <input id="egodact-dag-import-bestand" type="file" accept=".json,application/json" style="display:none;">
+        </div>
+
         <div
             id="egodact-uren-container"
             style="
@@ -634,6 +642,108 @@ function openTakenMenu(e) {
                 }
             }
         );
+
+
+    // ============================================================
+    // KOPIËREN, PLAKKEN, EXPORTEREN EN IMPORTEREN VAN DAGPLANNING
+    // ============================================================
+    const dagKopieerKnop = document.getElementById("egodact-dag-kopieer");
+    const dagPlakKnop = document.getElementById("egodact-dag-plak");
+    const dagExportKnop = document.getElementById("egodact-dag-export");
+    const dagImportKnop = document.getElementById("egodact-dag-import-knop");
+    const dagImportBestand = document.getElementById("egodact-dag-import-bestand");
+    const dagClipboardKey = "egodact_dagplanning_clipboard_v1";
+
+    function leesDagData(datum) {
+        try {
+            const data = JSON.parse(localStorage.getItem(`egodact_flex_planner_${datum}`) || "[]");
+            return Array.isArray(data) ? data : [];
+        } catch (_) {
+            return [];
+        }
+    }
+
+    function downloadDagJSON(bestandsnaam, inhoud) {
+        const blob = new Blob([JSON.stringify(inhoud, null, 2)], { type: "application/json;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = bestandsnaam;
+        link.style.display = "none";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function normaliseerDagData(data) {
+        if (!Array.isArray(data) || !data.every(item => item && typeof item === "object" && !Array.isArray(item))) {
+            throw new Error("Ongeldige dagplanning");
+        }
+        return data.map(item => ({
+            tijd: typeof item.tijd === "string" ? item.tijd : "",
+            tekst: typeof item.tekst === "string" ? item.tekst : "",
+            gedaan: Boolean(item.gedaan)
+        }));
+    }
+
+    dagKopieerKnop.addEventListener("click", () => {
+        try {
+            localStorage.setItem(dagClipboardKey, JSON.stringify(leesDagData(geselecteerdeDatum)));
+            alert(`Dagplanning van ${geselecteerdeDatum} gekopieerd. Kies een andere datum en klik op "Plak dag".`);
+        } catch (error) {
+            console.error("Fout bij kopiëren dagplanning:", error);
+            alert("De dagplanning kon niet worden gekopieerd.");
+        }
+    });
+
+    dagPlakKnop.addEventListener("click", () => {
+        const opgeslagen = localStorage.getItem(dagClipboardKey);
+        if (!opgeslagen) {
+            alert("Er is nog geen dagplanning gekopieerd.");
+            return;
+        }
+        try {
+            const gegevens = normaliseerDagData(JSON.parse(opgeslagen)).map(item => ({ ...item, gedaan: false }));
+            if (!confirm(`De dagplanning van ${geselecteerdeDatum} vervangen door de gekopieerde dag?`)) return;
+            localStorage.setItem(`egodact_flex_planner_${geselecteerdeDatum}`, JSON.stringify(gegevens));
+            renderPlanner(geselecteerdeDatum);
+            alert("Dagplanning geplakt. Taken zijn weer niet afgevinkt.");
+        } catch (error) {
+            alert("De gekopieerde dagplanning is ongeldig of beschadigd.");
+        }
+    });
+
+    dagExportKnop.addEventListener("click", () => {
+        const gegevens = leesDagData(geselecteerdeDatum);
+        downloadDagJSON(`egodact-dagplanning-${geselecteerdeDatum}.json`, {
+            format: "egodact-dagplanning",
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            date: geselecteerdeDatum,
+            data: gegevens
+        });
+    });
+
+    dagImportKnop.addEventListener("click", () => dagImportBestand.click());
+
+    dagImportBestand.addEventListener("change", async event => {
+        const bestand = event.target.files && event.target.files[0];
+        event.target.value = "";
+        if (!bestand) return;
+        try {
+            const inhoud = JSON.parse(await bestand.text());
+            const gegevens = Array.isArray(inhoud) ? inhoud : inhoud && inhoud.format === "egodact-dagplanning" ? inhoud.data : null;
+            const genormaliseerd = normaliseerDagData(gegevens);
+            if (!confirm(`Importeer ${genormaliseerd.length} taken naar ${geselecteerdeDatum}? De huidige dagplanning wordt vervangen.`)) return;
+            localStorage.setItem(`egodact_flex_planner_${geselecteerdeDatum}`, JSON.stringify(genormaliseerd));
+            renderPlanner(geselecteerdeDatum);
+            alert("Dagplanning geïmporteerd.");
+        } catch (error) {
+            console.error("Fout bij importeren dagplanning:", error);
+            alert("Importeren mislukt. Kies een geldig Egodact-dagplanning JSON-bestand.");
+        }
+    });
 
     document
         .getElementById(
