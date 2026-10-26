@@ -344,7 +344,6 @@ function openWeekplanning(e) {
             border-radius:4px;
         ">
             <button id="egodact-week-kopieer" type="button" style="background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:7px 10px;cursor:pointer;font-size:12px;">Kopieer week</button>
-            <button id="egodact-week-kopieer-blok-menu" type="button" style="background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:7px 10px;cursor:pointer;font-size:12px;">Kopieer blok</button>
             <button id="egodact-week-plak" type="button" style="background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:7px 10px;cursor:pointer;font-size:12px;">Plak week</button>
             <span style="width:1px;height:22px;background:var(--egd-rand);margin:0 2px;"></span>
             <button id="egodact-week-export" type="button" style="background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:7px 10px;cursor:pointer;font-size:12px;">Exporteer week</button>
@@ -514,9 +513,11 @@ function openWeekplanning(e) {
                         : "Nieuw blok"
                 }
             </h3>
-            ${!isBewerken ? `
-                <button id="egodact-blok-plak-gekopieerd" type="button" style="align-self:flex-start;margin:0 0 14px 0;background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:8px 10px;cursor:pointer;font-size:13px;">Plak gekopieerd blok</button>
-            ` : ""}
+            ${isBewerken ? `
+                <button id="egodact-blok-kopieer-huidig" type="button" title="Kopieer dit blok" aria-label="Kopieer dit blok" style="align-self:flex-start;margin:0 0 14px 0;background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:7px 9px;cursor:pointer;font-size:18px;line-height:1;">⧉</button>
+            ` : `
+                <button id="egodact-blok-plak-gekopieerd" type="button" style="align-self:flex-start;margin:0 0 14px 0;background:var(--egd-paneel);color:var(--egd-tekst);border:1px solid var(--egd-rand);border-radius:4px;padding:8px 10px;cursor:pointer;font-size:13px;">📋 Plakken</button>
+            `}
 
             <label style="
                 display: block;
@@ -1206,6 +1207,62 @@ function openWeekplanning(e) {
             "egodact-blok-dag"
         ).value =
             String(dag);
+
+        // ====================================================
+        // BLOK KOPIËREN / PLAKKEN
+        // ====================================================
+
+        const kopieerBlokKnop = document.getElementById("egodact-blok-kopieer-huidig");
+        if (kopieerBlokKnop && isBewerken) {
+            kopieerBlokKnop.addEventListener("click", () => {
+                try {
+                    const kopie = { ...bestaandBlok };
+                    delete kopie.id;
+                    localStorage.setItem(weekBlokClipboardKey, JSON.stringify(kopie));
+                    kopieerBlokKnop.textContent = "✓";
+                    kopieerBlokKnop.title = "Blok gekopieerd";
+                    setTimeout(() => {
+                        if (kopieerBlokKnop.isConnected) {
+                            kopieerBlokKnop.textContent = "⧉";
+                            kopieerBlokKnop.title = "Kopieer dit blok";
+                        }
+                    }, 1200);
+                } catch (error) {
+                    console.error("Fout bij kopiëren weekblok:", error);
+                    alert("Het blok kon niet worden gekopieerd.");
+                }
+            });
+        }
+
+        const plakBlokKnop = document.getElementById("egodact-blok-plak-gekopieerd");
+        if (plakBlokKnop && !isBewerken) {
+            plakBlokKnop.addEventListener("click", () => {
+                const opgeslagen = localStorage.getItem(weekBlokClipboardKey);
+                if (!opgeslagen) {
+                    alert("Er is nog geen blok gekopieerd. Open een bestaand blok en klik op het kopieericoon.");
+                    return;
+                }
+                let kopie;
+                try {
+                    kopie = JSON.parse(opgeslagen);
+                    if (!kopie || typeof kopie !== "object" || Array.isArray(kopie)) {
+                        throw new Error("Ongeldige blokgegevens");
+                    }
+                } catch (error) {
+                    alert("Het gekopieerde blok is ongeldig of beschadigd.");
+                    return;
+                }
+
+                document.getElementById("egodact-blok-naam").value = kopie.naam || "";
+                document.getElementById("egodact-blok-beschrijving").value = kopie.beschrijving || "";
+                document.getElementById("egodact-blok-dag").value = String(Number.isFinite(Number(kopie.dag)) ? kopie.dag : dag);
+                document.getElementById("egodact-blok-start").value = tijdAlsString(Number.isFinite(Number(kopie.start)) ? Number(kopie.start) : start);
+                document.getElementById("egodact-blok-einde").value = tijdAlsString(Number.isFinite(Number(kopie.einde)) ? Number(kopie.einde) : einde);
+                gekozenKleur = kopie.kleur || null;
+                updateKleurKnoppen();
+                plakBlokKnop.textContent = "✓ Geplakt";
+            });
+        }
 
         // ====================================================
         // ANNULEREN
@@ -3865,20 +3922,6 @@ function openWeekplanning(e) {
     const weekClipboardKey = "egodact_weekplanning_clipboard_v1";
     const weekBlokClipboardKey = "egodact_weekplanning_block_clipboard_v1";
 
-    document.getElementById("egodact-week-kopieer-blok-menu").addEventListener("click", () => {
-        if (!weekData.length) { alert("Er zijn geen blokken in deze week om te kopiëren."); return; }
-        const opties = weekData.map((blok, index) => `${index + 1}. ${blok.naam || "Zonder naam"} (${formatTijd(blok.start)}–${formatTijd(blok.einde)})`);
-        const keuze = prompt("Welk blok wil je kopiëren? Typ het nummer:\n\n" + opties.join("\n"));
-        if (keuze === null) return;
-        const index = Number(keuze) - 1;
-        if (!Number.isInteger(index) || index < 0 || index >= weekData.length) { alert("Dat is geen geldig bloknummer."); return; }
-        try {
-            const kopie = { ...weekData[index] };
-            delete kopie.id;
-            localStorage.setItem(weekBlokClipboardKey, JSON.stringify(kopie));
-            alert(`Blok "${kopie.naam || "zonder naam"}" gekopieerd. Klik op "+ Blok toevoegen" en gebruik daar "Plak gekopieerd blok".`);
-        } catch (error) { console.error("Fout bij kopiëren weekblok:", error); alert("Het blok kon niet worden gekopieerd."); }
-    });
     function maakWeekExport(data) {
         const start = datumKey(weekStart);
         const einde = new Date(weekStart);
