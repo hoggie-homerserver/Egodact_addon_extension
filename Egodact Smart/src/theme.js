@@ -112,7 +112,8 @@ const EGODACT_THEMA_CSS = `
 #egodact-info-knop,
 #egodact-taken-knop,
 #egodact-weekplanning-knop,
-#egodact-beta-features-knop {
+#egodact-beta-features-knop,
+#egodact-test-features-knop {
     color: var(--egd-header-icoon) !important;
 }
 `;
@@ -243,7 +244,8 @@ function egodactPasThemaToe() {
         const knop = document.getElementById('egodact-info-knop') ||
             document.getElementById('egodact-taken-knop') ||
             document.getElementById('egodact-weekplanning-knop') ||
-            document.getElementById('egodact-beta-features-knop');
+            document.getElementById('egodact-beta-features-knop') ||
+            document.getElementById('egodact-test-features-knop');
 
         if (knop) {
             for (let el = knop.parentElement; el; el = el.parentElement) {

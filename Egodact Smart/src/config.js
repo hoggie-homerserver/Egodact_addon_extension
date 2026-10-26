@@ -12,3 +12,10 @@ const EGODACT_BETA_ZICHTBAAR = (() => {
     }
 })();
 
+// ============================================================
+// TEST FEATURES ALLEEN IN DE DEV BUILD
+// ============================================================
+// Zelfde regel als de Beta-knop: alleen zichtbaar in een build
+// waarvan de naam in manifest.json "Dev" bevat.
+const EGODACT_TEST_ZICHTBAAR = EGODACT_BETA_ZICHTBAAR;
+
