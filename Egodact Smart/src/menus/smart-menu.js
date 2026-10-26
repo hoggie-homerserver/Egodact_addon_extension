@@ -444,6 +444,28 @@ function openSMARTMenu(e) {
                 tekst.textContent = tag;
                 label.append(checkbox, tekst);
                 tagsContainer.appendChild(label);
+
+                const verwijderTagKnop = document.createElement('button');
+                verwijderTagKnop.type = 'button';
+                verwijderTagKnop.textContent = '×';
+                verwijderTagKnop.title = 'Tag verwijderen: ' + tag;
+                verwijderTagKnop.setAttribute('aria-label', 'Tag verwijderen: ' + tag);
+                verwijderTagKnop.style.cssText = 'padding:2px 6px; border:1px solid var(--egd-rand); border-radius:4px; background:transparent; color:var(--egd-gevaar); cursor:pointer; font-size:13px;';
+                verwijderTagKnop.addEventListener('click', () => {
+                    if (!window.confirm('Tag "' + tag + '" verwijderen? De tag wordt ook van bestaande ideeën verwijderd.')) return;
+                    const oudeTags = tags;
+                    const oudeIdeeën = ideeën;
+                    tags = tags.filter(item => item !== tag);
+                    ideeën = ideeën.map(idee => ({ ...idee, tags: idee.tags.filter(item => item !== tag) }));
+                    if (!bewaarTags() || !bewaarIdeeën()) {
+                        tags = oudeTags;
+                        ideeën = oudeIdeeën;
+                        return;
+                    }
+                    renderTagKeuzes(geselecteerdeTags().filter(item => item !== tag));
+                    render();
+                });
+                tagsContainer.appendChild(verwijderTagKnop);
             });
         }
 
