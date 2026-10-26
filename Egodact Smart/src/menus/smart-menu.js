@@ -265,8 +265,29 @@ function openSMARTMenu(e) {
                     </div>
                 </div>
             `
+        },
+        {
+            title: "Ideeënbus",
+            content: `
+                <div style="display:flex; flex-direction:column; gap:10px; margin-top:5px;">
+                    <p style="margin:0; color:var(--egd-tekst-zacht); font-size:13px; line-height:1.5;">Bewaar ideeën voor challenges die je later wilt uitwerken.</p>
+                    <form id="egodact-ideeenbus-form" style="display:flex; flex-direction:column; gap:9px; padding:12px; background:var(--egd-veld); border:1px solid var(--egd-rand); border-radius:4px;">
+                        <input id="egodact-idee-titel" type="text" maxlength="120" required placeholder="Titel van je idee" aria-label="Titel van je idee" style="box-sizing:border-box; width:100%; padding:10px; border:1px solid var(--egd-rand); border-radius:4px; background:var(--egd-modal); color:var(--egd-tekst); font:inherit; font-size:14px;">
+                        <textarea id="egodact-idee-beschrijving" maxlength="5000" rows="3" required placeholder="Beschrijving van je idee" aria-label="Beschrijving van je idee" style="box-sizing:border-box; width:100%; padding:10px; border:1px solid var(--egd-rand); border-radius:4px; background:var(--egd-modal); color:var(--egd-tekst); font:inherit; font-size:14px; resize:vertical;"></textarea>
+                        <div style="display:flex; justify-content:flex-end; gap:8px;">
+                            <button id="egodact-idee-annuleren" type="button" style="display:none; padding:8px 12px; border:1px solid var(--egd-rand); border-radius:4px; background:transparent; color:var(--egd-tekst); cursor:pointer;">Annuleren</button>
+                            <button id="egodact-idee-opslaan" type="submit" style="padding:8px 12px; border:none; border-radius:4px; background:var(--egd-accent); color:var(--egd-accent-tekst); font-weight:bold; cursor:pointer;">Idee toevoegen</button>
+                        </div>
+                    </form>
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                        <strong style="font-size:14px;">Opgeslagen ideeën</strong>
+                        <span id="egodact-idee-aantal" style="font-size:12px; color:var(--egd-tekst-zacht);">0 ideeën</span>
+                    </div>
+                    <div id="egodact-ideeen-lijst" style="display:flex; flex-direction:column; gap:8px;"></div>
+                </div>
+            `
         }
-    ];  
+    ];
 
     modal.innerHTML = `
         <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--egd-rand); padding-bottom:10px; margin-bottom:5px;">
@@ -304,6 +325,181 @@ function openSMARTMenu(e) {
             button.style.color = button.disabled ? 'var(--egd-uit)' : 'var(--egd-accent)';
             button.style.borderColor = button.disabled ? 'var(--egd-uit)' : 'var(--egd-accent)';
         });
+
+        if (currentModalPage === 2) {
+            initialiseerIdeeenbusPagina();
+        }
+    }
+
+    function initialiseerIdeeenbusPagina() {
+        const KEY = 'egodact_ideeenbus_v1';
+        const form = modalBody.querySelector('#egodact-ideeenbus-form');
+        const titelVeld = modalBody.querySelector('#egodact-idee-titel');
+        const beschrijvingVeld = modalBody.querySelector('#egodact-idee-beschrijving');
+        const opslaanKnop = modalBody.querySelector('#egodact-idee-opslaan');
+        const annulerenKnop = modalBody.querySelector('#egodact-idee-annuleren');
+        const lijst = modalBody.querySelector('#egodact-ideeen-lijst');
+        const aantal = modalBody.querySelector('#egodact-idee-aantal');
+        if (!form || !titelVeld || !beschrijvingVeld || !lijst || !aantal) return;
+
+        let ideeën = [];
+        let bewerkId = null;
+
+        function laadIdeeën() {
+            try {
+                const data = JSON.parse(localStorage.getItem(KEY) || '[]');
+                ideeën = Array.isArray(data) ? data.filter(item =>
+                    item && typeof item.id === 'string' &&
+                    typeof item.titel === 'string' &&
+                    typeof item.beschrijving === 'string'
+                ) : [];
+            } catch (err) {
+                ideeën = [];
+            }
+        }
+
+        function bewaarIdeeën() {
+            try {
+                localStorage.setItem(KEY, JSON.stringify(ideeën));
+                return true;
+            } catch (err) {
+                window.alert('Je ideeën konden niet lokaal worden opgeslagen. Controleer de browseropslag.');
+                return false;
+            }
+        }
+
+        function maakActie(tekst, gevaar, handler) {
+            const knop = document.createElement('button');
+            knop.type = 'button';
+            knop.textContent = tekst;
+            Object.assign(knop.style, {
+                padding: '6px 9px',
+                border: '1px solid var(--egd-rand)',
+                borderRadius: '4px',
+                background: 'transparent',
+                color: gevaar ? 'var(--egd-gevaar)' : 'var(--egd-tekst)',
+                cursor: 'pointer',
+                fontSize: '12px'
+            });
+            knop.addEventListener('click', handler);
+            return knop;
+        }
+
+        function resetFormulier() {
+            bewerkId = null;
+            form.reset();
+            opslaanKnop.textContent = 'Idee toevoegen';
+            annulerenKnop.style.display = 'none';
+        }
+
+        function render() {
+            lijst.replaceChildren();
+            aantal.textContent = ideeën.length + (ideeën.length === 1 ? ' idee' : ' ideeën');
+
+            if (!ideeën.length) {
+                const leeg = document.createElement('div');
+                leeg.textContent = 'Je hebt nog geen ideeën opgeslagen. Voeg hierboven je eerste idee toe.';
+                Object.assign(leeg.style, {
+                    padding: '14px',
+                    textAlign: 'center',
+                    color: 'var(--egd-tekst-zacht)',
+                    background: 'var(--egd-veld)',
+                    border: '1px dashed var(--egd-rand)',
+                    borderRadius: '4px',
+                    fontSize: '13px',
+                    lineHeight: '1.5'
+                });
+                lijst.appendChild(leeg);
+                return;
+            }
+
+            ideeën.forEach(idee => {
+                const kaart = document.createElement('article');
+                Object.assign(kaart.style, {
+                    padding: '12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '7px',
+                    background: 'var(--egd-veld)',
+                    border: '1px solid var(--egd-rand)',
+                    borderRadius: '4px'
+                });
+
+                const kaartTitel = document.createElement('strong');
+                kaartTitel.textContent = idee.titel;
+                Object.assign(kaartTitel.style, { fontSize: '14px', overflowWrap: 'anywhere' });
+
+                const kaartBeschrijving = document.createElement('div');
+                kaartBeschrijving.textContent = idee.beschrijving;
+                Object.assign(kaartBeschrijving.style, {
+                    fontSize: '13px',
+                    lineHeight: '1.5',
+                    color: 'var(--egd-tekst-zacht)',
+                    whiteSpace: 'pre-wrap',
+                    overflowWrap: 'anywhere'
+                });
+
+                const acties = document.createElement('div');
+                Object.assign(acties.style, { display: 'flex', justifyContent: 'flex-end', gap: '7px', flexWrap: 'wrap' });
+
+                acties.appendChild(maakActie('Aanpassen', false, () => {
+                    bewerkId = idee.id;
+                    titelVeld.value = idee.titel;
+                    beschrijvingVeld.value = idee.beschrijving;
+                    opslaanKnop.textContent = 'Wijzigingen opslaan';
+                    annulerenKnop.style.display = '';
+                    titelVeld.focus();
+                    form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }));
+
+                acties.appendChild(maakActie('Verwijderen', true, () => {
+                    if (!window.confirm('Weet je zeker dat je dit idee wilt verwijderen?')) return;
+                    const oud = ideeën;
+                    ideeën = ideeën.filter(item => item.id !== idee.id);
+                    if (!bewaarIdeeën()) {
+                        ideeën = oud;
+                        return;
+                    }
+                    if (bewerkId === idee.id) resetFormulier();
+                    render();
+                }));
+
+                kaart.append(kaartTitel, kaartBeschrijving, acties);
+                lijst.appendChild(kaart);
+            });
+        }
+
+        annulerenKnop.addEventListener('click', resetFormulier);
+        form.addEventListener('submit', event => {
+            event.preventDefault();
+            const titel = titelVeld.value.trim();
+            const beschrijving = beschrijvingVeld.value.trim();
+            if (!titel || !beschrijving) return;
+
+            const oud = ideeën;
+            if (bewerkId) {
+                ideeën = ideeën.map(idee => idee.id === bewerkId
+                    ? { ...idee, titel, beschrijving, bijgewerkt: Date.now() }
+                    : idee
+                );
+            } else {
+                const id = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                    ? crypto.randomUUID()
+                    : String(Date.now()) + '-' + Math.random().toString(36).slice(2);
+                ideeën = [{ id, titel, beschrijving, aangemaakt: Date.now() }, ...ideeën];
+            }
+
+            if (!bewaarIdeeën()) {
+                ideeën = oud;
+                return;
+            }
+            resetFormulier();
+            render();
+            titelVeld.focus();
+        });
+
+        laadIdeeën();
+        render();
     }
 
     nextButton.addEventListener('click', () => {
