@@ -9,7 +9,19 @@
         "https://app.egodact.com/*"
       ],
       "js": [
-        "content.js"
+        "src/config.js",
+        "src/theme.js",
+        "src/menus/smart-menu.js",
+        "src/menus/beta-menu.js",
+        "src/menus/games-menu.js",
+        "src/games/snake.js",
+        "src/games/flappy.js",
+        "src/games/tetris.js",
+        "src/challenges.js",
+        "src/tasks.js",
+        "src/weekplanning.js",
+        "src/buttons.js",
+        "src/main.js"
       ]
     }
   ],
