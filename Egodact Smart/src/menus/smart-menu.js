@@ -274,6 +274,15 @@ function openSMARTMenu(e) {
                     <form id="egodact-ideeenbus-form" style="display:flex; flex-direction:column; gap:9px; padding:12px; background:var(--egd-veld); border:1px solid var(--egd-rand); border-radius:4px;">
                         <input id="egodact-idee-titel" type="text" maxlength="120" required placeholder="Titel van je idee" aria-label="Titel van je idee" style="box-sizing:border-box; width:100%; padding:10px; border:1px solid var(--egd-rand); border-radius:4px; background:var(--egd-modal); color:var(--egd-tekst); font:inherit; font-size:14px;">
                         <textarea id="egodact-idee-beschrijving" maxlength="5000" rows="3" required placeholder="Beschrijving van je idee" aria-label="Beschrijving van je idee" style="box-sizing:border-box; width:100%; padding:10px; border:1px solid var(--egd-rand); border-radius:4px; background:var(--egd-modal); color:var(--egd-tekst); font:inherit; font-size:14px; resize:vertical;"></textarea>
+                        <div>
+                            <label for="egodact-idee-tags" style="display:block; margin-bottom:6px; font-size:13px; font-weight:bold;">Tags voor dit idee</label>
+                            <div id="egodact-idee-tags" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+                            <div style="display:flex; gap:6px; margin-top:8px;">
+                                <input id="egodact-nieuwe-tag" type="text" maxlength="40" placeholder="Nieuwe tag maken" aria-label="Nieuwe tag maken" style="box-sizing:border-box; min-width:0; flex:1; padding:8px; border:1px solid var(--egd-rand); border-radius:4px; background:var(--egd-modal); color:var(--egd-tekst); font:inherit; font-size:13px;">
+                                <button id="egodact-tag-aanmaken" type="button" style="padding:8px 10px; border:1px solid var(--egd-rand); border-radius:4px; background:transparent; color:var(--egd-tekst); cursor:pointer;">Tag maken</button>
+                            </div>
+                            <div style="margin-top:5px; font-size:11px; color:var(--egd-tekst-zacht);">Selecteer één of meer bestaande tags, of maak een nieuwe.</div>
+                        </div>
                         <div style="display:flex; justify-content:flex-end; gap:8px;">
                             <button id="egodact-idee-annuleren" type="button" style="display:none; padding:8px 12px; border:1px solid var(--egd-rand); border-radius:4px; background:transparent; color:var(--egd-tekst); cursor:pointer;">Annuleren</button>
                             <button id="egodact-idee-opslaan" type="submit" style="padding:8px 12px; border:none; border-radius:4px; background:var(--egd-accent); color:var(--egd-accent-tekst); font-weight:bold; cursor:pointer;">Idee toevoegen</button>
@@ -333,6 +342,7 @@ function openSMARTMenu(e) {
 
     function initialiseerIdeeenbusPagina() {
         const KEY = 'egodact_ideeenbus_v1';
+        const TAG_KEY = 'egodact_ideeenbus_tags_v1';
         const form = modalBody.querySelector('#egodact-ideeenbus-form');
         const titelVeld = modalBody.querySelector('#egodact-idee-titel');
         const beschrijvingVeld = modalBody.querySelector('#egodact-idee-beschrijving');
@@ -340,9 +350,13 @@ function openSMARTMenu(e) {
         const annulerenKnop = modalBody.querySelector('#egodact-idee-annuleren');
         const lijst = modalBody.querySelector('#egodact-ideeen-lijst');
         const aantal = modalBody.querySelector('#egodact-idee-aantal');
-        if (!form || !titelVeld || !beschrijvingVeld || !lijst || !aantal) return;
+        const tagsContainer = modalBody.querySelector('#egodact-idee-tags');
+        const nieuweTagVeld = modalBody.querySelector('#egodact-nieuwe-tag');
+        const tagAanmakenKnop = modalBody.querySelector('#egodact-tag-aanmaken');
+        if (!form || !titelVeld || !beschrijvingVeld || !lijst || !aantal || !tagsContainer || !nieuweTagVeld || !tagAanmakenKnop) return;
 
         let ideeën = [];
+        let tags = [];
         let bewerkId = null;
 
         function laadIdeeën() {
@@ -352,10 +366,20 @@ function openSMARTMenu(e) {
                     item && typeof item.id === 'string' &&
                     typeof item.titel === 'string' &&
                     typeof item.beschrijving === 'string'
-                ) : [];
+                ).map(item => ({ ...item, tags: Array.isArray(item.tags) ? item.tags.filter(tag => typeof tag === 'string') : [] })) : [];
             } catch (err) {
                 ideeën = [];
             }
+            try {
+                const data = JSON.parse(localStorage.getItem(TAG_KEY) || '[]');
+                tags = Array.isArray(data) ? [...new Set(data.filter(tag => typeof tag === 'string').map(tag => tag.trim()).filter(Boolean))] : [];
+            } catch (err) {
+                tags = [];
+            }
+            // Herstel tags die al aan ideeën gekoppeld zijn, ook als de taglijst ontbreekt.
+            ideeën.forEach(idee => idee.tags.forEach(tag => {
+                if (!tags.includes(tag)) tags.push(tag);
+            }));
         }
 
         function bewaarIdeeën() {
@@ -364,6 +388,16 @@ function openSMARTMenu(e) {
                 return true;
             } catch (err) {
                 window.alert('Je ideeën konden niet lokaal worden opgeslagen. Controleer de browseropslag.');
+                return false;
+            }
+        }
+
+        function bewaarTags() {
+            try {
+                localStorage.setItem(TAG_KEY, JSON.stringify(tags));
+                return true;
+            } catch (err) {
+                window.alert('Je tags konden niet lokaal worden opgeslagen. Controleer de browseropslag.');
                 return false;
             }
         }
@@ -385,9 +419,38 @@ function openSMARTMenu(e) {
             return knop;
         }
 
+        function geselecteerdeTags() {
+            return [...tagsContainer.querySelectorAll('input[type="checkbox"]:checked')].map(input => input.value);
+        }
+
+        function renderTagKeuzes(geselecteerd = []) {
+            tagsContainer.replaceChildren();
+            if (!tags.length) {
+                const hint = document.createElement('span');
+                hint.textContent = 'Nog geen tags aangemaakt.';
+                hint.style.cssText = 'font-size:12px; color:var(--egd-tekst-zacht);';
+                tagsContainer.appendChild(hint);
+                return;
+            }
+            tags.forEach(tag => {
+                const label = document.createElement('label');
+                label.style.cssText = 'display:inline-flex; align-items:center; gap:5px; padding:5px 8px; border:1px solid var(--egd-rand); border-radius:4px; font-size:12px; cursor:pointer;';
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = tag;
+                checkbox.checked = geselecteerd.includes(tag);
+                checkbox.style.margin = '0';
+                const tekst = document.createElement('span');
+                tekst.textContent = tag;
+                label.append(checkbox, tekst);
+                tagsContainer.appendChild(label);
+            });
+        }
+
         function resetFormulier() {
             bewerkId = null;
             form.reset();
+            renderTagKeuzes();
             opslaanKnop.textContent = 'Idee toevoegen';
             annulerenKnop.style.display = 'none';
         }
@@ -439,6 +502,15 @@ function openSMARTMenu(e) {
                     overflowWrap: 'anywhere'
                 });
 
+                const kaartTags = document.createElement('div');
+                Object.assign(kaartTags.style, { display: 'flex', flexWrap: 'wrap', gap: '5px' });
+                idee.tags.forEach(tag => {
+                    const chip = document.createElement('span');
+                    chip.textContent = tag;
+                    chip.style.cssText = 'padding:3px 7px; border-radius:10px; background:var(--egd-modal); border:1px solid var(--egd-rand); color:var(--egd-tekst-zacht); font-size:11px;';
+                    kaartTags.appendChild(chip);
+                });
+
                 const acties = document.createElement('div');
                 Object.assign(acties.style, { display: 'flex', justifyContent: 'flex-end', gap: '7px', flexWrap: 'wrap' });
 
@@ -446,6 +518,7 @@ function openSMARTMenu(e) {
                     bewerkId = idee.id;
                     titelVeld.value = idee.titel;
                     beschrijvingVeld.value = idee.beschrijving;
+                    renderTagKeuzes(idee.tags);
                     opslaanKnop.textContent = 'Wijzigingen opslaan';
                     annulerenKnop.style.display = '';
                     titelVeld.focus();
@@ -464,10 +537,41 @@ function openSMARTMenu(e) {
                     render();
                 }));
 
-                kaart.append(kaartTitel, kaartBeschrijving, acties);
+                kaart.append(kaartTitel, kaartBeschrijving);
+                if (idee.tags.length) kaart.appendChild(kaartTags);
+                kaart.appendChild(acties);
                 lijst.appendChild(kaart);
             });
         }
+
+        tagAanmakenKnop.addEventListener('click', () => {
+            const tag = nieuweTagVeld.value.trim();
+            if (!tag) {
+                nieuweTagVeld.focus();
+                return;
+            }
+            const bestaand = tags.find(item => item.toLocaleLowerCase() === tag.toLocaleLowerCase());
+            if (bestaand) {
+                window.alert('Deze tag bestaat al.');
+                nieuweTagVeld.value = '';
+                return;
+            }
+            tags.push(tag);
+            if (!bewaarTags()) {
+                tags.pop();
+                return;
+            }
+            const gekozen = geselecteerdeTags();
+            renderTagKeuzes([...gekozen, tag]);
+            nieuweTagVeld.value = '';
+            nieuweTagVeld.focus();
+        });
+        nieuweTagVeld.addEventListener('keydown', event => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                tagAanmakenKnop.click();
+            }
+        });
 
         annulerenKnop.addEventListener('click', resetFormulier);
         form.addEventListener('submit', event => {
@@ -477,16 +581,17 @@ function openSMARTMenu(e) {
             if (!titel || !beschrijving) return;
 
             const oud = ideeën;
+            const gekozenTags = geselecteerdeTags();
             if (bewerkId) {
                 ideeën = ideeën.map(idee => idee.id === bewerkId
-                    ? { ...idee, titel, beschrijving, bijgewerkt: Date.now() }
+                    ? { ...idee, titel, beschrijving, tags: gekozenTags, bijgewerkt: Date.now() }
                     : idee
                 );
             } else {
                 const id = (typeof crypto !== 'undefined' && crypto.randomUUID)
                     ? crypto.randomUUID()
                     : String(Date.now()) + '-' + Math.random().toString(36).slice(2);
-                ideeën = [{ id, titel, beschrijving, aangemaakt: Date.now() }, ...ideeën];
+                ideeën = [{ id, titel, beschrijving, tags: gekozenTags, aangemaakt: Date.now() }, ...ideeën];
             }
 
             if (!bewaarIdeeën()) {
@@ -499,6 +604,7 @@ function openSMARTMenu(e) {
         });
 
         laadIdeeën();
+        renderTagKeuzes();
         render();
     }
 
