@@ -21,7 +21,6 @@
         "src/challenges.js",
         "src/tasks.js",
         "src/weekplanning.js",
-        "src/menus/ideeenbus.js",
         "src/buttons.js",
         "src/main.js"
       ]
