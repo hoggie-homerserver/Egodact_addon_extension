@@ -10,6 +10,7 @@
       ],
       "js": [
         "src/config.js",
+        "src/security.js",
         "src/theme.js",
         "src/menus/smart-menu.js",
         "src/menus/beta-menu.js",

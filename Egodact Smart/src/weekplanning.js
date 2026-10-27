@@ -2,10 +2,18 @@
 // WEEKPLANNING MENU
 // ============================================================
 
-function openWeekplanning(e) {
+async function openWeekplanning(e) {
 
     e.preventDefault();
     e.stopPropagation();
+
+    let opslag;
+    try {
+        opslag = await egodactOpenPersoonlijkeOpslag();
+    } catch (error) {
+        alert(error.message);
+        return;
+    }
 
     if (
         document.getElementById(
@@ -73,15 +81,15 @@ function openWeekplanning(e) {
         try {
 
             const opgeslagen =
-                localStorage.getItem(
+                opslag.getItem(
                     weekStorageKey()
                 );
 
             if (!opgeslagen) {
-                const standaardWeek = localStorage.getItem("egodact_weekplanning_template");
+                const standaardWeek = opslag.getItem("egodact_weekplanning_template");
                 if (standaardWeek) {
                     try {
-                        const template = JSON.parse(standaardWeek);
+                        const template = egodactNormaliseerWeek(JSON.parse(standaardWeek));
                         if (Array.isArray(template) && template.length) {
                             const kopie = template.map(blok => ({
                                 ...blok,
@@ -89,7 +97,7 @@ function openWeekplanning(e) {
                                     ? crypto.randomUUID()
                                     : `weekblok-${Date.now()}-${Math.random().toString(16).slice(2)}`
                             }));
-                            localStorage.setItem(weekStorageKey(), JSON.stringify(kopie));
+                            opslag.setItem(weekStorageKey(), JSON.stringify(kopie));
                             return kopie;
                         }
                     } catch (error) {
@@ -102,9 +110,7 @@ function openWeekplanning(e) {
             const data =
                 JSON.parse(opgeslagen);
 
-            return Array.isArray(data)
-                ? data
-                : [];
+            return egodactNormaliseerWeek(data);
 
         } catch (error) {
 
@@ -119,10 +125,28 @@ function openWeekplanning(e) {
 
     function slaWeekOp(data) {
 
-        localStorage.setItem(
+        opslag.setItem(
             weekStorageKey(),
-            JSON.stringify(data)
+            JSON.stringify(egodactNormaliseerWeek(data))
         );
+    }
+
+    // Behoud de opgeslagen week als het vervangen of tekenen mislukt.
+    function vervangWeek(data) {
+        const genormaliseerd = egodactNormaliseerWeek(data);
+        const key = weekStorageKey();
+        const vorig = opslag.getItem(key);
+        try {
+            opslag.setItem(key, JSON.stringify(genormaliseerd));
+            renderWeek();
+        } catch (error) {
+            if (opslag.actief()) {
+                if (vorig === null) opslag.removeItem(key);
+                else opslag.setItem(key, vorig);
+                renderWeek();
+            }
+            throw error;
+        }
     }
 
     let weekData =
@@ -530,6 +554,7 @@ function openWeekplanning(e) {
 
             <input
                 id="egodact-blok-naam"
+                maxlength="1000"
                 type="text"
                 placeholder="Bijvoorbeeld: Duits leren"
                 value="${escapeHTML(
@@ -559,6 +584,7 @@ function openWeekplanning(e) {
 
             <textarea
                 id="egodact-blok-beschrijving"
+                maxlength="20000"
                 placeholder="Wat moet je doen?"
                 rows="4"
                 style="
@@ -956,13 +982,9 @@ function openWeekplanning(e) {
         // KLEUR
         // ====================================================
 
-        let gekozenKleur =
-            isBewerken
-                ? bestaandBlok.kleur || null
-                : (
-                    gekoppeldeChallenge &&
-                    gekoppeldeChallenge.kleur
-                ) || null;
+        let gekozenKleur = egodactVeiligeKleur(
+            isBewerken ? bestaandBlok.kleur : gekoppeldeChallenge && gekoppeldeChallenge.kleur
+        );
 
         const knoppenRij =
             editor.lastElementChild;
@@ -1218,7 +1240,7 @@ function openWeekplanning(e) {
                 try {
                     const kopie = { ...bestaandBlok };
                     delete kopie.id;
-                    localStorage.setItem(weekBlokClipboardKey, JSON.stringify(kopie));
+                    opslag.setItem(weekBlokClipboardKey, JSON.stringify(kopie));
                     kopieerBlokKnop.textContent = "✓";
                     kopieerBlokKnop.title = "Blok gekopieerd";
                     setTimeout(() => {
@@ -1237,7 +1259,7 @@ function openWeekplanning(e) {
         const plakBlokKnop = document.getElementById("egodact-blok-plak-gekopieerd");
         if (plakBlokKnop && !isBewerken) {
             plakBlokKnop.addEventListener("click", () => {
-                const opgeslagen = localStorage.getItem(weekBlokClipboardKey);
+                const opgeslagen = opslag.getItem(weekBlokClipboardKey);
                 if (!opgeslagen) {
                     alert("Er is nog geen blok gekopieerd. Open eerst een bestaand blok en klik op het kopieericoon.");
                     return;
@@ -1245,10 +1267,7 @@ function openWeekplanning(e) {
 
                 let kopie;
                 try {
-                    kopie = JSON.parse(opgeslagen);
-                    if (!kopie || typeof kopie !== "object" || Array.isArray(kopie)) {
-                        throw new Error("Ongeldige blokgegevens");
-                    }
+                    kopie = egodactNormaliseerWeekBlok(JSON.parse(opgeslagen));
                 } catch (error) {
                     alert("Het gekopieerde blok is ongeldig of beschadigd.");
                     return;
@@ -1691,7 +1710,7 @@ function openWeekplanning(e) {
             openChallengeId === c.id;
 
         const achtergrond =
-            c.kleur || "#1976d2";
+            egodactVeiligeKleur(c.kleur) || "#1976d2";
 
         const lichteTekst =
             !c.kleur ||
@@ -2003,7 +2022,7 @@ function openWeekplanning(e) {
             true;
 
         const achtergrond =
-            kleur || "#1976d2";
+            egodactVeiligeKleur(kleur) || "#1976d2";
 
         Object.assign(
             item.style,
@@ -3206,7 +3225,7 @@ function openWeekplanning(e) {
                 const layout = blokLayout.get(String(blok.id)) || { baan: 0, aantalBanen: 1 };
                 const baanBreedte = 100 / layout.aantalBanen;
                 const blokKleur =
-                    blok.kleur ||
+                    egodactVeiligeKleur(blok.kleur) ||
                     EGODACT_STANDAARD_BLOKKLEUR;
 
                 const lichteTekst =
@@ -3880,7 +3899,7 @@ function openWeekplanning(e) {
                 delete kopie.challengeId;
                 return kopie;
             });
-            localStorage.setItem("egodact_weekplanning_template", JSON.stringify(template));
+            opslag.setItem("egodact_weekplanning_template", JSON.stringify(template));
             alert("Deze week is opgeslagen als jouw standaard week. Nieuwe lege weken krijgen deze planning automatisch.");
         } catch (error) {
             console.error("Fout bij opslaan van standaard weekplanning:", error);
@@ -3988,7 +4007,7 @@ function openWeekplanning(e) {
 
     weekKopieerKnop.addEventListener("click", () => {
         try {
-            localStorage.setItem(weekClipboardKey, JSON.stringify(weekData));
+            opslag.setItem(weekClipboardKey, JSON.stringify(weekData));
             alert(`Week gekopieerd (${weekData.length} blokken). Ga naar een andere week en klik op "Plak week".`);
         } catch (error) {
             console.error("Fout bij kopiëren weekplanning:", error);
@@ -3997,26 +4016,25 @@ function openWeekplanning(e) {
     });
 
     weekPlakKnop.addEventListener("click", () => {
-        const opgeslagen = localStorage.getItem(weekClipboardKey);
+        const opgeslagen = opslag.getItem(weekClipboardKey);
         if (!opgeslagen) {
             alert("Er is nog geen week gekopieerd.");
             return;
         }
         let kopie;
         try {
-            kopie = JSON.parse(opgeslagen);
-            if (!Array.isArray(kopie) || !kopie.every(blok => blok && typeof blok === "object")) {
-                throw new Error("Ongeldige weekgegevens");
-            }
+            kopie = egodactNormaliseerWeek(JSON.parse(opgeslagen));
         } catch (error) {
             alert("De gekopieerde week is ongeldig of beschadigd.");
             return;
         }
         if (!confirm("De huidige week vervangen door de gekopieerde week?")) return;
-        weekData = kopie.map(maakNieuwWeekBlok);
-        slaWeekOp(weekData);
-        renderWeek();
-        alert("De gekopieerde week is geplakt.");
+        try {
+            vervangWeek(kopie.map(maakNieuwWeekBlok));
+            alert("De gekopieerde week is geplakt.");
+        } catch (error) {
+            alert("De gekopieerde week kon niet worden geplakt.");
+        }
     });
 
     weekExportKnop.addEventListener("click", () => {
@@ -4030,16 +4048,15 @@ function openWeekplanning(e) {
         const bestand = event.target.files && event.target.files[0];
         event.target.value = "";
         if (!bestand) return;
+        const doelWeek = weekStorageKey();
         try {
+            if (bestand.size > EGODACT_MAX_IMPORT_BYTES) throw new Error("Het bestand is te groot.");
             const inhoud = JSON.parse(await bestand.text());
+            if (!opslag.actief() || doelWeek !== weekStorageKey()) throw new Error("De login, school of week is gewijzigd.");
             const gegevens = Array.isArray(inhoud) ? inhoud : inhoud && inhoud.format === "egodact-weekplanning" ? inhoud.data : null;
-            if (!Array.isArray(gegevens) || !gegevens.every(blok => blok && typeof blok === "object" && !Array.isArray(blok))) {
-                throw new Error("Dit is geen geldig weekplanningbestand.");
-            }
+            const genormaliseerd = egodactNormaliseerWeek(gegevens);
             if (!confirm(`Importeer ${gegevens.length} blokken naar de week ${datumKey(weekStart)} t/m ${(() => { const e = new Date(weekStart); e.setDate(e.getDate()+6); return datumKey(e); })()}? De huidige week wordt vervangen.`)) return;
-            weekData = gegevens.map(maakNieuwWeekBlok);
-            slaWeekOp(weekData);
-            renderWeek();
+            vervangWeek(genormaliseerd.map(maakNieuwWeekBlok));
             alert("Weekplanning geïmporteerd.");
         } catch (error) {
             console.error("Fout bij importeren weekplanning:", error);
@@ -4051,11 +4068,14 @@ function openWeekplanning(e) {
     // START
     // ========================================================
 
+    egodactBewaakSessie(opslag, backdrop, sluitMenu);
     renderWeek();
 
     egodactLaadChallenges()
         .then(
             lijst => {
+
+                if (gesloten || !opslag.actief()) return;
 
                 challengeLijst =
                     lijst;
@@ -4074,7 +4094,7 @@ function openWeekplanning(e) {
                     setTimeout(
                         () => {
 
-                            if (gesloten) {
+                            if (gesloten || !opslag.actief()) {
                                 return;
                             }
 
@@ -4089,6 +4109,8 @@ function openWeekplanning(e) {
         )
         .catch(
             fout => {
+
+                if (gesloten || !opslag.actief()) return;
 
                 console.error(
                     "Challenges laden mislukt:",

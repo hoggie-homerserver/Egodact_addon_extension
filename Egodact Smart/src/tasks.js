@@ -2,9 +2,17 @@
 // FLEXIBELE DAGPLANNER MET TEMPLATE-SYSTEM & HISTORIE
 // ============================================================
 
-function openTakenMenu(e) {
+async function openTakenMenu(e) {
     e.preventDefault();
     e.stopPropagation();
+
+    let opslag;
+    try {
+        opslag = await egodactOpenPersoonlijkeOpslag();
+    } catch (error) {
+        alert(error.message);
+        return;
+    }
 
     if (document.getElementById("egodact-custom-modal-backdrop")) return;
 
@@ -184,14 +192,14 @@ function openTakenMenu(e) {
         container.innerHTML = "";
 
         let dagData =
-            localStorage.getItem(
+            opslag.getItem(
                 `egodact_flex_planner_${datum}`
             );
 
         if (!dagData) {
 
             const standaardTemplate =
-                localStorage.getItem(
+                opslag.getItem(
                     "egodact_planner_template"
                 );
 
@@ -218,7 +226,7 @@ function openTakenMenu(e) {
                             })
                         );
 
-                    localStorage.setItem(
+                    opslag.setItem(
                         `egodact_flex_planner_${datum}`,
                         JSON.stringify(
                             gekopieerdeTaken
@@ -412,7 +420,7 @@ function openTakenMenu(e) {
                             }
                         }
 
-                        localStorage.setItem(
+                        opslag.setItem(
                             `egodact_flex_planner_${datum}`,
                             JSON.stringify(
                                 actueleLijst
@@ -517,7 +525,7 @@ function openTakenMenu(e) {
             () => {
 
                 const huidigeData =
-                    localStorage.getItem(
+                    opslag.getItem(
                         `egodact_flex_planner_${geselecteerdeDatum}`
                     );
 
@@ -552,7 +560,7 @@ function openTakenMenu(e) {
                     gedaan: false
                 });
 
-                localStorage.setItem(
+                opslag.setItem(
                     `egodact_flex_planner_${geselecteerdeDatum}`,
                     JSON.stringify(lijst)
                 );
@@ -572,7 +580,7 @@ function openTakenMenu(e) {
             () => {
 
                 const huidigeDagData =
-                    localStorage.getItem(
+                    opslag.getItem(
                         `egodact_flex_planner_${geselecteerdeDatum}`
                     );
 
@@ -618,7 +626,7 @@ function openTakenMenu(e) {
                             })
                         );
 
-                    localStorage.setItem(
+                    opslag.setItem(
                         "egodact_planner_template",
                         JSON.stringify(
                             template
@@ -656,7 +664,7 @@ function openTakenMenu(e) {
 
     function leesDagData(datum) {
         try {
-            const data = JSON.parse(localStorage.getItem(`egodact_flex_planner_${datum}`) || "[]");
+            const data = JSON.parse(opslag.getItem(`egodact_flex_planner_${datum}`) || "[]");
             return Array.isArray(data) ? data : [];
         } catch (_) {
             return [];
@@ -689,7 +697,7 @@ function openTakenMenu(e) {
 
     dagKopieerKnop.addEventListener("click", () => {
         try {
-            localStorage.setItem(dagClipboardKey, JSON.stringify(leesDagData(geselecteerdeDatum)));
+            opslag.setItem(dagClipboardKey, JSON.stringify(leesDagData(geselecteerdeDatum)));
             alert(`Dagplanning van ${geselecteerdeDatum} gekopieerd. Kies een andere datum en klik op "Plak dag".`);
         } catch (error) {
             console.error("Fout bij kopiëren dagplanning:", error);
@@ -698,7 +706,7 @@ function openTakenMenu(e) {
     });
 
     dagPlakKnop.addEventListener("click", () => {
-        const opgeslagen = localStorage.getItem(dagClipboardKey);
+        const opgeslagen = opslag.getItem(dagClipboardKey);
         if (!opgeslagen) {
             alert("Er is nog geen dagplanning gekopieerd.");
             return;
@@ -706,7 +714,7 @@ function openTakenMenu(e) {
         try {
             const gegevens = normaliseerDagData(JSON.parse(opgeslagen)).map(item => ({ ...item, gedaan: false }));
             if (!confirm(`De dagplanning van ${geselecteerdeDatum} vervangen door de gekopieerde dag?`)) return;
-            localStorage.setItem(`egodact_flex_planner_${geselecteerdeDatum}`, JSON.stringify(gegevens));
+            opslag.setItem(`egodact_flex_planner_${geselecteerdeDatum}`, JSON.stringify(gegevens));
             renderPlanner(geselecteerdeDatum);
             alert("Dagplanning geplakt. Taken zijn weer niet afgevinkt.");
         } catch (error) {
@@ -731,12 +739,15 @@ function openTakenMenu(e) {
         const bestand = event.target.files && event.target.files[0];
         event.target.value = "";
         if (!bestand) return;
+        const doelDatum = geselecteerdeDatum;
         try {
+            if (bestand.size > EGODACT_MAX_IMPORT_BYTES) throw new Error("Het bestand is te groot.");
             const inhoud = JSON.parse(await bestand.text());
+            if (!opslag.actief() || doelDatum !== geselecteerdeDatum) throw new Error("De login, school of datum is gewijzigd.");
             const gegevens = Array.isArray(inhoud) ? inhoud : inhoud && inhoud.format === "egodact-dagplanning" ? inhoud.data : null;
             const genormaliseerd = normaliseerDagData(gegevens);
             if (!confirm(`Importeer ${genormaliseerd.length} taken naar ${geselecteerdeDatum}? De huidige dagplanning wordt vervangen.`)) return;
-            localStorage.setItem(`egodact_flex_planner_${geselecteerdeDatum}`, JSON.stringify(genormaliseerd));
+            opslag.setItem(`egodact_flex_planner_${geselecteerdeDatum}`, JSON.stringify(genormaliseerd));
             renderPlanner(geselecteerdeDatum);
             alert("Dagplanning geïmporteerd.");
         } catch (error) {
@@ -768,6 +779,7 @@ function openTakenMenu(e) {
 
     const sluitMenu = () => {
         backdrop.remove();
+        document.removeEventListener("keydown", escapeHandler);
     };
 
     document
@@ -811,6 +823,8 @@ function openTakenMenu(e) {
         "keydown",
         escapeHandler
     );
+
+    egodactBewaakSessie(opslag, backdrop, sluitMenu);
 
     renderPlanner(
         geselecteerdeDatum

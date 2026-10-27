@@ -36,7 +36,7 @@ function egodactBouwChallengeLijst(data) {
         .map(c => ({
             id: c.id,
             naam: c.name || 'Naamloze challenge',
-            kleur: c.color || null,
+            kleur: egodactVeiligeKleur(c.color),
             fase: c.phase || 'TODO',
             rij: (rijVan.get(c.id) || {}).naam || '',
             rijIndex: rijVan.has(c.id) ? rijVan.get(c.id).index : 999,
@@ -53,21 +53,20 @@ function egodactBouwChallengeLijst(data) {
 }
 
 async function egodactLaadChallenges() {
-    // Vijf minuten onthouden, zodat het menu snel opent.
+    const sessie = egodactLeesSessie();
+    const { accessToken, school: selectedSchool } = sessie;
+    if (!accessToken) {
+        egodactChallengeCache = null;
+        throw new Error('Geen access token gevonden. Log opnieuw in bij Egodact.');
+    }
+    // Cache hoort bij de exacte login en school, ook bij tokenvernieuwing.
     if (egodactChallengeCache &&
+        egodactChallengeCache.accessToken === accessToken &&
+        egodactChallengeCache.school === selectedSchool &&
         Date.now() - egodactChallengeCache.tijd < 5 * 60 * 1000) {
         return egodactChallengeCache.lijst;
     }
-
-    const ACCESS_TOKEN_KEY = 'pYfkT6ZWcUB98Sla76HppFpk4aYdTAp0_CACHE_0';
-    const accessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-    const selectedSchool = localStorage.getItem('selectedSchool');
-
-    if (!accessToken) {
-        throw new Error(
-            'Geen access token gevonden. Log opnieuw in bij Egodact.'
-        );
-    }
+    egodactChallengeCache = null;
 
     const headers = {
         'Authorization': `Bearer ${accessToken}`,
@@ -89,7 +88,10 @@ async function egodactLaadChallenges() {
     }
 
     const lijst = egodactBouwChallengeLijst(await response.json());
-    egodactChallengeCache = { tijd: Date.now(), lijst };
+    if (!egodactSessieIsActief(sessie)) {
+        throw new Error('Je login of school is gewijzigd. Open de weekplanning opnieuw.');
+    }
+    egodactChallengeCache = { tijd: Date.now(), lijst, accessToken, school: selectedSchool };
 
     return lijst;
 }

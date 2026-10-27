@@ -2,9 +2,17 @@
 // SMART MENU
 // ============================================================
 
-function openSMARTMenu(e) {
+async function openSMARTMenu(e) {
     e.preventDefault();
     e.stopPropagation();
+
+    let opslag;
+    try {
+        opslag = await egodactOpenPersoonlijkeOpslag();
+    } catch (error) {
+        alert(error.message);
+        return;
+    }
 
     if (document.getElementById('egodact-custom-modal-backdrop')) return;
 
@@ -371,7 +379,7 @@ function openSMARTMenu(e) {
 
         function laadIdeeën() {
             try {
-                const data = JSON.parse(localStorage.getItem(KEY) || '[]');
+                const data = JSON.parse(opslag.getItem(KEY) || '[]');
                 ideeën = Array.isArray(data) ? data.filter(item =>
                     item && typeof item.id === 'string' &&
                     typeof item.titel === 'string' &&
@@ -381,7 +389,7 @@ function openSMARTMenu(e) {
                 ideeën = [];
             }
             try {
-                const data = JSON.parse(localStorage.getItem(TAG_KEY) || '[]');
+                const data = JSON.parse(opslag.getItem(TAG_KEY) || '[]');
                 tags = Array.isArray(data) ? [...new Set(data.filter(tag => typeof tag === 'string').map(tag => tag.trim()).filter(Boolean))] : [];
             } catch (err) {
                 tags = [];
@@ -394,7 +402,7 @@ function openSMARTMenu(e) {
 
         function bewaarIdeeën() {
             try {
-                localStorage.setItem(KEY, JSON.stringify(ideeën));
+                opslag.setItem(KEY, JSON.stringify(ideeën));
                 return true;
             } catch (err) {
                 window.alert('Je ideeën konden niet lokaal worden opgeslagen. Controleer de browseropslag.');
@@ -404,7 +412,7 @@ function openSMARTMenu(e) {
 
         function bewaarTags() {
             try {
-                localStorage.setItem(TAG_KEY, JSON.stringify(tags));
+                opslag.setItem(TAG_KEY, JSON.stringify(tags));
                 return true;
             } catch (err) {
                 window.alert('Je tags konden niet lokaal worden opgeslagen. Controleer de browseropslag.');
@@ -679,6 +687,7 @@ function openSMARTMenu(e) {
 
 
     const sluitMenu = () => backdrop.remove();
+    egodactBewaakSessie(opslag, backdrop, sluitMenu);
 
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
