@@ -31,7 +31,15 @@ function openAddonsMenu(e) {
     if (document.getElementById('egodact-custom-modal-backdrop')) return;
 
     const api = window.EgodactAddons;
-    const addons = (api && api._addons) || [];
+    const registeredAddons = (api && api._addons) || [];
+    const knownIds = (api && typeof api.knownAddons === 'function') ? api.knownAddons() : [];
+    const allAddons = registeredAddons.slice();
+    knownIds.forEach(function (id) {
+        if (!allAddons.some(function (a) { return a.id === id; })) {
+            allAddons.push({ id: id, name: id, version: '?', description: '', author: '' });
+        }
+    });
+    const addons = allAddons;
     const menus = (api && api._menus) || [];
     const buttons = (api && api._buttons) || [];
     const games = (api && api._games) || [];
