@@ -307,7 +307,7 @@
         const t = theme();
         const node = el('div', {
             style: {
-                backgroundColor: t.paneel,
+                backgroundColor: opts.background || t.paneel,
                 border: '1px solid ' + t.rand,
                 borderRadius: '8px',
                 padding: opts.padding || '16px',
