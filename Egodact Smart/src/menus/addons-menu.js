@@ -186,28 +186,35 @@ function openAddonsMenu(e) {
                 </div>
                 ${addon.description ? '<div style="font-size:12px; color:var(--egd-tekst-zacht); margin-top:4px;">' + api.escapeHtml(addon.description) + '</div>' : ''}
             `;
-            const toggle = document.createElement('button');
-            toggle.type = 'button';
             const disabled = egodactAddonDisabled(addon.id);
-            toggle.textContent = disabled ? 'Uit' : 'Aan';
-            Object.assign(toggle.style, {
-                padding: '6px 12px',
-                border: '1px solid var(--egd-rand)',
-                borderRadius: '4px',
-                background: disabled ? 'var(--egd-gevaar)' : 'var(--egd-accent)',
-                color: disabled ? '#fff' : 'var(--egd-accent-tekst)',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                fontSize: '12px',
-                minWidth: '48px'
+            const toggleWrap = document.createElement('label');
+            toggleWrap.style.cssText = 'position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;cursor:pointer;';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = !disabled;
+            checkbox.style.cssText = 'opacity:0;width:0;height:0;position:absolute;';
+            const slider = document.createElement('span');
+            Object.assign(slider.style, {
+                position: 'absolute', top: '0', left: '0', right: '0', bottom: '0',
+                backgroundColor: disabled ? 'var(--egd-uit)' : 'var(--egd-accent)',
+                borderRadius: '24px', transition: 'background-color 150ms ease'
             });
-            toggle.addEventListener('click', () => {
+            const knob = document.createElement('span');
+            Object.assign(knob.style, {
+                position: 'absolute', top: '3px', left: disabled ? '3px' : '23px',
+                width: '18px', height: '18px', borderRadius: '50%',
+                backgroundColor: '#fff', transition: 'left 150ms ease',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+            });
+            slider.appendChild(knob);
+            toggleWrap.append(checkbox, slider);
+            toggleWrap.addEventListener('click', function (e) {
+                e.preventDefault();
                 const nuUit = !egodactAddonDisabled(addon.id);
                 egodactSetAddonEnabled(addon.id, !nuUit);
-                // Herlaad om de status toe te passen.
                 window.location.reload();
             });
-            kaartEl.append(info, toggle);
+            kaartEl.append(info, toggleWrap);
             wrap.appendChild(kaartEl);
         });
         body.appendChild(wrap);
