@@ -37,6 +37,7 @@ function egodactRuimExtensieOp() {
         'egodact-beta-features-knop',
         'egodact-tijd-knop',
         'egodact-addons-knop',
+        'egodact-knop-groep',
         'egodact-custom-modal-backdrop',
         'egodact-tijd-melding',
         'egodact-thema-stijl'
@@ -126,6 +127,9 @@ function voegKnoppenToe() {
         document.querySelectorAll('[data-egodact-addon-btn="1"]').forEach(function (el) {
             el.remove();
         });
+
+        const knopGroep = document.getElementById('egodact-knop-groep');
+        if (knopGroep) knopGroep.remove();
 
         return;
     }
@@ -278,15 +282,35 @@ function voegKnoppenToe() {
     // ZOEKKNOP NAAR LINKS
     // ========================================================
 
-    if (zoekKnopElement) {
+    // De zoekknop van de pagina laten we met rust. Onze knoppen komen in
+    // een eigen flexgroep te staan, zodat de koptekst netjes blijft.
 
-        egodactOnthoudenAanpassing(zoekKnopElement);
 
-        zoekKnopElement.style.transform =
-            'translateX(-50px)';
+    // ========================================================
+    // EIGEN KNOPPENGROEP
+    // ========================================================
+    // Alle Egodact-knoppen staan in één flexgroep. Zo verandert de indeling
+    // van de pagina-koptekst niet en kunnen de pictogrammen niet over
+    // elkaar heen vallen.
 
-        zoekKnopElement.style.transition =
-            'transform 0.15s ease';
+    let egodactKnopGroep = document.getElementById('egodact-knop-groep');
+
+    if (!egodactKnopGroep) {
+        egodactKnopGroep = document.createElement('div');
+        egodactKnopGroep.id = 'egodact-knop-groep';
+        Object.assign(egodactKnopGroep.style, {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: '0',
+            height: '32px',
+            margin: '0',
+            padding: '0',
+            flex: '0 0 auto',
+            position: 'relative',
+            zIndex: '999998'
+        });
+        menuContainer.insertBefore(egodactKnopGroep, menuContainer.firstChild);
     }
 
     // ========================================================
@@ -393,10 +417,7 @@ function voegKnoppenToe() {
             openSMARTMenu
         );
 
-        menuContainer.insertBefore(
-            infoKnop,
-            menuContainer.firstChild
-        );
+        egodactKnopGroep.appendChild(infoKnop);
     }
 
     // ========================================================
@@ -457,7 +478,7 @@ function voegKnoppenToe() {
         if (infoKnopVoorBeta) {
             infoKnopVoorBeta.insertAdjacentElement('afterend', betaKnop);
         } else {
-            menuContainer.insertBefore(betaKnop, menuContainer.firstChild);
+            egodactKnopGroep.appendChild(betaKnop);
         }
     }
 
@@ -520,7 +541,7 @@ function voegKnoppenToe() {
         if (infoKnopVoorTijd) {
             infoKnopVoorTijd.insertAdjacentElement('afterend', tijdKnop);
         } else {
-            menuContainer.insertBefore(tijdKnop, menuContainer.firstChild);
+            egodactKnopGroep.appendChild(tijdKnop);
         }
     }
 
@@ -631,10 +652,7 @@ function voegKnoppenToe() {
 
         } else {
 
-            menuContainer.insertBefore(
-                takenKnop,
-                menuContainer.firstChild
-            );
+            egodactKnopGroep.appendChild(takenKnop);
         }
     }
 
@@ -770,10 +788,7 @@ function voegKnoppenToe() {
 
         } else {
 
-            menuContainer.insertBefore(
-                weekplanningKnop,
-                menuContainer.firstChild
-            );
+            egodactKnopGroep.appendChild(weekplanningKnop);
         }
     }
 
@@ -819,7 +834,7 @@ function voegKnoppenToe() {
         if (infoKnopVoorAddons) {
             infoKnopVoorAddons.insertAdjacentElement('afterend', addonsKnop);
         } else {
-            menuContainer.insertBefore(addonsKnop, menuContainer.firstChild);
+            egodactKnopGroep.appendChild(addonsKnop);
         }
     }
 
@@ -1017,7 +1032,7 @@ function voegKnoppenToe() {
                     } else if (anker && anker.parentNode) {
                         anker.insertAdjacentElement('afterend', knop);
                     } else if (menuContainer) {
-                        menuContainer.insertBefore(knop, menuContainer.firstChild);
+                        egodactKnopGroep.appendChild(knop);
                     }
                 }
             });
