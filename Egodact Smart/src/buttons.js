@@ -58,6 +58,18 @@ function egodactRuimExtensieOp() {
     egodactHerstelPagina();
 }
 
+function apiHasDisabledButtonInDom() {
+    try {
+        const api = window.EgodactAddons;
+        if (!api || !Array.isArray(api._buttons)) return false;
+        return api._buttons.some(function (entry) {
+            if (!entry || !entry.id || !egodactButtonDisabled(entry.key)) return false;
+            const btnId = 'egodact-addon-btn-' + String(entry.id).replace(/[^a-z0-9_-]/gi, '-');
+            return !!document.getElementById(btnId);
+        });
+    } catch (err) { return false; }
+}
+
 function voegKnoppenToe() {
 
     // Na het uitschakelen van de extensie niets meer opbouwen.
@@ -195,7 +207,8 @@ function voegKnoppenToe() {
         (bestaandeBetaFeatures || !EGODACT_BETA_ZICHTBAAR) &&
         (bestaandeTijd || !EGODACT_TIJD_ZICHTBAAR) &&
         (bestaandeAddons || !addonsZichtbaar) &&
-        addonButtonsComplete
+        addonButtonsComplete &&
+        !apiHasDisabledButtonInDom()
     ) {
         return;
     }
@@ -846,6 +859,14 @@ function voegKnoppenToe() {
     try {
         const api = window.EgodactAddons;
         if (api && Array.isArray(api._buttons)) {
+            // Verwijder knoppen die inmiddels zijn uitgeschakeld.
+            api._buttons.forEach(function (entry) {
+                if (!entry || !entry.id) return;
+                if (!egodactButtonDisabled(entry.key)) return;
+                const btnId = 'egodact-addon-btn-' + String(entry.id).replace(/[^a-z0-9_-]/gi, '-');
+                const el = document.getElementById(btnId);
+                if (el && el.parentNode) el.parentNode.removeChild(el);
+            });
             api._buttons.forEach(function (entry) {
                 if (!entry || !entry.id) return;
                 if (egodactButtonDisabled(entry.key)) return;

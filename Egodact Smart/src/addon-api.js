@@ -337,6 +337,10 @@ function egodactSetButtonEnabled(id, enabled) {
                         }));
                     }
                 });
+            } else if (detail.type === 'button-toggle') {
+                const btnKey = (meta.addonId || '') + ':' + (meta.id || '');
+                egodactSetButtonEnabled(btnKey, meta.enabled !== false);
+                if (typeof voegKnoppenToe === 'function') { try { voegKnoppenToe(); } catch (e) {} }
             } else if (detail.type === 'game') {
                 EgodactAddons.registerGame({
                     addonId: meta.addonId || null,
