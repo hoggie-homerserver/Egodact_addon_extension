@@ -102,11 +102,13 @@ function voegKnoppenToe() {
             'egodact-addons-knop'
         );
 
+    const knownAddonsList = (window.EgodactAddons && typeof window.EgodactAddons.knownAddons === 'function') ? window.EgodactAddons.knownAddons() : [];
     const addonsZichtbaar =
-        !!(
-            window.EgodactAddons &&
+        !!( 
+            (window.EgodactAddons &&
             typeof window.EgodactAddons.hasContent === 'function' &&
-            window.EgodactAddons.hasContent()
+            window.EgodactAddons.hasContent()) ||
+            (knownAddonsList && knownAddonsList.length)
         );
 
     if (

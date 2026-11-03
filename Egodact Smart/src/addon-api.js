@@ -1,3 +1,20 @@
+function egodactKnownAddons() {
+    try {
+        const raw = localStorage.getItem('egodact_known_addons');
+        const list = raw ? JSON.parse(raw) : [];
+        return Array.isArray(list) ? list : [];
+    } catch (err) { return []; }
+}
+function egodactRememberAddon(id) {
+    try {
+        const list = egodactKnownAddons();
+        if (list.indexOf(id) === -1) {
+            list.push(id);
+            localStorage.setItem('egodact_known_addons', JSON.stringify(list));
+        }
+    } catch (err) {}
+}
+
 // ============================================================
 // EGODACT ADDON API
 // ============================================================
@@ -240,6 +257,10 @@ function egodactAddonDisabled(id) {
         // ------------------------------------------------------------
         // Interne hulp voor core (knoppen/menu's)
         // ------------------------------------------------------------
+        knownAddons() {
+            return egodactKnownAddons();
+        },
+
         hasContent() {
             return this._addons.length > 0 || this._menus.length > 0 ||
                 this._buttons.length > 0 || this._games.length > 0;
@@ -262,6 +283,7 @@ function egodactAddonDisabled(id) {
         const detail = (event && event.detail) || {};
         const meta = detail.meta || {};
         const guardId = (detail.type == 'addon') ? meta.id : (meta.addonId || meta.id);
+        if (detail.type == 'addon' && meta.id) egodactRememberAddon(meta.id);
         if (guardId && egodactAddonDisabled(guardId)) return;
         try {
             if (detail.type === 'addon') {
