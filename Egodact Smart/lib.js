@@ -395,17 +395,21 @@
 
     game.createCanvas = function (parent, width, height, opts) {
         opts = opts || {};
-        const canvas = el('canvas', { width: width, height: height });
+        const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) ? window.devicePixelRatio : 1;
+        const canvas = el('canvas', { width: width * dpr, height: height * dpr });
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
         Object.assign(canvas.style, {
             display: 'block',
             background: opts.background || '#000',
             border: '1px solid ' + theme().rand,
             borderRadius: (opts.radius || 4) + 'px',
-            imageRendering: 'pixelated'
+            imageRendering: 'auto'
         });
         const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         if (parent) parent.appendChild(canvas);
-        return { canvas: canvas, ctx: ctx, width: width, height: height };
+        return { canvas: canvas, ctx: ctx, width: width, height: height, dpr: dpr };
     };
 
     game.input = function () {
