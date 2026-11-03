@@ -359,6 +359,14 @@
                 const container = (modal && modal.lastElementChild) ? modal.lastElementChild : backdrop;
                 container.appendChild(body);
             }
+            // Optional overrides for the modal panel.
+            if (opts && (opts.background || opts.width)) {
+                const modalEl = backdrop.firstChild;
+                if (modalEl) {
+                    if (opts.background) modalEl.style.backgroundColor = opts.background;
+                    if (opts.width) modalEl.style.width = opts.width;
+                }
+            }
             return backdrop;
         }
         // Fallback: build our own modal.
