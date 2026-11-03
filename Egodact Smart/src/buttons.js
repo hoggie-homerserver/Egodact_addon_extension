@@ -65,6 +65,10 @@ function voegKnoppenToe() {
             bestaandeWeekplanning.remove();
         }
 
+        document.querySelectorAll('[data-egodact-addon-btn="1"]').forEach(function (el) {
+            el.remove();
+        });
+
         return;
     }
 
@@ -111,13 +115,23 @@ function voegKnoppenToe() {
             (knownAddonsList && knownAddonsList.length)
         );
 
+    const addonEntries = (window.EgodactAddons && Array.isArray(window.EgodactAddons._buttons))
+        ? window.EgodactAddons._buttons
+        : [];
+    const addonButtonsComplete = addonEntries.every(function (entry) {
+        if (!entry || !entry.id) return true;
+        const addonBtnId = 'egodact-addon-btn-' + String(entry.id).replace(/[^a-z0-9_-]/gi, '-');
+        return !!document.getElementById(addonBtnId);
+    });
+
     if (
         bestaandeInfo &&
         bestaandeTaken &&
         bestaandeWeekplanning &&
         (bestaandeBetaFeatures || !EGODACT_BETA_ZICHTBAAR) &&
         (bestaandeTijd || !EGODACT_TIJD_ZICHTBAAR) &&
-        (bestaandeAddons || !addonsZichtbaar)
+        (bestaandeAddons || !addonsZichtbaar) &&
+        addonButtonsComplete
     ) {
         return;
     }
@@ -750,56 +764,207 @@ function voegKnoppenToe() {
     }
 
     // ========================================================
-    // ADDON HEADER-KNOPPEN
+    // ADDON KNOPPEN (header of zwevend)
     // ========================================================
     try {
         const api = window.EgodactAddons;
         if (api && Array.isArray(api._buttons)) {
             api._buttons.forEach(function (entry) {
                 if (!entry || !entry.id) return;
-                const btnId = 'egodact-addon-btn-' + String(entry.id).replace(/[^a-z0-9_-]/gi, '-');
+
+                const veiligeId = String(entry.id).replace(/[^a-z0-9_-]/gi, '-');
+                const btnId = 'egodact-addon-btn-' + veiligeId;
                 if (document.getElementById(btnId)) return;
+
+                const positie = entry.position;
+                const isFloating =
+                    positie === 'floating' ||
+                    (positie && typeof positie === 'object') ||
+                    typeof entry.x === 'number' ||
+                    typeof entry.y === 'number';
+
                 const knop = document.createElement('button');
                 knop.id = btnId;
                 knop.type = 'button';
                 knop.title = entry.title || 'Addon';
-                Object.assign(knop.style, {
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '0',
-                    margin: '0 8px 0 0',
-                    width: '28px',
-                    minWidth: '28px',
-                    height: '32px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    verticalAlign: 'middle',
-                    outline: 'none',
-                    position: 'relative',
-                    zIndex: '999999',
-                    flexShrink: '0',
-                    color: 'var(--egd-header-icoon)'
-                });
+                knop.setAttribute('data-egodact-addon-btn', '1');
+
+                let verplaatst = false;
+
+                if (isFloating) {
+                    let startX = 24;
+                    let startY = 120;
+
+                    if (positie && typeof positie === 'object') {
+                        if (typeof positie.x === 'number') startX = positie.x;
+                        if (typeof positie.y === 'number') startY = positie.y;
+                    }
+                    if (typeof entry.x === 'number') startX = entry.x;
+                    if (typeof entry.y === 'number') startY = entry.y;
+
+                    try {
+                        const opgeslagen = localStorage.getItem('egodact_addon_btn_pos_' + entry.id);
+                        if (opgeslagen) {
+                            const pos = JSON.parse(opgeslagen);
+                            if (pos && typeof pos.x === 'number' && typeof pos.y === 'number') {
+                                startX = pos.x;
+                                startY = pos.y;
+                            }
+                        }
+                    } catch (err) {}
+
+                    startX = Math.min(Math.max(0, startX), Math.max(0, window.innerWidth - 40));
+                    startY = Math.min(Math.max(0, startY), Math.max(0, window.innerHeight - 40));
+
+                    Object.assign(knop.style, {
+                        position: 'fixed',
+                        left: startX + 'px',
+                        top: startY + 'px',
+                        width: '40px',
+                        height: '40px',
+                        minWidth: '40px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '0',
+                        margin: '0',
+                        border: '1px solid var(--egd-rand, #555)',
+                        borderRadius: '50%',
+                        background: 'var(--egd-achtergrond, #2b2b2b)',
+                        color: 'var(--egd-header-icoon, #e0e0e0)',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.35)',
+                        cursor: entry.draggable !== false ? 'grab' : 'pointer',
+                        zIndex: '2147483000',
+                        userSelect: 'none',
+                        WebkitUserSelect: 'none',
+                        touchAction: 'none',
+                        lineHeight: '1',
+                        boxSizing: 'border-box',
+                        outline: 'none'
+                    });
+
+                    let dragging = false;
+                    let offsetX = 0;
+                    let offsetY = 0;
+                    let startClientX = 0;
+                    let startClientY = 0;
+
+                    knop.addEventListener('pointerdown', function (e) {
+                        if (entry.draggable === false) return;
+                        if (e.pointerType === 'mouse' && e.button !== 0) return;
+                        dragging = true;
+                        verplaatst = false;
+                        startClientX = e.clientX;
+                        startClientY = e.clientY;
+
+                        const rect = knop.getBoundingClientRect();
+                        offsetX = e.clientX - rect.left;
+                        offsetY = e.clientY - rect.top;
+
+                        knop.style.cursor = 'grabbing';
+                        try { knop.setPointerCapture(e.pointerId); } catch (err) {}
+                    });
+
+                    knop.addEventListener('pointermove', function (e) {
+                        if (!dragging) return;
+
+                        if (
+                            Math.abs(e.clientX - startClientX) > 3 ||
+                            Math.abs(e.clientY - startClientY) > 3
+                        ) {
+                            verplaatst = true;
+                        }
+
+                        const maxPosX = Math.max(0, window.innerWidth - knop.offsetWidth);
+                        const maxPosY = Math.max(0, window.innerHeight - knop.offsetHeight);
+                        const nieuwX = Math.min(Math.max(0, e.clientX - offsetX), maxPosX);
+                        const nieuwY = Math.min(Math.max(0, e.clientY - offsetY), maxPosY);
+
+                        knop.style.left = nieuwX + 'px';
+                        knop.style.top = nieuwY + 'px';
+                    });
+
+                    function stopDrag() {
+                        if (!dragging) return;
+                        dragging = false;
+                        knop.style.cursor = 'grab';
+                        try {
+                            localStorage.setItem(
+                                'egodact_addon_btn_pos_' + entry.id,
+                                JSON.stringify({
+                                    x: parseFloat(knop.style.left) || 0,
+                                    y: parseFloat(knop.style.top) || 0
+                                })
+                            );
+                        } catch (err) {}
+                        // Als er geen click volgt (bijv. pointercancel), flag opruimen.
+                        setTimeout(function () { verplaatst = false; }, 400);
+                    }
+
+                    knop.addEventListener('pointerup', stopDrag);
+                    knop.addEventListener('pointercancel', stopDrag);
+                } else {
+                    Object.assign(knop.style, {
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '0',
+                        margin: '0 8px 0 0',
+                        width: '28px',
+                        minWidth: '28px',
+                        height: '32px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        verticalAlign: 'middle',
+                        outline: 'none',
+                        position: 'relative',
+                        zIndex: '999999',
+                        flexShrink: '0',
+                        lineHeight: '1',
+                        boxSizing: 'border-box',
+                        color: 'var(--egd-header-icoon)'
+                    });
+                }
+
                 knop.innerHTML = entry.icon
-                    ? '<span style="font-size:16px; line-height:1;">' + entry.icon + '</span>'
-                    : '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:1;display:block;pointer-events:none;"><circle cx="12" cy="12" r="9"></circle></svg>';
+                    ? '<span style="font-size:18px; line-height:1; display:block; pointer-events:none;">' + entry.icon + '</span>'
+                    : '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:1; display:block; pointer-events:none;"><circle cx="12" cy="12" r="9"></circle></svg>';
+
                 knop.addEventListener('click', function () {
-                    try { if (typeof entry.onClick === 'function') entry.onClick(); } catch (err) { console.error(err); }
+                    if (isFloating && verplaatst) {
+                        verplaatst = false;
+                        return;
+                    }
+                    try {
+                        if (typeof entry.onClick === 'function') entry.onClick();
+                    } catch (err) {
+                        console.error(err);
+                    }
                 });
-                const anker = document.getElementById('egodact-addons-knop') || document.getElementById('egodact-info-knop');
-                if (anker && anker.parentNode) {
-                    anker.insertAdjacentElement('afterend', knop);
-                } else if (menuContainer) {
-                    menuContainer.insertBefore(knop, menuContainer.firstChild);
+
+                if (isFloating) {
+                    document.body.appendChild(knop);
+                } else {
+                    const zoekBinnen = menuContainer || document;
+                    const bestaandeAddonKnoppen = zoekBinnen.querySelectorAll('[data-egodact-addon-btn="1"]');
+                    const laatsteAddonKnop = bestaandeAddonKnoppen[bestaandeAddonKnoppen.length - 1];
+                    const anker = document.getElementById('egodact-addons-knop') ||
+                        document.getElementById('egodact-info-knop');
+
+                    if (laatsteAddonKnop && laatsteAddonKnop.parentNode) {
+                        laatsteAddonKnop.insertAdjacentElement('afterend', knop);
+                    } else if (anker && anker.parentNode) {
+                        anker.insertAdjacentElement('afterend', knop);
+                    } else if (menuContainer) {
+                        menuContainer.insertBefore(knop, menuContainer.firstChild);
+                    }
                 }
             });
         }
     } catch (err) {
         console.error(err);
     }
-
 
     egodactSyncMenuButtonTheme();
 }

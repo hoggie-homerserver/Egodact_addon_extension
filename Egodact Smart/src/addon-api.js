@@ -165,6 +165,10 @@ function egodactAddonDisabled(id) {
                 addonId: meta.addonId || null,
                 title: meta.title || 'Knop',
                 icon: meta.icon || '',
+                position: meta.position || 'header',
+                x: meta.x,
+                y: meta.y,
+                draggable: meta.draggable !== false,
                 onClick: typeof meta.onClick === 'function' ? meta.onClick : function () {},
                 addon: addon
             };
@@ -293,6 +297,10 @@ function egodactAddonDisabled(id) {
                     id: meta.id,
                     title: meta.title || 'Knop',
                     icon: meta.icon || '',
+                    position: meta.position || 'header',
+                    x: meta.x,
+                    y: meta.y,
+                    draggable: meta.draggable !== false,
                     onClick: function () {
                         document.dispatchEvent(new CustomEvent('egodact:addon:open', {
                             detail: { id: meta.id }
@@ -321,7 +329,6 @@ function egodactAddonDisabled(id) {
     });
 
     try {
-    window.__egodactHostReady = true;
     window.__egodactHostReady = true;
     document.dispatchEvent(new CustomEvent('egodact:host:ready'));
 } catch (err) {}
