@@ -323,6 +323,10 @@
     ui.toast = function (msg, opts) {
         opts = opts || {};
         const t = theme();
+        const isError = opts.type === 'error';
+        const isInfo = opts.type === 'info';
+        const bg = opts.background || (isError ? t.gevaar : (isInfo ? '#2e7d32' : t.accent));
+        const fg = opts.color || (isError || isInfo ? '#fff' : t.accentTekst);
         const node = el('div', {
             text: msg,
             style: {
@@ -330,8 +334,8 @@
                 bottom: (opts.bottom || 20) + 'px',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                backgroundColor: opts.type === 'error' ? t.gevaar : t.accent,
-                color: opts.type === 'error' ? '#fff' : t.accentTekst,
+                backgroundColor: bg,
+                color: fg,
                 padding: '10px 16px',
                 borderRadius: '6px',
                 zIndex: '2147483647',
