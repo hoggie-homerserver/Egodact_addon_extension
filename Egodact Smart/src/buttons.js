@@ -749,6 +749,58 @@ function voegKnoppenToe() {
         }
     }
 
+    // ========================================================
+    // ADDON HEADER-KNOPPEN
+    // ========================================================
+    try {
+        const api = window.EgodactAddons;
+        if (api && Array.isArray(api._buttons)) {
+            api._buttons.forEach(function (entry) {
+                if (!entry || !entry.id) return;
+                const btnId = 'egodact-addon-btn-' + String(entry.id).replace(/[^a-z0-9_-]/gi, '-');
+                if (document.getElementById(btnId)) return;
+                const knop = document.createElement('button');
+                knop.id = btnId;
+                knop.type = 'button';
+                knop.title = entry.title || 'Addon';
+                Object.assign(knop.style, {
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '0',
+                    margin: '0 8px 0 0',
+                    width: '28px',
+                    minWidth: '28px',
+                    height: '32px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    verticalAlign: 'middle',
+                    outline: 'none',
+                    position: 'relative',
+                    zIndex: '999999',
+                    flexShrink: '0',
+                    color: 'var(--egd-header-icoon)'
+                });
+                knop.innerHTML = entry.icon
+                    ? '<span style="font-size:16px; line-height:1;">' + entry.icon + '</span>'
+                    : '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:1;display:block;pointer-events:none;"><circle cx="12" cy="12" r="9"></circle></svg>';
+                knop.addEventListener('click', function () {
+                    try { if (typeof entry.onClick === 'function') entry.onClick(); } catch (err) { console.error(err); }
+                });
+                const anker = document.getElementById('egodact-addons-knop') || document.getElementById('egodact-info-knop');
+                if (anker && anker.parentNode) {
+                    anker.insertAdjacentElement('afterend', knop);
+                } else if (menuContainer) {
+                    menuContainer.insertBefore(knop, menuContainer.firstChild);
+                }
+            });
+        }
+    } catch (err) {
+        console.error(err);
+    }
+
+
     egodactSyncMenuButtonTheme();
 }
 
