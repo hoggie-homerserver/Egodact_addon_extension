@@ -316,9 +316,13 @@ function egodactAddonDisabled(id) {
         } catch (err) {
             console.error('Egodact addon registratie mislukt:', err);
         }
+        if (typeof voegKnoppenToe === 'function') { try { voegKnoppenToe(); } catch (e) {} }
+        else { setTimeout(function(){ if (typeof voegKnoppenToe === 'function') voegKnoppenToe(); }, 0); }
     });
 
     try {
+    window.__egodactHostReady = true;
+    window.__egodactHostReady = true;
     document.dispatchEvent(new CustomEvent('egodact:host:ready'));
 } catch (err) {}
     window.EgodactAddons = EgodactAddons;

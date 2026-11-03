@@ -30,3 +30,6 @@ voegKnoppenToe();
 if (window.EgodactAddons && typeof window.EgodactAddons.finalize === 'function') {
     window.EgodactAddons.finalize();
 }
+
+
+try { window.__egodactHostReady = true; document.dispatchEvent(new CustomEvent('egodact:host:ready')); } catch (err) {}
