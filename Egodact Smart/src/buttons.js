@@ -2,7 +2,65 @@
 // KNOPPEN TOEVOEGEN
 // ============================================================
 
+// ============================================================
+// OPRUIMEN BIJ UITSCHAKELEN
+// ============================================================
+// Elementen van de pagina die wij tijdelijk hebben aangepast (bijv. de
+// zoekknop die opschuift). Bij het uitschakelen van de extensie zetten we
+// die weer terug.
+
+let egodactAangepasteElementen = [];
+
+function egodactOnthoudenAanpassing(el) {
+    if (el && egodactAangepasteElementen.indexOf(el) === -1) {
+        egodactAangepasteElementen.push(el);
+    }
+}
+
+function egodactHerstelPagina() {
+    egodactAangepasteElementen.forEach(function (el) {
+        try {
+            el.style.transform = '';
+            el.style.transition = '';
+        } catch (err) {}
+    });
+    egodactAangepasteElementen = [];
+}
+
+function egodactRuimExtensieOp() {
+    window.__egodactUitgeschakeld = true;
+
+    [
+        'egodact-info-knop',
+        'egodact-taken-knop',
+        'egodact-weekplanning-knop',
+        'egodact-beta-features-knop',
+        'egodact-tijd-knop',
+        'egodact-addons-knop',
+        'egodact-custom-modal-backdrop',
+        'egodact-tijd-melding',
+        'egodact-thema-stijl'
+    ].forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el && el.parentNode) el.parentNode.removeChild(el);
+    });
+
+    document.querySelectorAll('[data-egodact-addon-btn="1"]').forEach(function (el) {
+        if (el.parentNode) el.parentNode.removeChild(el);
+    });
+
+    try {
+        document.documentElement.removeAttribute('data-egodact-thema');
+        document.documentElement.style.removeProperty('--egd-header-icoon');
+    } catch (err) {}
+
+    egodactHerstelPagina();
+}
+
 function voegKnoppenToe() {
+
+    // Na het uitschakelen van de extensie niets meer opbouwen.
+    if (window.__egodactUitgeschakeld) return;
 
     // Alleen op Pantagora
     if (
@@ -221,6 +279,8 @@ function voegKnoppenToe() {
     // ========================================================
 
     if (zoekKnopElement) {
+
+        egodactOnthoudenAanpassing(zoekKnopElement);
 
         zoekKnopElement.style.transform =
             'translateX(-50px)';

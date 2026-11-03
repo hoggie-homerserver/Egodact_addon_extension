@@ -218,6 +218,8 @@ function egodactPaginaIsDonker() {
 }
 
 function egodactPasThemaToe() {
+    if (window.__egodactUitgeschakeld) return;
+
     try {
         const root = document.documentElement;
         if (!root) return;

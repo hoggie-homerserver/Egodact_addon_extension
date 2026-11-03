@@ -259,6 +259,8 @@ function egodactTijdPiep() {
 }
 
 function egodactTijdMelding(titel, tekst) {
+    if (window.__egodactUitgeschakeld) return;
+
     const oud = document.getElementById('egodact-tijd-melding');
     if (oud) oud.remove();
 
@@ -331,6 +333,8 @@ function egodactTijdMelding(titel, tekst) {
 // ------------------------------------------------------------
 
 function egodactTijdTick() {
+    if (window.__egodactUitgeschakeld) return;
+
     if (!egodactTijd) return;
 
     const nu = Date.now();
