@@ -230,14 +230,64 @@ function openAddonsMenu(e) {
 
     if (buttons.length) {
         const wrap = document.createElement('div');
+        wrap.style.cssText = 'display:flex; flex-direction:column; gap:6px;';
         const kop = document.createElement('h3');
-        kop.textContent = 'Header-knoppen van addons';
+        kop.textContent = 'Addon-knoppen';
         kop.style.cssText = 'margin:0; font-size:15px; color:var(--egd-tekst-zacht);';
         wrap.appendChild(kop);
-        const lijst = document.createElement('div');
-        lijst.style.cssText = 'font-size:12px; color:var(--egd-tekst-zacht);';
-        lijst.textContent = buttons.map((b) => b.title).join(', ');
-        wrap.appendChild(lijst);
+        buttons.forEach(function (btn) {
+            const kaartEl = document.createElement('div');
+            Object.assign(kaartEl.style, {
+                padding: '10px 12px',
+                background: 'var(--egd-veld)',
+                border: '1px solid var(--egd-rand)',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px'
+            });
+            const info = document.createElement('div');
+            const addonNaam = btn.addon ? btn.addon.name : (btn.addonId || 'addon');
+            info.innerHTML = `
+                <div style="display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;">
+                    <strong style="font-size:14px;">${api.escapeHtml(btn.title)}</strong>
+                    <span style="font-size:11px; color:var(--egd-tekst-zacht);">${api.escapeHtml(addonNaam)}</span>
+                </div>
+                <div style="font-size:12px; color:var(--egd-tekst-zacht); margin-top:4px;">${btn.position === 'floating' ? 'Zwevende knop' : 'Header-knop'}</div>
+            `;
+            const key = btn.key || ((btn.addonId || '') + ':' + btn.id);
+            const disabled = egodactButtonDisabled(key);
+            const toggleWrap = document.createElement('label');
+            toggleWrap.style.cssText = 'position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;cursor:pointer;';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = !disabled;
+            checkbox.style.cssText = 'opacity:0;width:0;height:0;position:absolute;';
+            const slider = document.createElement('span');
+            Object.assign(slider.style, {
+                position: 'absolute', top: '0', left: '0', right: '0', bottom: '0',
+                backgroundColor: disabled ? 'var(--egd-uit)' : 'var(--egd-accent)',
+                borderRadius: '24px', transition: 'background-color 150ms ease'
+            });
+            const knob = document.createElement('span');
+            Object.assign(knob.style, {
+                position: 'absolute', top: '3px', left: disabled ? '3px' : '23px',
+                width: '18px', height: '18px', borderRadius: '50%',
+                backgroundColor: '#fff', transition: 'left 150ms ease',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+            });
+            slider.appendChild(knob);
+            toggleWrap.append(checkbox, slider);
+            toggleWrap.addEventListener('click', function (e) {
+                e.preventDefault();
+                const nuUit = !egodactButtonDisabled(key);
+                egodactSetButtonEnabled(key, !nuUit);
+                window.location.reload();
+            });
+            kaartEl.append(info, toggleWrap);
+            wrap.appendChild(kaartEl);
+        });
         body.appendChild(wrap);
     }
 }

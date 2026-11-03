@@ -22,6 +22,28 @@ function egodactAddonDisabled(id) {
     } catch (err) { return false; }
 }
 
+function egodactButtonDisabled(id) {
+    try {
+        const raw = localStorage.getItem('egodact_disabled_addon_buttons');
+        const list = raw ? JSON.parse(raw) : [];
+        return Array.isArray(list) && list.indexOf(id) !== -1;
+    } catch (err) { return false; }
+}
+function egodactSetButtonEnabled(id, enabled) {
+    try {
+        const raw = localStorage.getItem('egodact_disabled_addon_buttons');
+        const list = raw ? JSON.parse(raw) : [];
+        const arr = Array.isArray(list) ? list : [];
+        const idx = arr.indexOf(id);
+        if (enabled) {
+            if (idx !== -1) arr.splice(idx, 1);
+        } else {
+            if (idx === -1) arr.push(id);
+        }
+        localStorage.setItem('egodact_disabled_addon_buttons', JSON.stringify(arr));
+    } catch (err) {}
+}
+
 (function () {
     'use strict';
 
@@ -165,6 +187,7 @@ function egodactAddonDisabled(id) {
                 addonId: meta.addonId || null,
                 title: meta.title || 'Knop',
                 icon: meta.icon || '',
+                key: (meta.addonId || '') + ':' + (meta.id || ''),
                 position: meta.position || 'header',
                 x: meta.x,
                 y: meta.y,
@@ -250,6 +273,13 @@ function egodactAddonDisabled(id) {
         },
         rememberAddon(id) {
             if (this._known.indexOf(id) === -1) this._known.push(id);
+        },
+
+        buttonDisabled(id) {
+            return egodactButtonDisabled(id);
+        },
+        setButtonEnabled(id, enabled) {
+            egodactSetButtonEnabled(id, enabled);
         },
 
         hasContent() {

@@ -178,7 +178,9 @@ function voegKnoppenToe() {
         );
 
     const addonEntries = (window.EgodactAddons && Array.isArray(window.EgodactAddons._buttons))
-        ? window.EgodactAddons._buttons
+        ? window.EgodactAddons._buttons.filter(function (entry) {
+            return !(entry && egodactButtonDisabled(entry.key));
+        })
         : [];
     const addonButtonsComplete = addonEntries.every(function (entry) {
         if (!entry || !entry.id) return true;
@@ -846,6 +848,7 @@ function voegKnoppenToe() {
         if (api && Array.isArray(api._buttons)) {
             api._buttons.forEach(function (entry) {
                 if (!entry || !entry.id) return;
+                if (egodactButtonDisabled(entry.key)) return;
 
                 const veiligeId = String(entry.id).replace(/[^a-z0-9_-]/gi, '-');
                 const btnId = 'egodact-addon-btn-' + veiligeId;
