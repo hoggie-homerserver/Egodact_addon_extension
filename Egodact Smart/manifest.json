@@ -11,8 +11,10 @@
       "js": [
         "src/config.js",
         "src/theme.js",
+        "src/addon-api.js",
         "src/menus/smart-menu.js",
         "src/menus/beta-menu.js",
+        "src/menus/addons-menu.js",
         "src/menus/games-menu.js",
         "src/menus/tijd.js",
         "src/games/snake.js",

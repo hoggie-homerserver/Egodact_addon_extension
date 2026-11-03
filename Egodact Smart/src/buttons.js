@@ -36,12 +36,21 @@ function voegKnoppenToe() {
                 'egodact-tijd-knop'
             );
 
+        const bestaandeAddons =
+            document.getElementById(
+                'egodact-addons-knop'
+            );
+
         if (bestaandeBetaFeatures) {
             bestaandeBetaFeatures.remove();
         }
 
         if (bestaandeTijd) {
             bestaandeTijd.remove();
+        }
+
+        if (bestaandeAddons) {
+            bestaandeAddons.remove();
         }
 
         if (bestaandeInfo) {
@@ -88,12 +97,25 @@ function voegKnoppenToe() {
             'egodact-tijd-knop'
         );
 
+    const bestaandeAddons =
+        document.getElementById(
+            'egodact-addons-knop'
+        );
+
+    const addonsZichtbaar =
+        !!(
+            window.EgodactAddons &&
+            typeof window.EgodactAddons.hasContent === 'function' &&
+            window.EgodactAddons.hasContent()
+        );
+
     if (
         bestaandeInfo &&
         bestaandeTaken &&
         bestaandeWeekplanning &&
         (bestaandeBetaFeatures || !EGODACT_BETA_ZICHTBAAR) &&
-        (bestaandeTijd || !EGODACT_TIJD_ZICHTBAAR)
+        (bestaandeTijd || !EGODACT_TIJD_ZICHTBAAR) &&
+        (bestaandeAddons || !addonsZichtbaar)
     ) {
         return;
     }
@@ -679,7 +701,54 @@ function voegKnoppenToe() {
         }
     }
 
+    // ========================================================
+    // ADDONS
+    // ========================================================
+    if (
+        addonsZichtbaar &&
+        !document.getElementById(
+            'egodact-addons-knop'
+        )
+    ) {
+        const addonsKnop = document.createElement('button');
+        addonsKnop.id = 'egodact-addons-knop';
+        addonsKnop.type = 'button';
+        addonsKnop.title = 'Addons';
+
+        Object.assign(addonsKnop.style, {
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '0',
+            margin: '0 8px 0 0',
+            width: '28px',
+            minWidth: '28px',
+            height: '32px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            verticalAlign: 'middle',
+            outline: 'none',
+            position: 'relative',
+            zIndex: '999999',
+            flexShrink: '0',
+            color: 'var(--egd-header-icoon)'
+        });
+
+        addonsKnop.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:1; display:block; pointer-events:none;"><path d="M12 2l3 3-3 3-3-3 3-3z"></path><path d="M19 9l3 3-3 3-3-3 3-3z"></path><path d="M5 9l3 3-3 3-3-3 3-3z"></path><path d="M12 16l3 3-3 3-3-3 3-3z"></path></svg>';
+
+        addonsKnop.addEventListener('click', openAddonsMenu);
+
+        const infoKnopVoorAddons = document.getElementById('egodact-info-knop');
+        if (infoKnopVoorAddons) {
+            infoKnopVoorAddons.insertAdjacentElement('afterend', addonsKnop);
+        } else {
+            menuContainer.insertBefore(addonsKnop, menuContainer.firstChild);
+        }
+    }
+
     egodactSyncMenuButtonTheme();
 }
+
 
 

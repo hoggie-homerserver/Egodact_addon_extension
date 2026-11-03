@@ -26,3 +26,7 @@ observer.observe(
 egodactTijdStart();
 
 voegKnoppenToe();
+
+if (window.EgodactAddons && typeof window.EgodactAddons.finalize === 'function') {
+    window.EgodactAddons.finalize();
+}

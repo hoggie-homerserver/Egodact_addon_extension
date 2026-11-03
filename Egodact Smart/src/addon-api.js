@@ -14,6 +14,14 @@
 //   5. overige core bestanden
 //   6. src/main.js
 
+function egodactAddonDisabled(id) {
+    try {
+        const raw = localStorage.getItem('egodact_disabled_addons');
+        const list = raw ? JSON.parse(raw) : [];
+        return Array.isArray(list) && list.indexOf(id) !== -1;
+    } catch (err) { return false; }
+}
+
 (function () {
     'use strict';
 
@@ -253,6 +261,8 @@
     document.addEventListener('egodact:addon:register', function (event) {
         const detail = (event && event.detail) || {};
         const meta = detail.meta || {};
+        const guardId = (detail.type == 'addon') ? meta.id : (meta.addonId || meta.id);
+        if (guardId && egodactAddonDisabled(guardId)) return;
         try {
             if (detail.type === 'addon') {
                 EgodactAddons.registerAddon(meta);
