@@ -1646,7 +1646,8 @@ function openWeekplanning(e) {
         "Scheikunde",
         "Frans",
         "Economie",
-        "Informatica"
+        "Informatica",
+        "Filosofie"
     ];
 
     let challengeLijst = null;
