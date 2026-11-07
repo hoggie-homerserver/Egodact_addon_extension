@@ -24,7 +24,8 @@
                 author: 'MaxiTaxi',
                 source: 'https://github.com/MaxiTaxi/Egodact_addon_Learning_Mode',
                 version: '0.3.0',
-                sha256: '3aa085d00bdcf22a85e6980d8822f12afedd5436d5343551a3cf593b425c9550'
+                sha256: '3aa085d00bdcf22a85e6980d8822f12afedd5436d5343551a3cf593b425c9550',
+                dataUsage: 'Lokaal (browseropslag). Geen externe diensten.'
             },
             {
                 id: 'example-addon',
@@ -32,7 +33,8 @@
                 author: 'MaxiTaxi',
                 source: 'https://github.com/hoggie-homerserver/Egodact_addon_extension_addons',
                 version: '1.7.0',
-                sha256: '902f3c6037351e06c71edcf91c3ac676322f10f8893bb5ae4bb7c3e4bfaa90d9'
+                sha256: '902f3c6037351e06c71edcf91c3ac676322f10f8893bb5ae4bb7c3e4bfaa90d9',
+                dataUsage: 'Lokaal. Geen externe diensten.'
             },
             {
                 id: 'egodact-chat',
@@ -40,7 +42,8 @@
                 author: 'MaxiTaxi',
                 source: 'https://github.com/hoggie-homerserver/Egodact_addon_chat',
                 version: '1.0.0',
-                sha256: '1d1676ca0c538f891b30bbca50b4673a2e3d9fa606c51486397ffeeb86b983eb'
+                sha256: '1d1676ca0c538f891b30bbca50b4673a2e3d9fa606c51486397ffeeb86b983eb',
+                dataUsage: 'Externe dienst: Firebase (chatberichten worden extern opgeslagen/verzonden).'
             }
         ]
     };

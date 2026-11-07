@@ -193,6 +193,18 @@ function openAddonsMenu(e) {
             const source = addon.source || (verified && verified.entry && verified.entry.source) || '';
             const pinnedHash = (verified && verified.entry && verified.entry.sha256) ? String(verified.entry.sha256) : '';
             const shortHash = pinnedHash ? (pinnedHash.slice(0, 12) + '…') : '';
+            const listedDataUsage = (verified && verified.entry && verified.entry.dataUsage) ? String(verified.entry.dataUsage) : '';
+            let dataUsageText = '';
+            if (isOfficial || isKnownUnknownVersion) {
+                dataUsageText = listedDataUsage || 'Niet opgegeven door maintainer.';
+            } else if (isVersionMismatch) {
+                dataUsageText = listedDataUsage
+                    ? 'Vermelding (andere versie): ' + listedDataUsage + ' Controleer of dit voor deze versie nog klopt.'
+                    : 'Niet opgegeven door maintainer voor deze versie. Controleer de bron voor data-/netwerkgebruik.';
+            } else {
+                dataUsageText = 'Niet opgegeven door maintainer. Unverified addon: controleer de bron op dataopslag, externe diensten en netwerkgebruik.';
+            }
+            const dataUsageWarn = !isOfficial && !isKnownUnknownVersion;
 
             const kaartEl = document.createElement('div');
             Object.assign(kaartEl.style, {
@@ -222,6 +234,7 @@ function openAddonsMenu(e) {
                     <span style="color:var(--egd-tekst-zacht);">Auteur</span><span style="overflow-wrap:anywhere;">${esc(addon.author || 'Onbekend')}</span>
                     <span style="color:var(--egd-tekst-zacht);">Bron</span><span style="overflow-wrap:anywhere;">${source ? esc(source) : 'Niet opgegeven'}</span>
                     <span style="color:var(--egd-tekst-zacht);">Hash</span><span style="overflow-wrap:anywhere; font-family:Consolas, monospace;">${pinnedHash ? esc(shortHash) + ' <span style="color:var(--egd-tekst-zacht); font-family:inherit;" title="' + esc(pinnedHash) + '">(vastgelegd)</span>' : 'Niet gecontroleerd'}</span>
+                    <span style="color:var(--egd-tekst-zacht);">Data</span><span style="overflow-wrap:anywhere;${dataUsageWarn ? ' color:var(--egd-tekst);' : ''}">${esc(dataUsageText)}</span>
                 </div>
                 <div style="margin-top:6px; font-size:10px; color:var(--egd-tekst-zacht); line-height:1.35;">${esc(tierNote)}</div>
             `;
