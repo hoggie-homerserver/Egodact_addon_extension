@@ -34,6 +34,10 @@ if (window.EgodactAddons && typeof window.EgodactAddons.finalize === 'function')
 
 try { window.__egodactHostReady = true; document.dispatchEvent(new CustomEvent('egodact:host:ready')); } catch (err) {}
 
+if (typeof egodactMisschienOnboarding === 'function') {
+    egodactMisschienOnboarding();
+}
+
 // ============================================================
 // OPRUIMEN ALS DE EXTENSIE WORDT UITGESCHAKELD
 // ============================================================
