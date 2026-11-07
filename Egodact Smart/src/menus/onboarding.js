@@ -130,7 +130,7 @@
                 paddingRight: '4px'
             }
         }, [
-            item('Info (Smart)', 'Opent het Smart-menu met informatie en handige opties van de extensie.'),
+            item('Smart Methode', 'Opent het Smart-menu met informatie en handige tips.'),
             item('Taken', 'Bekijk en beheer je taken.'),
             item('Weekplanning', 'Open je weekplanning en plan je werk.'),
             item('Tijd', 'Klok, timer, stopwatch en wekker (zichtbaar wanneer ingeschakeld in je build).'),
