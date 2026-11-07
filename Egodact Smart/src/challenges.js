@@ -35,7 +35,8 @@ function egodactBouwChallengeLijst(data) {
     return Object.values(challenges)
         .map(c => ({
             id: c.id,
-            naam: c.name || 'Naamloze challenge',
+            naam: c.name || c.title || c.challengeName || c.displayName || c.naam || 'Naamloze challenge',
+            name: c.name || c.title || c.challengeName || c.displayName || c.naam || 'Naamloze challenge',
             kleur: c.color || null,
             fase: c.phase || 'TODO',
             rij: (rijVan.get(c.id) || {}).naam || '',
