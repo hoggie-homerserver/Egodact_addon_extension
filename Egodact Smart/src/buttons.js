@@ -37,8 +37,6 @@ function egodactRuimExtensieOp() {
         'egodact-beta-features-knop',
         'egodact-tijd-knop',
         'egodact-addons-knop',
-        'egodact-menu-knop',
-        'egodact-dropdown-menu',
         'egodact-knop-groep',
         'egodact-custom-modal-backdrop',
         'egodact-tijd-melding',
@@ -852,128 +850,6 @@ function voegKnoppenToe() {
             infoKnopVoorAddons.insertAdjacentElement('afterend', addonsKnop);
         } else {
             egodactKnopGroep.appendChild(addonsKnop);
-        }
-    }
-
-    // ========================================================
-    // HAMBURGER MENU (dropdown met animatie)
-    // ========================================================
-    if (!document.getElementById('egodact-menu-knop')) {
-        const menuKnop = document.createElement('button');
-        menuKnop.id = 'egodact-menu-knop';
-        menuKnop.type = 'button';
-        menuKnop.title = 'Menu';
-        Object.assign(menuKnop.style, {
-            background: 'none', border: 'none', cursor: 'pointer', padding: '6px 10px',
-            margin: '0 10px 0 0', width: 'auto', minWidth: '44px', height: '40px',
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            verticalAlign: 'middle', outline: 'none', position: 'relative',
-            zIndex: '999999', flexShrink: '0', color: 'var(--egd-header-icoon)',
-            borderRadius: '6px', transition: 'background 120ms ease'
-        });
-        menuKnop.innerHTML = '<svg class="lm-ham-svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="opacity:1;display:block;pointer-events:none;transition:transform 220ms ease;"><line class="l1" x1="3" y1="6" x2="21" y2="6" style="transition:transform 220ms ease,opacity 220ms ease;"></line><line class="l2" x1="3" y1="12" x2="21" y2="12" style="transition:transform 220ms ease,opacity 220ms ease;"></line><line class="l3" x1="3" y1="18" x2="21" y2="18" style="transition:transform 220ms ease,opacity 220ms ease;"></line></svg>';
-
-        // dropdown panel
-        const dropdown = document.createElement('div');
-        dropdown.id = 'egodact-dropdown-menu';
-        Object.assign(dropdown.style, {
-            position: 'absolute', top: '36px', right: '0', minWidth: '200px',
-            background: 'var(--egd-modal)', border: '1px solid var(--egd-rand)',
-            borderRadius: '6px', boxShadow: 'var(--egd-schaduw)', padding: '6px',
-            display: 'flex', flexDirection: 'column', gap: '2px',
-            opacity: '0', transform: 'translateY(-8px)', pointerEvents: 'none',
-            transition: 'opacity 180ms ease, transform 180ms ease',
-            zIndex: '9999999', overflow: 'hidden'
-        });
-
-        let open = false;
-        function setRotated(rot) {
-            const svg = menuKnop.querySelector('.lm-ham-svg');
-            const l1 = menuKnop.querySelector('.l1');
-            const l2 = menuKnop.querySelector('.l2');
-            const l3 = menuKnop.querySelector('.l3');
-            if (rot) {
-                if (svg) svg.style.transform = 'rotate(90deg)';
-                if (l1) l1.style.transform = 'translate(0,6px) rotate(45deg)';
-                if (l2) l2.style.opacity = '0';
-                if (l3) l3.style.transform = 'translate(0,-6px) rotate(-45deg)';
-            } else {
-                if (svg) svg.style.transform = 'rotate(0deg)';
-                if (l1) l1.style.transform = 'none';
-                if (l2) l2.style.opacity = '1';
-                if (l3) l3.style.transform = 'none';
-            }
-        }
-        function toggleDropdown() {
-            open = !open;
-            setRotated(open);
-            if (open) {
-                // populate
-                dropdown.innerHTML = '';
-                const api = window.EgodactAddons;
-                const menus = (api && Array.isArray(api._menus)) ? api._menus : [];
-                if (!menus.length) {
-                    const empty = document.createElement('div');
-                    empty.textContent = 'Geen addon-menus. Installeer een addon (bijv. Learning Mode).';
-                    empty.style.cssText = 'padding:8px; font-size:12px; color:var(--egd-tekst-zacht);';
-                } else {
-                    menus.forEach(m => {
-                        const item = document.createElement('button');
-                        item.type = 'button';
-                        item.textContent = (m.icon ? m.icon + ' ' : '') + (m.title || 'Menu');
-                        Object.assign(item.style, {
-                            textAlign: 'left', padding: '8px 10px', border: 'none',
-                            background: 'transparent', color: 'var(--egd-tekst)', cursor: 'pointer',
-                            borderRadius: '4px', fontSize: '13px', width: '100%'
-                        });
-                        item.addEventListener('mouseenter', () => { item.style.background = 'var(--egd-hover)'; });
-                        item.addEventListener('mouseleave', () => { item.style.background = 'transparent'; });
-                        item.addEventListener('click', () => {
-                            toggleDropdown();
-                            try { if (typeof m.open === 'function') m.open(); } catch (err) { console.error(err); }
-                        });
-                        dropdown.appendChild(item);
-                    });
-                }
-                dropdown.style.opacity = '1';
-                dropdown.style.transform = 'translateY(0)';
-                dropdown.style.pointerEvents = 'auto';
-            } else {
-                dropdown.style.opacity = '0';
-                dropdown.style.transform = 'translateY(-8px)';
-                dropdown.style.pointerEvents = 'none';
-            }
-        }
-        menuKnop.addEventListener('click', (e) => { e.stopPropagation(); toggleDropdown(); });
-        document.addEventListener('click', (e) => {
-            if (open && !dropdown.contains(e.target) && e.target !== menuKnop) {
-                toggleDropdown();
-            }
-        });
-
-        menuKnop.style.position = 'relative';
-        menuKnop.appendChild(dropdown);
-
-        // Plaats de knop links van de gebruikersnaam/profiel
-        let anker = document.querySelector('img[src*="avatar"], div[style*="background-image"]');
-        if (anker) {
-            // loop omhoog naar een container die ook tekst (naam) bevat
-            let node = anker;
-            while (node && node.parentNode && node.parentNode !== document.body) {
-                if (node.parentNode.textContent && node.parentNode.textContent.trim().length > 0 && node.parentNode.querySelector && node.parentNode.querySelector('img[src*="avatar"], div[style*="background-image"]')) {
-                    // candidate: insert before this node within its parent? We'll insert before the profile node itself
-                    break;
-                }
-                node = node.parentNode;
-            }
-            const profielContainer = anker.parentNode || anker;
-            if (profielContainer && profielContainer.parentNode) {
-                profielContainer.parentNode.insertBefore(menuKnop, profielContainer);
-            } else {
-                anker.parentNode.insertBefore(menuKnop, anker);
-            }
-        } else if (egodactKnopGroep) {
-            egodactKnopGroep.appendChild(menuKnop);
         }
     }
 
