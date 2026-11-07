@@ -39,15 +39,6 @@ function openAddonsMenu(e) {
             allAddons.push({ id: id, name: id, version: '?', description: '', author: '' });
         }
     });
-    // Geïnstalleerde addons (via easy install) ook tonen
-    try {
-        const installed = (window.egodactGetInstalledAddons) ? window.egodactGetInstalledAddons() : [];
-        installed.forEach(function (a) {
-            if (!allAddons.some(function (x) { return x.id === a.id; })) {
-                allAddons.push({ id: a.id, name: a.name, version: a.version || '?', description: a.description || '', author: a.author || '', _installed: true, _enabled: a.enabled !== false });
-            }
-        });
-    } catch (err) {}
     const addons = allAddons;
     const menus = (api && api._menus) || [];
     const buttons = (api && api._buttons) || [];
@@ -152,9 +143,9 @@ function openAddonsMenu(e) {
     const instBtn = modal.querySelector('#egodact-addons-installeren');
     if (instBtn) instBtn.addEventListener('click', function () {
         backdrop.remove();
-        if (window.EgodactAddonInstaller && typeof window.EgodactAddonInstaller.open === 'function') {
-            window.EgodactAddonInstaller.open();
-        }
+        const opener = (window.EgodactAddonValidator && window.EgodactAddonValidator.open) ||
+            (window.EgodactAddonInstaller && window.EgodactAddonInstaller.open);
+        if (typeof opener === 'function') opener();
     });
     backdrop.addEventListener('click', (ev) => { if (ev.target === backdrop) sluit(); });
 
