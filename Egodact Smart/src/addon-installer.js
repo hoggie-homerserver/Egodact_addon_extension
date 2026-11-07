@@ -241,17 +241,46 @@
         wrap.style.cssText = 'display:flex; flex-direction:column; gap:10px;';
         const ok = document.createElement('div');
         ok.style.cssText = 'padding:12px; background:var(--egd-veld); border:1px solid var(--egd-rand); border-radius:6px;';
-        ok.innerHTML = '<strong style="font-size:15px;">' + escapeHtml(addon.name) + '</strong> <span style="font-size:12px; color:var(--egd-tekst-zacht);">v' + escapeHtml(addon.version) + '</span><div style="font-size:13px; color:var(--egd-tekst-zacht); margin-top:4px;">Opgeslagen in de host. Om de addon echt te draaien, laad je hem als uitgepakte extensie in je browser.</div>';
+        ok.innerHTML = '<strong style="font-size:15px;">✓ ' + escapeHtml(addon.name) + '</strong> <span style="font-size:12px; color:var(--egd-tekst-zacht);">v' + escapeHtml(addon.version) + '</span><div style="font-size:13px; color:var(--egd-tekst-zacht); margin-top:4px;">Validatie geslaagd: dit is een geldige Egodact-addon. De addon draait als echte browser-extensie; volg hieronder de stappen voor jouw browser.</div>';
         wrap.appendChild(ok);
 
-        const stappen = document.createElement('div');
-        stappen.style.cssText = 'padding:12px; background:var(--egd-veld); border:1px solid var(--egd-rand); border-radius:6px; font-size:13px; line-height:1.6;';
-        if (source === 'upload') {
-            stappen.innerHTML = '<strong>Volgende stappen (Chrome/Edge):</strong><ol style="margin:6px 0 0 18px; padding:0;"><li>Open <code>chrome://extensions</code> (of <code>edge://extensions</code>).</li><li>Zet <em>Ontwikkelaarsmodus</em> aan (rechtsboven).</li><li>Klik <em>Uitgepakte extensie laden</em>.</li><li>Selecteer de map die je zojuist hebt geüpload.</li><li>Herlaad <code>app.egodact.com</code>. De addon verschijnt in het Addons-menu met toggle.</li></ol>';
-        } else {
-            stappen.innerHTML = '<strong>Volgende stappen:</strong><ol style="margin:6px 0 0 18px; padding:0;"><li>Download/clone de repository naar je computer.</li><li>Open <code>chrome://extensions</code> en zet <em>Ontwikkelaarsmodus</em> aan.</li><li>Klik <em>Uitgepakte extensie laden</em> en selecteer de addon-map.</li><li>Herlaad <code>app.egodact.com</code>.</li></ol>';
+        // Browser tabs
+        const tabs = document.createElement('div');
+        tabs.style.cssText = 'display:flex; gap:6px; flex-wrap:wrap;';
+        const inhoud = document.createElement('div');
+        inhoud.style.cssText = 'padding:12px; background:var(--egd-veld); border:1px solid var(--egd-rand); border-radius:6px; font-size:13px; line-height:1.6; min-height:60px;';
+
+        const guides = {
+            Chrome: '<strong>Google Chrome</strong><ol style="margin:6px 0 0 18px; padding:0;"><li>Open <code>chrome://extensions</code>.</li><li>Zet rechtsboven <em>Ontwikkelaarsmodus</em> aan.</li><li>Klik <em>Uitgepakte extensie laden</em>.</li><li>Selecteer de addon-map (met manifest.json).</li><li>Herlaad <code>app.egodact.com</code>. De addon verschijnt in het Addons-menu met toggle.</li></ol>',
+            Edge: '<strong>Microsoft Edge</strong><ol style="margin:6px 0 0 18px; padding:0;"><li>Open <code>edge://extensions</code>.</li><li>Zet links <em>Ontwikkelaarsmodus</em> aan.</li><li>Klik <em>Uitgepakte extensie laden</em>.</li><li>Selecteer de addon-map.</li><li>Herlaad <code>app.egodact.com</code>.</li></ol>',
+            Firefox: '<strong>Mozilla Firefox</strong><ol style="margin:6px 0 0 18px; padding:0;"><li>Open <code>about:debugging#/runtime/this-firefox</code>.</li><li>Klik <em>Tijdelijke invoegtoepassing laden...</em>.</li><li>Selecteer het <code>manifest.json</code> in de addon-map.</li><li>Herlaad <code>app.egodact.com</code>. (Tijdelijk: verdwijnt bij herstart van Firefox.)</li></ol>'
+        };
+
+        let actief = 'Chrome';
+        function renderGuide() {
+            inhoud.innerHTML = guides[actief];
         }
-        wrap.appendChild(stappen);
+
+        Object.keys(guides).forEach(naam => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = naam;
+            Object.assign(btn.style, { padding:'6px 12px', border:'1px solid var(--egd-rand)', borderRadius:'4px', background: naam===actief?'var(--egd-accent)':'transparent', color: naam===actief?'var(--egd-accent-tekst)':'var(--egd-tekst)', cursor:'pointer', fontSize:'12px', fontWeight:'bold' });
+            btn.addEventListener('click', () => {
+                actief = naam;
+                tabs.querySelectorAll('button').forEach(b => {
+                    const on = b.textContent === actief;
+                    b.style.background = on ? 'var(--egd-accent)' : 'transparent';
+                    b.style.color = on ? 'var(--egd-accent-tekst)' : 'var(--egd-tekst)';
+                });
+                renderGuide();
+            });
+            tabs.appendChild(btn);
+        });
+        renderGuide();
+
+        wrap.appendChild(tabs);
+        wrap.appendChild(inhoud);
 
         // download manifest/files as a single JSON bundle (best effort)
         const dl = document.createElement('button');
@@ -300,16 +329,35 @@
         fileInput.setAttribute('webkitdirectory', '');
         fileInput.setAttribute('directory', '');
         fileInput.multiple = true;
-        fileInput.style.cssText = 'font-size:13px;';
+        fileInput.style.display = 'none';
         uploadSectie.appendChild(fileInput);
+
+        const fileLabel = document.createElement('label');
+        fileLabel.style.cssText = 'display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border:1px dashed var(--egd-accent); border-radius:6px; background:var(--egd-veld); color:var(--egd-tekst); cursor:pointer; font-size:13px; align-self:flex-start;';
+        fileLabel.innerHTML = '<span style="font-size:18px;">\ud83d\udcc1</span><span id="egodact-file-label-text">Kies een map...</span>';
+        fileLabel.addEventListener('click', function (e) { e.preventDefault(); fileInput.click(); });
+        uploadSectie.appendChild(fileLabel);
+
         const uploadBtn = document.createElement('button');
         uploadBtn.type = 'button';
-        uploadBtn.textContent = 'Installeren vanuit map';
-        Object.assign(uploadBtn.style, { padding: '8px 12px', border: 'none', borderRadius: '4px', background: 'var(--egd-accent)', color: 'var(--egd-accent-tekst)', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', alignSelf: 'flex-start' });
+        uploadBtn.textContent = 'Valideren';
+        Object.assign(uploadBtn.style, { padding: '10px 16px', border: 'none', borderRadius: '6px', background: 'var(--egd-accent)', color: 'var(--egd-accent-tekst)', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', alignSelf: 'flex-start', boxShadow: '0px 2px 4px rgba(0,0,0,0.2)' });
         uploadSectie.appendChild(uploadBtn);
+
+        fileInput.addEventListener('change', function () {
+            const txt = fileLabel.querySelector('#egodact-file-label-text');
+            if (fileInput.files && fileInput.files.length) {
+                const first = fileInput.files[0].webkitRelativePath || fileInput.files[0].name;
+                const folder = (first.split('/')[0] || first.split('\\\\')[0]);
+                txt.textContent = folder + ' (' + fileInput.files.length + ' bestanden)';
+            } else {
+                txt.textContent = 'Kies een map...';
+            }
+        });
+
         wrap.appendChild(uploadSectie);
 
-        uploadBtn.addEventListener('click', async () => {
+        uploadBtn.addEventListener('click', async function () {
             if (!fileInput.files || !fileInput.files.length) {
                 alert('Selecteer eerst een map.');
                 return;
@@ -334,8 +382,7 @@
                 const res = installFromFiles(map, 'upload', '');
                 if (!res.ok) { alert(res.error); return; }
                 // show steps
-                const { backdrop, body } = maakModal('Addon geïnstalleerd', null);
-                // replace body content
+                const { body } = maakModal('Addon gevalideerd', null);
                 body.innerHTML = '';
                 body.appendChild(toonStappen(res.addon, 'upload'));
                 // remove previous backdrop? maakModal already removed old; but we are inside old backdrop. Close old by removing.
@@ -380,7 +427,7 @@
             try {
                 const res = await installFromGitHub(url);
                 if (!res.ok) { alert(res.error || 'Ophalen mislukt.'); return; }
-                const { body } = maakModal('Addon geïnstalleerd', null);
+                const { body } = maakModal('Addon gevalideerd', null);
                 body.innerHTML = '';
                 body.appendChild(toonStappen(res.addon, 'github'));
             } catch (err) {
@@ -395,7 +442,7 @@
         const listSectie = document.createElement('div');
         listSectie.style.cssText = 'display:flex; flex-direction:column; gap:8px;';
         const listTitel = document.createElement('strong');
-        listTitel.textContent = 'Geïnstalleerde addons';
+        listTitel.textContent = 'Gevalideerde addons';
         listTitel.style.fontSize = '14px';
         listSectie.appendChild(listTitel);
         const listBody = document.createElement('div');
@@ -407,7 +454,7 @@
             const installed = getInstalled();
             if (!installed.length) {
                 const leeg = document.createElement('div');
-                leeg.textContent = 'Nog geen addons geïnstalleerd.';
+                leeg.textContent = 'Nog geen addons gevalideerd.';
                 leeg.style.cssText = 'font-size:13px; color:var(--egd-tekst-zacht); padding:8px;';
                 listBody.appendChild(leeg);
                 return;
@@ -459,7 +506,7 @@
         renderList();
         wrap.appendChild(listSectie);
 
-        maakModal('Addon installeren', wrap);
+        maakModal('Addon valideren', wrap);
     }
 
     // expose

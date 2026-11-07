@@ -138,7 +138,7 @@ function openAddonsMenu(e) {
         </div>
         <div id="egodact-addons-body" style="overflow-y:auto; min-height:0; max-height:calc(100vh - 190px); padding-right:4px; display:flex; flex-direction:column; gap:14px;"></div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px; gap:8px; flex-wrap:wrap;">
-            <button id="egodact-addons-installeren" type="button" style="background-color:transparent; border:1px solid var(--egd-accent); color:var(--egd-accent); cursor:pointer; padding:10px 20px; font-weight:bold; font-size:14px; text-transform:uppercase; border-radius:4px;">Addon installeren</button>
+            <button id="egodact-addons-installeren" type="button" style="background-color:transparent; border:1px solid var(--egd-accent); color:var(--egd-accent); cursor:pointer; padding:10px 20px; font-weight:bold; font-size:14px; text-transform:uppercase; border-radius:4px;">Addon valideren</button>
             <button id="egodact-addons-sluiten" type="button" style="background-color:var(--egd-accent); border:none; color:var(--egd-accent-tekst); cursor:pointer; padding:10px 20px; font-weight:bold; font-size:14px; text-transform:uppercase; border-radius:4px; box-shadow:0px 3px 1px -2px rgba(0,0,0,0.2);">Sluiten</button>
         </div>
     `;
