@@ -134,6 +134,7 @@ function egodactSetButtonEnabled(id, enabled) {
         _known: [],
         _byId: {},
         _menus: [],
+        _hamburgerItems: [],
         _buttons: [],
         _games: [],
         _readyCallbacks: [],
@@ -155,6 +156,7 @@ function egodactSetButtonEnabled(id, enabled) {
                 description: meta.description || '',
                 author: meta.author || '',
                 menus: [],
+                hamburger: [],
                 buttons: [],
                 games: []
             };
@@ -176,6 +178,27 @@ function egodactSetButtonEnabled(id, enabled) {
             };
             this._menus.push(entry);
             if (addon) addon.menus.push(entry);
+            return entry;
+        },
+
+        // Menu-item voor de hamburger naast de gebruikersnaam.
+        // Alleen addons die dit expliciet registreren komen in de
+        // hamburger; gewone registerMenu()-items blijven in de
+        // Addons-bibliotheek.
+        registerHamburger(meta) {
+            meta = meta || {};
+            const addon = meta.addonId ? this._byId[meta.addonId] : null;
+            const entry = {
+                id: meta.id || (meta.addonId + ':' + (meta.title || 'menu')),
+                addonId: meta.addonId || null,
+                title: meta.title || 'Menu',
+                icon: meta.icon || '',
+                order: typeof meta.order === 'number' ? meta.order : 0,
+                open: typeof meta.open === 'function' ? meta.open : function () {},
+                addon: addon
+            };
+            this._hamburgerItems.push(entry);
+            if (addon) addon.hamburger.push(entry);
             return entry;
         },
 
@@ -284,6 +307,7 @@ function egodactSetButtonEnabled(id, enabled) {
 
         hasContent() {
             return this._addons.length > 0 || this._menus.length > 0 ||
+                this._hamburgerItems.length > 0 ||
                 this._buttons.length > 0 || this._games.length > 0;
         },
 
@@ -315,6 +339,19 @@ function egodactSetButtonEnabled(id, enabled) {
                     id: meta.id,
                     title: meta.title || 'Menu',
                     icon: meta.icon || '',
+                    open: function () {
+                        document.dispatchEvent(new CustomEvent('egodact:addon:open', {
+                            detail: { id: meta.id }
+                        }));
+                    }
+                });
+            } else if (detail.type === 'hamburger') {
+                EgodactAddons.registerHamburger({
+                    addonId: meta.addonId || null,
+                    id: meta.id,
+                    title: meta.title || 'Menu',
+                    icon: meta.icon || '',
+                    order: meta.order,
                     open: function () {
                         document.dispatchEvent(new CustomEvent('egodact:addon:open', {
                             detail: { id: meta.id }

@@ -83,7 +83,11 @@ function apiHasDisabledButtonInDom() {
 function egodactHamburgerMenus() {
     try {
         const api = window.EgodactAddons;
-        return (api && Array.isArray(api._menus)) ? api._menus : [];
+        if (!api || !Array.isArray(api._hamburgerItems)) return [];
+        // Alleen items die via de lib/hamburger-API zijn aangemeld.
+        return api._hamburgerItems
+            .filter(function (m) { return m && m.title; })
+            .sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
     } catch (err) { return []; }
 }
 
@@ -200,8 +204,9 @@ function egodactUpdateHamburger() {
     let open = false;
     function position() {
         const r = knop.getBoundingClientRect();
+        const w = dropdown.offsetWidth || 200;
         dropdown.style.top = (r.bottom + 6) + 'px';
-        dropdown.style.left = Math.max(8, Math.min(window.innerWidth - 200, r.left)) + 'px';
+        dropdown.style.left = Math.max(8, Math.min(window.innerWidth - w - 12, r.left)) + 'px';
     }
     function openMenu() { open = true; position(); dropdown.classList.add('egd-ham-open'); knop.classList.add('egd-ham-open'); }
     function closeMenu() { open = false; dropdown.classList.remove('egd-ham-open'); knop.classList.remove('egd-ham-open'); }
@@ -234,6 +239,8 @@ function egodactUpdateHamburger() {
         });
         dropdown.appendChild(item);
     });
+
+    dropdown.dataset.egdHamSig = menus.map(function (m) { return m.id || m.title; }).join('|');
 
     if (!knop.dataset.egdHamBound) {
         knop.dataset.egdHamBound = '1';
@@ -381,7 +388,10 @@ function voegKnoppenToe() {
 
     const hamburgerMenus = egodactHamburgerMenus();
     const hamburgerBestaat = !!document.getElementById('egodact-hamburger-knop');
-    const hamburgerOk = hamburgerMenus.length ? hamburgerBestaat : !hamburgerBestaat;
+    const hamburgerDropdown = document.getElementById('egodact-hamburger-dropdown');
+    const hamburgerSig = hamburgerMenus.map(function (m) { return m.id || m.title; }).join('|');
+    const hamburgerItemsOk = !!hamburgerDropdown && hamburgerDropdown.dataset.egdHamSig === hamburgerSig;
+    const hamburgerOk = hamburgerMenus.length ? (hamburgerBestaat && hamburgerItemsOk) : !hamburgerBestaat;
 
     if (
         bestaandeInfo &&
