@@ -222,6 +222,7 @@ function egodactSetButtonEnabled(id, enabled) {
                 version: meta.version || '1.0.0',
                 description: meta.description || '',
                 author: meta.author || '',
+                source: meta.source || meta.url || meta.homepage || meta.repository || '',
                 menus: [],
                 hamburger: [],
                 buttons: [],

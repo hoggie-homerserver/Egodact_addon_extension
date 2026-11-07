@@ -174,6 +174,26 @@ function openAddonsMenu(e) {
         kop.style.cssText = 'margin:0; font-size:15px; color:var(--egd-tekst-zacht);';
         wrap.appendChild(kop);
         addons.forEach((addon) => {
+            const verified = (typeof egodactZoekVerifiedAddon === 'function')
+                ? egodactZoekVerifiedAddon(addon.id, addon.version)
+                : null;
+            const isOfficial = !!(verified && verified.entry && verified.versionMatch && !verified.versionUnknown);
+            const isKnownUnknownVersion = !!(verified && verified.entry && verified.versionMatch && verified.versionUnknown);
+            const isVersionMismatch = !!(verified && verified.entry && !verified.versionMatch);
+            const tierLabel = isOfficial ? 'Official' : (isKnownUnknownVersion ? 'Known (versie onbekend)' : (isVersionMismatch ? 'Bekende addon (andere versie)' : 'Unverified / Local'));
+            const tierColor = isOfficial ? '#2e7d32' : (isKnownUnknownVersion ? '#2e7d32' : (isVersionMismatch ? '#ef6c00' : '#666'));
+            const tierText = '#fff';
+            const tierNote = isOfficial
+                ? 'Staat op de door de maintainer meegeleverde verificatielijst (geen externe database).'
+                : (isKnownUnknownVersion
+                    ? 'Add-on-id staat op de verificatielijst, maar de geladen versie is niet bevestigd.'
+                    : (isVersionMismatch
+                        ? 'Add-on-id is bekend, maar deze versie staat niet op de verificatielijst. Controleer de bron.'
+                        : 'Niet op de verificatielijst van de host. De host vertrouwt de claims van de addon niet.'));
+            const source = addon.source || (verified && verified.entry && verified.entry.source) || '';
+            const pinnedHash = (verified && verified.entry && verified.entry.sha256) ? String(verified.entry.sha256) : '';
+            const shortHash = pinnedHash ? (pinnedHash.slice(0, 12) + '…') : '';
+
             const kaartEl = document.createElement('div');
             Object.assign(kaartEl.style, {
                 padding: '10px 12px',
@@ -181,22 +201,34 @@ function openAddonsMenu(e) {
                 border: '1px solid var(--egd-rand)',
                 borderRadius: '6px',
                 display: 'flex',
-                alignItems: 'center',
+                alignItems: 'flex-start',
                 justifyContent: 'space-between',
                 gap: '12px'
             });
             const info = document.createElement('div');
+            info.style.minWidth = '0';
+            info.style.flex = '1';
+
+            const esc = (v) => (api && api.escapeHtml) ? api.escapeHtml(String(v == null ? '' : v)) : String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
             info.innerHTML = `
-                <div style="display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;">
-                    <strong style="font-size:14px;">${api.escapeHtml(addon.name)}</strong>
-                    <span style="font-size:11px; color:var(--egd-tekst-zacht);">v${api.escapeHtml(addon.version)}</span>
-                    ${addon.author ? '<span style="font-size:11px; color:var(--egd-tekst-zacht);">· ' + api.escapeHtml(addon.author) + '</span>' : ''}
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <strong style="font-size:14px;">${esc(addon.name)}</strong>
+                    <span style="font-size:11px; color:var(--egd-tekst-zacht);">v${esc(addon.version)}</span>
+                    <span style="display:inline-flex; align-items:center; padding:1px 7px; border-radius:999px; font-size:10px; font-weight:bold; letter-spacing:.02em; background:${tierColor}; color:${tierText};" title="${esc(tierNote)}">${esc(tierLabel)}</span>
                 </div>
-                ${addon.description ? '<div style="font-size:12px; color:var(--egd-tekst-zacht); margin-top:4px;">' + api.escapeHtml(addon.description) + '</div>' : ''}
+                ${addon.description ? '<div style="font-size:12px; color:var(--egd-tekst-zacht); margin-top:4px;">' + esc(addon.description) + '</div>' : ''}
+                <div style="display:grid; grid-template-columns:auto 1fr; gap:2px 8px; margin-top:8px; font-size:11px; line-height:1.35;">
+                    <span style="color:var(--egd-tekst-zacht);">Auteur</span><span style="overflow-wrap:anywhere;">${esc(addon.author || 'Onbekend')}</span>
+                    <span style="color:var(--egd-tekst-zacht);">Bron</span><span style="overflow-wrap:anywhere;">${source ? esc(source) : 'Niet opgegeven'}</span>
+                    <span style="color:var(--egd-tekst-zacht);">Hash</span><span style="overflow-wrap:anywhere; font-family:Consolas, monospace;">${pinnedHash ? esc(shortHash) + ' <span style="color:var(--egd-tekst-zacht); font-family:inherit;" title="' + esc(pinnedHash) + '">(vastgelegd)</span>' : 'Niet gecontroleerd'}</span>
+                </div>
+                <div style="margin-top:6px; font-size:10px; color:var(--egd-tekst-zacht); line-height:1.35;">${esc(tierNote)}</div>
             `;
+
             const disabled = egodactAddonDisabled(addon.id);
             const toggleWrap = document.createElement('label');
-            toggleWrap.style.cssText = 'position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;cursor:pointer;';
+            toggleWrap.style.cssText = 'position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;cursor:pointer;margin-top:2px;';
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.checked = !disabled;

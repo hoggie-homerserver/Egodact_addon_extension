@@ -10,6 +10,7 @@
       ],
       "js": [
         "src/config.js",
+        "src/verified-addons.js",
         "src/theme.js",
         "src/addon-api.js",
         "src/addon-installer.js",
