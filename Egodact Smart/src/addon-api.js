@@ -233,8 +233,11 @@ function egodactSetButtonEnabled(id, enabled) {
         registerMenu(meta) {
             meta = meta || {};
             const addon = meta.addonId ? this._byId[meta.addonId] : null;
+            const id = meta.id || (meta.addonId + ':' + (meta.title || 'menu'));
+            // Dedupe by id.
+            if (this._menus.some(function (m) { return m && m.id === id; })) return this._menus.find(function (m) { return m && m.id === id; });
             const entry = {
-                id: meta.id || (meta.addonId + ':' + (meta.title || 'menu')),
+                id: id,
                 addonId: meta.addonId || null,
                 title: meta.title || 'Menu',
                 icon: meta.icon || '',
@@ -253,8 +256,11 @@ function egodactSetButtonEnabled(id, enabled) {
         registerHamburger(meta) {
             meta = meta || {};
             const addon = meta.addonId ? this._byId[meta.addonId] : null;
+            const id = meta.id || (meta.addonId + ':' + (meta.title || 'menu'));
+            // Dedupe by id.
+            if (this._hamburgerItems.some(function (m) { return m && m.id === id; })) return this._hamburgerItems.find(function (m) { return m && m.id === id; });
             const entry = {
-                id: meta.id || (meta.addonId + ':' + (meta.title || 'menu')),
+                id: id,
                 addonId: meta.addonId || null,
                 title: meta.title || 'Menu',
                 icon: meta.icon || '',
@@ -488,6 +494,21 @@ function egodactSetButtonEnabled(id, enabled) {
                         }));
                     }
                 });
+            } else if (detail.type === 'challenges:request') {
+                if (!meta.requestId) return;
+                EgodactAddons.getChallenges(meta.force === true).then(function (lijst) {
+                    let json = '[]';
+                    try { json = JSON.stringify(lijst || []); } catch (err) {}
+                    document.dispatchEvent(new CustomEvent('egodact:addon:challenges:response', {
+                        detail: {
+                            requestId: meta.requestId,
+                            json: json,
+                            count: Array.isArray(lijst) ? lijst.length : 0
+                        }
+                    }));
+                });
+            } else if (detail.type === 'toast') {
+                egodactToonToast(meta.message, meta.options || {});
             }
         } catch (err) {
             console.error('Egodact addon registratie mislukt:', err);
