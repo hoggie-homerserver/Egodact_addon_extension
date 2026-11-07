@@ -37,6 +37,9 @@ function egodactRuimExtensieOp() {
         'egodact-beta-features-knop',
         'egodact-tijd-knop',
         'egodact-addons-knop',
+        'egodact-hamburger-knop',
+        'egodact-hamburger-dropdown',
+        'egodact-hamburger-stijl',
         'egodact-knop-groep',
         'egodact-custom-modal-backdrop',
         'egodact-tijd-melding',
@@ -68,6 +71,165 @@ function apiHasDisabledButtonInDom() {
             return !!document.getElementById(btnId);
         });
     } catch (err) { return false; }
+}
+
+// ============================================================
+// HAMBURGER MENU VOOR ADDON-MENU'S
+// ============================================================
+// Verschijnt alleen als minstens één addon een menu heeft
+// geregistreerd (window.EgodactAddons._menus). Zo staat er geen
+// lege knop in de topbar als er geen addons zijn.
+
+function egodactHamburgerMenus() {
+    try {
+        const api = window.EgodactAddons;
+        return (api && Array.isArray(api._menus)) ? api._menus : [];
+    } catch (err) { return []; }
+}
+
+function egodactHamburgerStyle() {
+    if (document.getElementById('egodact-hamburger-stijl')) return;
+    const style = document.createElement('style');
+    style.id = 'egodact-hamburger-stijl';
+    style.textContent = `
+        #egodact-hamburger-knop {
+            display: inline-flex; align-items: center; justify-content: center;
+            border: none; background: transparent; cursor: pointer;
+            padding: 0 6px; margin: 0 10px 0 12px;
+            color: var(--egd-header-icoon, var(--egd-tekst, #fff));
+            opacity: .85; transition: opacity 150ms ease; flex-shrink: 0;
+        }
+        #egodact-hamburger-knop:hover { opacity: 1; }
+        #egodact-hamburger-knop .egd-ham-icon {
+            display: flex; flex-direction: column; justify-content: space-between;
+            width: 20px; height: 14px;
+            transition: transform 220ms cubic-bezier(.4,0,.2,1);
+            transform: rotate(0deg);
+        }
+        #egodact-hamburger-knop.egd-ham-open .egd-ham-icon { transform: rotate(90deg); }
+        #egodact-hamburger-knop .egd-ham-icon span {
+            display: block; height: 2px; width: 100%;
+            background: currentColor; border-radius: 2px;
+        }
+        #egodact-hamburger-dropdown {
+            position: fixed; background: var(--egd-modal, #424242); color: var(--egd-tekst, #fff);
+            border: 1px solid var(--egd-rand, #555); border-radius: 8px;
+            box-shadow: var(--egd-schaduw, 0 8px 24px rgba(0,0,0,.4));
+            padding: 6px; display: flex; flex-direction: column; gap: 2px; min-width: 190px;
+            opacity: 0; transform: translateY(-8px) scale(.98); transform-origin: top right;
+            pointer-events: none;
+            transition: opacity 180ms ease, transform 180ms cubic-bezier(.4,0,.2,1);
+            z-index: 2147483000;
+        }
+        #egodact-hamburger-dropdown.egd-ham-open {
+            opacity: 1; transform: translateY(0) scale(1); pointer-events: auto;
+        }
+        #egodact-hamburger-dropdown button {
+            text-align: left; padding: 9px 12px; border: none; background: transparent;
+            color: var(--egd-tekst, #fff); cursor: pointer; border-radius: 5px;
+            font-size: 13px; font-family: inherit; width: 100%;
+        }
+        #egodact-hamburger-dropdown button:hover { background: var(--egd-hover, rgba(255,255,255,.08)); }
+    `;
+    document.head.appendChild(style);
+}
+
+function egodactVindNaamElement() {
+    const nodes = document.querySelectorAll('header *, nav *');
+    let best = null;
+    nodes.forEach(function (el) {
+        const txt = (el.textContent || '').trim();
+        if (/welcome|hallo|goedemorgen|goedemiddag/i.test(txt) && txt.length < 60) {
+            if (!best || el.children.length < best.children.length) best = el;
+        }
+    });
+    return best;
+}
+
+function egodactUpdateHamburger() {
+    const menus = egodactHamburgerMenus();
+    const bestaand = document.getElementById('egodact-hamburger-knop');
+
+    if (!menus.length) {
+        if (bestaand && bestaand.parentNode) bestaand.parentNode.removeChild(bestaand);
+        const oudeDropdown = document.getElementById('egodact-hamburger-dropdown');
+        if (oudeDropdown && oudeDropdown.parentNode) oudeDropdown.parentNode.removeChild(oudeDropdown);
+        return;
+    }
+
+    egodactHamburgerStyle();
+
+    let knop = bestaand;
+    if (!knop) {
+        knop = document.createElement('button');
+        knop.id = 'egodact-hamburger-knop';
+        knop.type = 'button';
+        knop.title = 'Addon-menu';
+        knop.innerHTML = '<span class="egd-ham-icon"><span></span><span></span><span></span></span>';
+
+        const doel = egodactVindNaamElement();
+        if (doel && doel.parentNode) {
+            doel.parentNode.insertBefore(knop, doel.nextSibling);
+        } else {
+            const infoKnop = document.getElementById('egodact-info-knop');
+            if (infoKnop && infoKnop.parentNode) infoKnop.insertAdjacentElement('afterend', knop);
+            else {
+                const groep = document.getElementById('egodact-knop-groep');
+                if (groep) groep.appendChild(knop);
+            }
+        }
+    }
+
+    // Sync size with the name area (a bit bigger).
+    const naam = egodactVindNaamElement();
+    if (naam) {
+        const rect = naam.getBoundingClientRect();
+        const h = Math.min(48, Math.max(32, Math.round((rect.height || 22) * 1.4)));
+        knop.style.height = h + 'px';
+        knop.style.minWidth = h + 'px';
+    }
+
+    let dropdown = document.getElementById('egodact-hamburger-dropdown');
+    if (!dropdown) {
+        dropdown = document.createElement('div');
+        dropdown.id = 'egodact-hamburger-dropdown';
+        document.body.appendChild(dropdown);
+    }
+
+    let open = false;
+    function position() {
+        const r = knop.getBoundingClientRect();
+        dropdown.style.top = (r.bottom + 6) + 'px';
+        dropdown.style.left = Math.max(8, Math.min(window.innerWidth - 200, r.left)) + 'px';
+    }
+    function openMenu() { open = true; position(); dropdown.classList.add('egd-ham-open'); knop.classList.add('egd-ham-open'); }
+    function closeMenu() { open = false; dropdown.classList.remove('egd-ham-open'); knop.classList.remove('egd-ham-open'); }
+
+    // Rebuild items.
+    dropdown.innerHTML = '';
+    menus.forEach(function (m) {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.textContent = (m.icon ? m.icon + ' ' : '') + (m.title || 'Menu');
+        item.addEventListener('click', function () {
+            closeMenu();
+            try { if (typeof m.open === 'function') m.open(); } catch (err) { console.error(err); }
+        });
+        dropdown.appendChild(item);
+    });
+
+    if (!knop.dataset.egdHamBound) {
+        knop.dataset.egdHamBound = '1';
+        knop.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (open) closeMenu(); else openMenu();
+        });
+        document.addEventListener('click', function (e) {
+            if (open && !dropdown.contains(e.target) && e.target !== knop) closeMenu();
+        });
+        window.addEventListener('resize', function () { if (open) position(); });
+        window.addEventListener('scroll', function () { if (open) position(); }, true);
+    }
 }
 
 function voegKnoppenToe() {
@@ -200,6 +362,10 @@ function voegKnoppenToe() {
         return !!document.getElementById(addonBtnId);
     });
 
+    const hamburgerMenus = egodactHamburgerMenus();
+    const hamburgerBestaat = !!document.getElementById('egodact-hamburger-knop');
+    const hamburgerOk = hamburgerMenus.length ? hamburgerBestaat : !hamburgerBestaat;
+
     if (
         bestaandeInfo &&
         bestaandeTaken &&
@@ -208,6 +374,7 @@ function voegKnoppenToe() {
         (bestaandeTijd || !EGODACT_TIJD_ZICHTBAAR) &&
         (bestaandeAddons || !addonsZichtbaar) &&
         addonButtonsComplete &&
+        hamburgerOk &&
         !apiHasDisabledButtonInDom()
     ) {
         return;
@@ -1064,6 +1231,8 @@ function voegKnoppenToe() {
     } catch (err) {
         console.error(err);
     }
+
+    egodactUpdateHamburger();
 
     egodactSyncMenuButtonTheme();
 }
