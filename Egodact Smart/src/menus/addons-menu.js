@@ -39,6 +39,15 @@ function openAddonsMenu(e) {
             allAddons.push({ id: id, name: id, version: '?', description: '', author: '' });
         }
     });
+    // Geïnstalleerde addons (via easy install) ook tonen
+    try {
+        const installed = (window.egodactGetInstalledAddons) ? window.egodactGetInstalledAddons() : [];
+        installed.forEach(function (a) {
+            if (!allAddons.some(function (x) { return x.id === a.id; })) {
+                allAddons.push({ id: a.id, name: a.name, version: a.version || '?', description: a.description || '', author: a.author || '', _installed: true, _enabled: a.enabled !== false });
+            }
+        });
+    } catch (err) {}
     const addons = allAddons;
     const menus = (api && api._menus) || [];
     const buttons = (api && api._buttons) || [];
@@ -128,7 +137,8 @@ function openAddonsMenu(e) {
             <span style="margin-left:auto; font-size:12px; color:var(--egd-tekst-zacht);">${addons.length} addon${addons.length === 1 ? '' : 's'}</span>
         </div>
         <div id="egodact-addons-body" style="overflow-y:auto; min-height:0; max-height:calc(100vh - 190px); padding-right:4px; display:flex; flex-direction:column; gap:14px;"></div>
-        <div style="display:flex; justify-content:flex-end; margin-top:5px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px; gap:8px; flex-wrap:wrap;">
+            <button id="egodact-addons-installeren" type="button" style="background-color:transparent; border:1px solid var(--egd-accent); color:var(--egd-accent); cursor:pointer; padding:10px 20px; font-weight:bold; font-size:14px; text-transform:uppercase; border-radius:4px;">Addon installeren</button>
             <button id="egodact-addons-sluiten" type="button" style="background-color:var(--egd-accent); border:none; color:var(--egd-accent-tekst); cursor:pointer; padding:10px 20px; font-weight:bold; font-size:14px; text-transform:uppercase; border-radius:4px; box-shadow:0px 3px 1px -2px rgba(0,0,0,0.2);">Sluiten</button>
         </div>
     `;
@@ -139,6 +149,13 @@ function openAddonsMenu(e) {
     const body = modal.querySelector('#egodact-addons-body');
     const sluit = () => backdrop.remove();
     modal.querySelector('#egodact-addons-sluiten').addEventListener('click', sluit);
+    const instBtn = modal.querySelector('#egodact-addons-installeren');
+    if (instBtn) instBtn.addEventListener('click', function () {
+        backdrop.remove();
+        if (window.EgodactAddonInstaller && typeof window.EgodactAddonInstaller.open === 'function') {
+            window.EgodactAddonInstaller.open();
+        }
+    });
     backdrop.addEventListener('click', (ev) => { if (ev.target === backdrop) sluit(); });
 
     if (!addons.length && !menus.length && !buttons.length && !games.length) {

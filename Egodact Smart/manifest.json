@@ -12,6 +12,7 @@
         "src/config.js",
         "src/theme.js",
         "src/addon-api.js",
+        "src/addon-installer.js",
         "src/menus/smart-menu.js",
         "src/menus/beta-menu.js",
         "src/menus/addons-menu.js",
