@@ -130,6 +130,7 @@ function egodactHamburgerStyle() {
             font-size: 13px; font-family: inherit; width: 100%;
         }
         #egodact-hamburger-dropdown button:hover { background: var(--egd-hover, rgba(255,255,255,.08)); }
+        #egodact-hamburger-dropdown button svg { width: 16px; height: 16px; }
     `;
     document.head.appendChild(style);
 }
@@ -210,7 +211,23 @@ function egodactUpdateHamburger() {
     menus.forEach(function (m) {
         const item = document.createElement('button');
         item.type = 'button';
-        item.textContent = (m.icon ? m.icon + ' ' : '') + (m.title || 'Menu');
+        item.style.display = 'flex';
+        item.style.alignItems = 'center';
+        item.style.gap = '8px';
+
+        // Icons can be plain text, HTML entities (&#10024;) or an SVG string.
+        const icon = document.createElement('span');
+        icon.style.cssText = 'display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; flex-shrink:0; overflow:hidden;';
+        if (m.icon) icon.innerHTML = String(m.icon);
+        else icon.textContent = '';
+
+        const label = document.createElement('span');
+        label.textContent = m.title || 'Menu';
+        label.style.overflow = 'hidden';
+        label.style.textOverflow = 'ellipsis';
+        label.style.whiteSpace = 'nowrap';
+
+        item.append(icon, label);
         item.addEventListener('click', function () {
             closeMenu();
             try { if (typeof m.open === 'function') m.open(); } catch (err) { console.error(err); }
