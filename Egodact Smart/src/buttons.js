@@ -86,9 +86,14 @@ function apiHasDisabledButtonInDom() {
 function egodactHamburgerMenus() {
     try {
         const api = window.EgodactAddons;
-        if (!api || !Array.isArray(api._hamburgerItems)) return [];
-        // Alleen items die via de lib/hamburger-API zijn aangemeld.
-        return api._hamburgerItems
+        if (!api) return [];
+        let items = Array.isArray(api._hamburgerItems) ? api._hamburgerItems : [];
+        // Backwards compat: if nothing registered via the hamburger API
+        // but the lib/SDK only knew about registerMenu at the time, do
+        // not silently drop everything. (Learning Mode also registers
+        // via registerMenu as a fallback.)
+        // Keep hamburger opt-in: only show explicit hamburger items.
+        return items
             .filter(function (m) { return m && m.title; })
             .sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
     } catch (err) { return []; }
@@ -236,9 +241,24 @@ function egodactUpdateHamburger() {
         knop.innerHTML = '<span class="egd-ham-icon"><span></span><span></span><span></span></span>';
 
         if (!egodactSlotAdd('name', knop, 0)) {
-            const groep = document.getElementById('egodact-knop-groep');
-            if (groep) groep.appendChild(knop);
+            // Fallback: try to place right of the name.
+            const doel = egodactVindNaamElement();
+            if (doel && doel.parentNode) {
+                doel.parentNode.insertBefore(knop, doel.nextSibling);
+            } else {
+                const groep = document.getElementById('egodact-knop-groep');
+                if (groep) groep.appendChild(knop);
+                else {
+                    const infoKnop = document.getElementById('egodact-info-knop');
+                    if (infoKnop && infoKnop.parentNode) infoKnop.insertAdjacentElement('afterend', knop);
+                }
+            }
         }
+    }
+
+    if (!knop.isConnected) {
+        // The slot/name container was re-rendered by the host page.
+        egodactSlotAdd('name', knop, 0);
     }
 
     // Sync size with the name area (a bit bigger).
@@ -1330,7 +1350,7 @@ function voegKnoppenToe() {
         console.error(err);
     }
 
-    egodactUpdateHamburger();
+    try { egodactUpdateHamburger(); } catch (err) { console.error('Hamburger update failed:', err); }
 
     egodactSyncMenuButtonTheme();
 }
