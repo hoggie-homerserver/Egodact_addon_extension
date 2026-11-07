@@ -106,8 +106,73 @@ function egodactSetButtonEnabled(id, enabled) {
         return backdrop;
     }
 
-    function maakKnopStijl(el) {
-        Object.assign(el.style, {
+    // ------------------------------------------------------------
+    // Toast / notificaties
+    // ------------------------------------------------------------
+    function egodactToonToast(bericht, opties) {
+        opties = opties || {};
+
+        if (!document.body) return null;
+
+        let wrap = document.getElementById('egodact-toast-wrap');
+        if (!wrap) {
+            wrap = document.createElement('div');
+            wrap.id = 'egodact-toast-wrap';
+            Object.assign(wrap.style, {
+                position: 'fixed',
+                right: '16px',
+                bottom: '16px',
+                zIndex: '2147483600',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-end',
+                gap: '8px',
+                pointerEvents: 'none'
+            });
+            document.body.appendChild(wrap);
+        }
+
+        const type = opties.type || 'info';
+        const kleuren = {
+            success: 'var(--egd-accent)',
+            error: 'var(--egd-gevaar)',
+            warning: '#ef6c00',
+            info: '#2e7d32'
+        };
+
+        const el = document.createElement('div');
+        el.style.cssText =
+            'pointer-events:auto; max-width:340px; padding:10px 14px; border-radius:6px;' +
+            'font-family:Arial,sans-serif; font-size:13px; line-height:1.35;' +
+            'box-shadow:var(--egd-schaduw); opacity:0; transform:translateY(6px);' +
+            'transition:opacity 160ms ease, transform 160ms ease;' +
+            'background:' + (opties.background || kleuren[type] || kleuren.info) + ';' +
+            'color:' + (opties.color || '#fff') + ';';
+        el.textContent = String(bericht == null ? '' : bericht);
+
+        wrap.appendChild(el);
+
+        try {
+            requestAnimationFrame(function () {
+                el.style.opacity = '1';
+                el.style.transform = 'translateY(0)';
+            });
+        } catch (err) {
+            el.style.opacity = '1';
+            el.style.transform = 'translateY(0)';
+        }
+
+        const duur = typeof opties.duration === 'number' ? opties.duration : 3000;
+        setTimeout(function () {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(6px)';
+            setTimeout(function () { el.remove(); }, 220);
+        }, Math.max(600, duur));
+
+        return el;
+    }
+
+    function maakKnopStijl(el) {        Object.assign(el.style, {
             background: 'none',
             border: 'none',
             cursor: 'pointer',
@@ -212,6 +277,8 @@ function egodactSetButtonEnabled(id, enabled) {
                 icon: meta.icon || '',
                 key: (meta.addonId || '') + ':' + (meta.id || ''),
                 position: meta.position || 'header',
+                slot: meta.slot === 'name' ? 'name' : 'actions',
+                order: (typeof meta.order === 'number') ? meta.order : null,
                 x: meta.x,
                 y: meta.y,
                 draggable: meta.draggable !== false,
@@ -244,6 +311,34 @@ function egodactSetButtonEnabled(id, enabled) {
         // Helpers voor addons
         // ------------------------------------------------------------
         openModal: egodactOpenModal,
+        toast: egodactToonToast,
+
+        // Alle challenges van het bord (zelfde 5-minuten-cache als het
+        // Addons-menu). Geeft altijd een Promise met een array terug.
+        getChallenges(force) {
+            try {
+                if (typeof egodactLaadChallenges === 'function') {
+                    return Promise.resolve(egodactLaadChallenges(force === true))
+                        .catch(function (err) {
+                            console.warn('Challenges laden mislukt:', err);
+                            return [];
+                        });
+                }
+            } catch (err) {
+                console.warn('Challenges laden mislukt:', err);
+            }
+            return Promise.resolve([]);
+        },
+
+        // Thema-info voor addons die zelf willen herstylen.
+        getTheme() {
+            try {
+                const dark = document.documentElement.getAttribute('data-egodact-thema') === 'donker';
+                return { theme: dark ? 'dark' : 'light', dark: dark };
+            } catch (err) {
+                return { theme: 'dark', dark: true };
+            }
+        },
 
         storage(addonId) {
             const prefix = STORAGE_PREFIX + (addonId || 'global') + '_';
@@ -365,6 +460,8 @@ function egodactSetButtonEnabled(id, enabled) {
                     title: meta.title || 'Knop',
                     icon: meta.icon || '',
                     position: meta.position || 'header',
+                    slot: meta.slot,
+                    order: meta.order,
                     x: meta.x,
                     y: meta.y,
                     draggable: meta.draggable !== false,
@@ -397,6 +494,37 @@ function egodactSetButtonEnabled(id, enabled) {
         }
         if (typeof voegKnoppenToe === 'function') { try { voegKnoppenToe(); } catch (e) {} }
         else { setTimeout(function(){ if (typeof voegKnoppenToe === 'function') voegKnoppenToe(); }, 0); }
+    });
+
+    // ------------------------------------------------------------
+    // Addon -> host: challenges opvragen
+    // ------------------------------------------------------------
+    // De lijst gaat als JSON-string mee, zodat hij ook tussen twee
+    // losse extensies (isolated worlds) heelhuids aankomt.
+    document.addEventListener('egodact:addon:challenges:request', function (event) {
+        const detail = (event && event.detail) || {};
+        if (!detail.requestId) return;
+
+        EgodactAddons.getChallenges(detail.force === true).then(function (lijst) {
+            let json = '[]';
+            try { json = JSON.stringify(lijst || []); } catch (err) {}
+
+            document.dispatchEvent(new CustomEvent('egodact:addon:challenges:response', {
+                detail: {
+                    requestId: detail.requestId,
+                    json: json,
+                    count: Array.isArray(lijst) ? lijst.length : 0
+                }
+            }));
+        });
+    });
+
+    // ------------------------------------------------------------
+    // Addon -> host: toast
+    // ------------------------------------------------------------
+    document.addEventListener('egodact:addon:toast', function (event) {
+        const detail = (event && event.detail) || {};
+        egodactToonToast(detail.message, detail.options || {});
     });
 
     try {

@@ -52,9 +52,9 @@ function egodactBouwChallengeLijst(data) {
         );
 }
 
-async function egodactLaadChallenges() {
+async function egodactLaadChallenges(force) {
     // Vijf minuten onthouden, zodat het menu snel opent.
-    if (egodactChallengeCache &&
+    if (!force && egodactChallengeCache &&
         Date.now() - egodactChallengeCache.tijd < 5 * 60 * 1000) {
         return egodactChallengeCache.lijst;
     }
@@ -90,6 +90,16 @@ async function egodactLaadChallenges() {
 
     const lijst = egodactBouwChallengeLijst(await response.json());
     egodactChallengeCache = { tijd: Date.now(), lijst };
+
+    // Laat addons weten dat er nieuwe challenge-data is.
+    try {
+        document.dispatchEvent(new CustomEvent('egodact:challenges:changed', {
+            detail: {
+                count: lijst.length,
+                json: JSON.stringify(lijst)
+            }
+        }));
+    } catch (err) {}
 
     return lijst;
 }

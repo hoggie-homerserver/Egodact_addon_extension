@@ -217,6 +217,8 @@ function egodactPaginaIsDonker() {
     }
 }
 
+let egodactLaatsteThema = null;
+
 function egodactPasThemaToe() {
     if (window.__egodactUitgeschakeld) return;
 
@@ -236,6 +238,16 @@ function egodactPasThemaToe() {
 
         if (root.getAttribute('data-egodact-thema') !== thema) {
             root.setAttribute('data-egodact-thema', thema);
+        }
+
+        // Addons kunnen live meebewegen met het thema.
+        if (egodactLaatsteThema !== thema) {
+            egodactLaatsteThema = thema;
+            try {
+                document.dispatchEvent(new CustomEvent('egodact:theme:changed', {
+                    detail: { theme: thema === 'donker' ? 'dark' : 'light', dark: donker }
+                }));
+            } catch (err) {}
         }
 
         // Pictogramkleur voor onze knoppen in de koptekst: gebaseerd op

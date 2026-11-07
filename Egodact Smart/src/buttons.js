@@ -40,6 +40,9 @@ function egodactRuimExtensieOp() {
         'egodact-hamburger-knop',
         'egodact-hamburger-dropdown',
         'egodact-hamburger-stijl',
+        'egodact-slot-name',
+        'egodact-slot-actions',
+        'egodact-toast-wrap',
         'egodact-knop-groep',
         'egodact-custom-modal-backdrop',
         'egodact-tijd-melding',
@@ -151,6 +154,66 @@ function egodactVindNaamElement() {
     return best;
 }
 
+// ============================================================
+// TOPBAR-SLOTS
+// ============================================================
+// Addons kunnen vragen om een plek in de topbar ("name" of
+// "actions") met een order. Zo hoeft niemand zelf in de DOM te
+// prikken. Zonder slot/order blijft het oude gedrag werken.
+
+function egodactTopbarSlot(naam) {
+    naam = (naam === 'name') ? 'name' : 'actions';
+    const id = 'egodact-slot-' + naam;
+
+    let slot = document.getElementById(id);
+    if (slot && slot.isConnected) return slot;
+    if (slot && slot.parentNode) slot.parentNode.removeChild(slot);
+
+    slot = document.createElement('div');
+    slot.id = id;
+    slot.setAttribute('data-egodact-slot', naam);
+    slot.style.cssText = 'display:inline-flex; align-items:center; gap:2px; flex-shrink:0;';
+
+    if (naam === 'name') {
+        const doel = egodactVindNaamElement();
+        if (doel && doel.parentNode) {
+            doel.parentNode.insertBefore(slot, doel.nextSibling);
+            return slot;
+        }
+    }
+
+    const groep = document.getElementById('egodact-knop-groep');
+    if (groep) { groep.appendChild(slot); return slot; }
+
+    const info = document.getElementById('egodact-info-knop');
+    if (info && info.parentNode) {
+        info.insertAdjacentElement('afterend', slot);
+        return slot;
+    }
+
+    return null;
+}
+
+function egodactSlotAdd(naam, element, order) {
+    const slot = egodactTopbarSlot(naam);
+    if (!slot) return false;
+
+    const volgorde = (typeof order === 'number') ? order : 0;
+    element.setAttribute('data-egodact-order', String(volgorde));
+
+    const volgende = Array.prototype.slice.call(slot.children)
+        .filter(function (el) { return el !== element; })
+        .find(function (el) {
+            const o = parseFloat(el.getAttribute('data-egodact-order') || '0');
+            return o > volgorde;
+        });
+
+    if (!volgende) slot.appendChild(element);
+    else slot.insertBefore(element, volgende);
+
+    return true;
+}
+
 function egodactUpdateHamburger() {
     const menus = egodactHamburgerMenus();
     const bestaand = document.getElementById('egodact-hamburger-knop');
@@ -172,16 +235,9 @@ function egodactUpdateHamburger() {
         knop.title = 'Addon-menu';
         knop.innerHTML = '<span class="egd-ham-icon"><span></span><span></span><span></span></span>';
 
-        const doel = egodactVindNaamElement();
-        if (doel && doel.parentNode) {
-            doel.parentNode.insertBefore(knop, doel.nextSibling);
-        } else {
-            const infoKnop = document.getElementById('egodact-info-knop');
-            if (infoKnop && infoKnop.parentNode) infoKnop.insertAdjacentElement('afterend', knop);
-            else {
-                const groep = document.getElementById('egodact-knop-groep');
-                if (groep) groep.appendChild(knop);
-            }
+        if (!egodactSlotAdd('name', knop, 0)) {
+            const groep = document.getElementById('egodact-knop-groep');
+            if (groep) groep.appendChild(knop);
         }
     }
 
@@ -1238,6 +1294,21 @@ function voegKnoppenToe() {
 
                 if (isFloating) {
                     document.body.appendChild(knop);
+                } else if (typeof entry.order === 'number' || entry.slot === 'name') {
+                    if (!egodactSlotAdd(entry.slot || 'actions', knop, entry.order)) {
+                        const zoekBinnen = menuContainer || document;
+                        const bestaandeAddonKnoppen = zoekBinnen.querySelectorAll('[data-egodact-addon-btn="1"]');
+                        const laatsteAddonKnop = bestaandeAddonKnoppen[bestaandeAddonKnoppen.length - 1];
+                        const anker = document.getElementById('egodact-addons-knop') ||
+                            document.getElementById('egodact-info-knop');
+                        if (laatsteAddonKnop && laatsteAddonKnop.parentNode) {
+                            laatsteAddonKnop.insertAdjacentElement('afterend', knop);
+                        } else if (anker && anker.parentNode) {
+                            anker.insertAdjacentElement('afterend', knop);
+                        } else if (menuContainer) {
+                            egodactKnopGroep.appendChild(knop);
+                        }
+                    }
                 } else {
                     const zoekBinnen = menuContainer || document;
                     const bestaandeAddonKnoppen = zoekBinnen.querySelectorAll('[data-egodact-addon-btn="1"]');
