@@ -37,6 +37,8 @@ function egodactRuimExtensieOp() {
         'egodact-beta-features-knop',
         'egodact-tijd-knop',
         'egodact-addons-knop',
+        'egodact-menu-knop',
+        'egodact-dropdown-menu',
         'egodact-knop-groep',
         'egodact-custom-modal-backdrop',
         'egodact-tijd-melding',
@@ -850,6 +852,95 @@ function voegKnoppenToe() {
             infoKnopVoorAddons.insertAdjacentElement('afterend', addonsKnop);
         } else {
             egodactKnopGroep.appendChild(addonsKnop);
+        }
+    }
+
+    // ========================================================
+    // HAMBURGER MENU (dropdown met animatie)
+    // ========================================================
+    if (!document.getElementById('egodact-menu-knop')) {
+        const menuKnop = document.createElement('button');
+        menuKnop.id = 'egodact-menu-knop';
+        menuKnop.type = 'button';
+        menuKnop.title = 'Menu';
+        Object.assign(menuKnop.style, {
+            background: 'none', border: 'none', cursor: 'pointer', padding: '0',
+            margin: '0 8px 0 0', width: '28px', minWidth: '28px', height: '32px',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            verticalAlign: 'middle', outline: 'none', position: 'relative',
+            zIndex: '999999', flexShrink: '0', color: 'var(--egd-header-icoon)'
+        });
+        menuKnop.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="opacity:1;display:block;pointer-events:none;"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>';
+
+        // dropdown panel
+        const dropdown = document.createElement('div');
+        dropdown.id = 'egodact-dropdown-menu';
+        Object.assign(dropdown.style, {
+            position: 'absolute', top: '36px', right: '0', minWidth: '200px',
+            background: 'var(--egd-modal)', border: '1px solid var(--egd-rand)',
+            borderRadius: '6px', boxShadow: 'var(--egd-schaduw)', padding: '6px',
+            display: 'flex', flexDirection: 'column', gap: '2px',
+            opacity: '0', transform: 'translateY(-8px)', pointerEvents: 'none',
+            transition: 'opacity 180ms ease, transform 180ms ease',
+            zIndex: '9999999', overflow: 'hidden'
+        });
+
+        let open = false;
+        function toggleDropdown() {
+            open = !open;
+            if (open) {
+                // populate
+                dropdown.innerHTML = '';
+                const api = window.EgodactAddons;
+                const menus = (api && Array.isArray(api._menus)) ? api._menus : [];
+                if (!menus.length) {
+                    const empty = document.createElement('div');
+                    empty.textContent = 'Geen menus.';
+                    empty.style.cssText = 'padding:8px; font-size:12px; color:var(--egd-tekst-zacht);';
+                    dropdown.appendChild(empty);
+                } else {
+                    menus.forEach(m => {
+                        const item = document.createElement('button');
+                        item.type = 'button';
+                        item.textContent = (m.icon ? m.icon + ' ' : '') + (m.title || 'Menu');
+                        Object.assign(item.style, {
+                            textAlign: 'left', padding: '8px 10px', border: 'none',
+                            background: 'transparent', color: 'var(--egd-tekst)', cursor: 'pointer',
+                            borderRadius: '4px', fontSize: '13px', width: '100%'
+                        });
+                        item.addEventListener('mouseenter', () => { item.style.background = 'var(--egd-hover)'; });
+                        item.addEventListener('mouseleave', () => { item.style.background = 'transparent'; });
+                        item.addEventListener('click', () => {
+                            toggleDropdown();
+                            try { if (typeof m.open === 'function') m.open(); } catch (err) { console.error(err); }
+                        });
+                        dropdown.appendChild(item);
+                    });
+                }
+                dropdown.style.opacity = '1';
+                dropdown.style.transform = 'translateY(0)';
+                dropdown.style.pointerEvents = 'auto';
+            } else {
+                dropdown.style.opacity = '0';
+                dropdown.style.transform = 'translateY(-8px)';
+                dropdown.style.pointerEvents = 'none';
+            }
+        }
+        menuKnop.addEventListener('click', (e) => { e.stopPropagation(); toggleDropdown(); });
+        document.addEventListener('click', (e) => {
+            if (open && !dropdown.contains(e.target) && e.target !== menuKnop) {
+                open = true; toggleDropdown();
+            }
+        });
+
+        menuKnop.style.position = 'relative';
+        menuKnop.appendChild(dropdown);
+
+        const infoKnop = document.getElementById('egodact-info-knop');
+        if (infoKnop && infoKnop.parentNode) {
+            infoKnop.insertAdjacentElement('afterend', menuKnop);
+        } else if (egodactKnopGroep) {
+            egodactKnopGroep.appendChild(menuKnop);
         }
     }
 
