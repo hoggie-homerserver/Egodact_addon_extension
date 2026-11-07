@@ -46,6 +46,8 @@ function egodactSetButtonEnabled(id, enabled) {
 
 (function () {
     'use strict';
+    if (window.__egodactHostLoaded) return;
+    window.__egodactHostLoaded = true;
 
     const STORAGE_PREFIX = 'egodact_addon_';
 
@@ -499,12 +501,18 @@ function egodactSetButtonEnabled(id, enabled) {
                 EgodactAddons.getChallenges(meta.force === true).then(function (lijst) {
                     let json = '[]';
                     try { json = JSON.stringify(lijst || []); } catch (err) {}
+                    console.log('[EgodactAddons] challenges response', meta.requestId, Array.isArray(lijst) ? lijst.length : 0);
                     document.dispatchEvent(new CustomEvent('egodact:addon:challenges:response', {
                         detail: {
                             requestId: meta.requestId,
                             json: json,
                             count: Array.isArray(lijst) ? lijst.length : 0
                         }
+                    }));
+                }).catch(function (err) {
+                    console.warn('[EgodactAddons] challenges request failed', err);
+                    document.dispatchEvent(new CustomEvent('egodact:addon:challenges:response', {
+                        detail: { requestId: meta.requestId, json: '[]', count: 0 }
                     }));
                 });
             } else if (detail.type === 'toast') {
