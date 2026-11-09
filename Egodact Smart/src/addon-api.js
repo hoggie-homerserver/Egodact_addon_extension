@@ -335,6 +335,9 @@ function egodactSetButtonEnabled(id, enabled) {
                 if (!addon.sidebarPanels) addon.sidebarPanels = [];
                 addon.sidebarPanels.push(entry);
             }
+            try {
+                document.dispatchEvent(new CustomEvent('egodact:addons:changed'));
+            } catch (err) {}
             return entry;
         },
 
@@ -550,7 +553,8 @@ function egodactSetButtonEnabled(id, enabled) {
                     id: meta.id,
                     title: meta.title || 'Panel',
                     icon: meta.icon || '',
-                    order: meta.order
+                    order: meta.order,
+                    render: meta.render
                 });
             } else if (detail.type === 'game') {
                 EgodactAddons.registerGame({

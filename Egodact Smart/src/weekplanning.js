@@ -2202,6 +2202,58 @@ function openWeekplanning(e) {
                 zoekTerm
             );
 
+        // ---- Addon-zijbalkpanelen ----
+        try {
+            const api = window.EgodactAddons;
+            if (api && Array.isArray(api._sidebarPanels) && api._sidebarPanels.length) {
+                const kop = document.createElement("div");
+                kop.textContent = "Addons";
+                Object.assign(kop.style, { fontSize: "15px", fontWeight: "bold", marginTop: "12px" });
+                zijbalk.appendChild(kop);
+
+                api._sidebarPanels.slice().sort(function (a, b) {
+                    return (a.order || 0) - (b.order || 0);
+                }).forEach(function (panel) {
+                    const wrap = document.createElement("div");
+                    Object.assign(wrap.style, {
+                        marginTop: "8px",
+                        padding: "6px 8px",
+                        background: "var(--egd-veld)",
+                        border: "1px solid var(--egd-rand)",
+                        borderRadius: "6px",
+                        width: "100%",
+                        boxSizing: "border-box",
+                        overflow: "hidden"
+                    });
+                    const titel = document.createElement("div");
+                    titel.textContent = panel.title || 'Panel';
+                    Object.assign(titel.style, { fontSize: "13px", fontWeight: "bold", marginBottom: "6px" });
+                    wrap.appendChild(titel);
+                    const inhoud = document.createElement("div");
+                    wrap.appendChild(inhoud);
+                    zijbalk.appendChild(wrap);
+                    // Laat de addon in de container renderen.
+                    try {
+                        if (typeof panel.render === "function") {
+                            panel.render(inhoud);
+                        } else {
+                            document.dispatchEvent(new CustomEvent('egodact:addon:open', {
+                                detail: { id: panel.id, container: inhoud }
+                            }));
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        // Laatste redmiddel: via het open-event.
+                        try {
+                            document.dispatchEvent(new CustomEvent('egodact:addon:open', {
+                                detail: { id: panel.id, container: inhoud }
+                            }));
+                        } catch (e) {}
+                    }
+                });
+            }
+        } catch (err) {}
+
         // ---- Challenges ----
 
         if (challengeFout) {
@@ -2335,45 +2387,6 @@ function openWeekplanning(e) {
             );
         }
 
-        // ---- Addon-zijbalkpanelen ----
-        try {
-            const api = window.EgodactAddons;
-            if (api && Array.isArray(api._sidebarPanels) && api._sidebarPanels.length) {
-                const kop = document.createElement("div");
-                kop.textContent = "Addons";
-                Object.assign(kop.style, { fontSize: "15px", fontWeight: "bold", marginTop: "12px" });
-                zijbalk.appendChild(kop);
-
-                api._sidebarPanels.slice().sort(function (a, b) {
-                    return (a.order || 0) - (b.order || 0);
-                }).forEach(function (panel) {
-                    const wrap = document.createElement("div");
-                    Object.assign(wrap.style, {
-                        marginTop: "8px",
-                        padding: "6px 8px",
-                        background: "var(--egd-veld)",
-                        border: "1px solid var(--egd-rand)",
-                        borderRadius: "6px",
-                        width: "100%",
-                        boxSizing: "border-box",
-                        overflow: "hidden"
-                    });
-                    const titel = document.createElement("div");
-                    titel.textContent = panel.title || 'Panel';
-                    Object.assign(titel.style, { fontSize: "13px", fontWeight: "bold", marginBottom: "6px" });
-                    wrap.appendChild(titel);
-                    const inhoud = document.createElement("div");
-                    wrap.appendChild(inhoud);
-                    zijbalk.appendChild(wrap);
-                    // Laat de addon in de container renderen.
-                    try {
-                        document.dispatchEvent(new CustomEvent('egodact:addon:open', {
-                            detail: { id: panel.id, container: inhoud }
-                        }));
-                    } catch (err) { console.error(err); }
-                });
-            }
-        } catch (err) {}
     }
 
     function ververszijbalk() {
@@ -2390,6 +2403,14 @@ function openWeekplanning(e) {
             );
         }
     }
+
+    // Ververs de zijbalk wanneer een addon een paneel toevoegt.
+    document.addEventListener(
+        "egodact:addons:changed",
+        function () {
+            ververszijbalk();
+        }
+    );
 
     // ========================================================
     // WEEK RENDEREN
