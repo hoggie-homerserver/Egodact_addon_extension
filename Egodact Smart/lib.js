@@ -639,8 +639,89 @@
     };
 
     // ============================================================
-    // EXPORT
+    // HAMBURGER MENU HELPER
     // ============================================================
+    // Addons register dropdown items here; the host shows a hamburger
+    // button next to the user's name only when at least one item exists.
+    //
+    //   EgodactAddonLib.hamburger.add({ addonId, id, title, icon, order });
+    //   EgodactAddonLib.hamburger.onOpen(id, function () { ... });
+    //
+    // Only items registered through this helper appear in the
+    // hamburger. Regular client.registerMenu() items stay in the
+    // Addons library.
+    const hamburger = {
+        add: function (meta) {
+            meta = meta || {};
+            const c = client();
+            if (c) {
+                if (typeof c.registerHamburger === 'function') c.registerHamburger(meta);
+                else if (typeof c.registerMenu === 'function') c.registerMenu(meta);
+                else {
+                    // Host without SDK helpers: dispatch directly so
+                    // the host can pick it up.
+                    try {
+                        document.dispatchEvent(new CustomEvent('egodact:addon:register', {
+                            detail: { type: 'hamburger', meta: meta }
+                        }));
+                    } catch (err) {}
+                }
+            }
+            return meta.id;
+        },
+        onOpen: function (id, cb) {
+            const c = client();
+            if (c && typeof c.onOpen === 'function') c.onOpen(id, cb);
+        }
+    };
+
+    // Friendly aliases on the ui namespace.
+    ui.showInDropdown = hamburger.add;
+    ui.onDropdownOpen = hamburger.onOpen;
+
+    // ============================================================
+    // THEME CHANGE LISTENER
+    // ============================================================
+    theme.onChange = function (cb) {
+        const c = client();
+        if (c && typeof c.onThemeChange === 'function') c.onThemeChange(cb);
+    };
+
+    // ============================================================
+    // CHALLENGES HELPER
+    // ============================================================
+    const challenges = {
+        list: function (force) {
+            const c = client();
+            return c && typeof c.getChallenges === 'function'
+                ? c.getChallenges(force === true)
+                : Promise.resolve([]);
+        },
+        onChange: function (cb) {
+            const c = client();
+            if (c && typeof c.onChallengesChanged === 'function') c.onChallengesChanged(cb);
+        }
+    };
+
+    // ============================================================
+    // TOPBAR SLOT HELPER
+    // ============================================================
+    const topbar = {
+        add: function (meta) {
+            meta = meta || {};
+            const c = client();
+            if (c && typeof c.registerButton === 'function') {
+                c.registerButton(Object.assign({}, meta, {
+                    position: 'header',
+                    slot: meta.slot || 'actions',
+                    order: (typeof meta.order === 'number') ? meta.order : null
+                }));
+            }
+            return meta.id;
+        }
+    };
+
+
     const lib = {
         version: VERSION,
         theme: theme,
@@ -649,7 +730,10 @@
         ui: ui,
         game: game,
         data: data,
-        layout: layout
+        layout: layout,
+        hamburger: hamburger,
+        challenges: challenges,
+        topbar: topbar
     };
 
     if (typeof module !== 'undefined' && module.exports) module.exports = lib;
