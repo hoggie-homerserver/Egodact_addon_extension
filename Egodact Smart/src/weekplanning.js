@@ -2230,20 +2230,26 @@ function openWeekplanning(e) {
                     Object.assign(titel.style, { fontSize: "13px", fontWeight: "bold", marginBottom: "6px" });
                     wrap.appendChild(titel);
                     const inhoud = document.createElement("div");
+                    inhoud.id = "egodact-addon-panel-" + String(panel.id || "").replace(/[^a-zA-Z0-9_-]/g, "-");
+                    inhoud.setAttribute("data-egodact-addon-panel", String(panel.id || ""));
                     wrap.appendChild(inhoud);
                     zijbalk.appendChild(wrap);
-                    // Laat de addon in de container renderen. Eerst via het
-                    // open-event (werkt ook tussen aparte extensie-werelden),
-                    // daarna pas direct als de addon niets heeft getekend.
+                    // Laat de addon in de container renderen. We sturen alleen
+                    // strings mee (browser-onafhankelijk); de addon zoekt de
+                    // container zelf op in de DOM.
                     try {
                         document.dispatchEvent(new CustomEvent('egodact:addon:open', {
-                            detail: { id: panel.id, container: inhoud }
+                            detail: { id: panel.id, containerId: inhoud.id }
                         }));
                     } catch (err) { console.error(err); }
-                    if ((!inhoud.childNodes || inhoud.childNodes.length === 0) && typeof panel.render === "function") {
-                        try {
-                            panel.render(inhoud);
-                        } catch (err) { console.error(err); }
+                    if (typeof panel.render === "function" && typeof requestAnimationFrame === "function") {
+                        requestAnimationFrame(function () {
+                            if (inhoud.isConnected && (!inhoud.childNodes || inhoud.childNodes.length === 0)) {
+                                try {
+                                    panel.render(inhoud);
+                                } catch (err) { console.error(err); }
+                            }
+                        });
                     }
                 });
             }

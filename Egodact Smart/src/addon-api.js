@@ -548,13 +548,17 @@ function egodactSetButtonEnabled(id, enabled) {
             } else if (detail.type === 'cancel-schedule') {
                 EgodactAddons.cancelSchedule(meta.id);
             } else if (detail.type === 'sidebar-panel') {
+                let renderFn = null;
+                try {
+                    if (typeof meta.render === 'function') renderFn = meta.render;
+                } catch (err) {}
                 EgodactAddons.registerSidebarPanel({
                     addonId: meta.addonId || null,
                     id: meta.id,
                     title: meta.title || 'Panel',
                     icon: meta.icon || '',
                     order: meta.order,
-                    render: meta.render
+                    render: renderFn
                 });
             } else if (detail.type === 'game') {
                 EgodactAddons.registerGame({
