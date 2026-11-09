@@ -2334,6 +2334,40 @@ function openWeekplanning(e) {
                 }
             );
         }
+
+        // ---- Addon-zijbalkpanelen ----
+        try {
+            const api = window.EgodactAddons;
+            if (api && Array.isArray(api._sidebarPanels) && api._sidebarPanels.length) {
+                const kop = document.createElement("div");
+                kop.textContent = "Addons";
+                Object.assign(kop.style, { fontSize: "15px", fontWeight: "bold", marginTop: "12px" });
+                zijbalk.appendChild(kop);
+
+                api._sidebarPanels.slice().sort(function (a, b) {
+                    return (a.order || 0) - (b.order || 0);
+                }).forEach(function (panel) {
+                    const wrap = document.createElement("div");
+                    Object.assign(wrap.style, {
+                        marginTop: "8px",
+                        padding: "8px",
+                        background: "var(--egd-veld)",
+                        border: "1px solid var(--egd-rand)",
+                        borderRadius: "6px"
+                    });
+                    const titel = document.createElement("div");
+                    titel.textContent = panel.title || 'Panel';
+                    Object.assign(titel.style, { fontSize: "13px", fontWeight: "bold", marginBottom: "6px" });
+                    wrap.appendChild(titel);
+                    const inhoud = document.createElement("div");
+                    wrap.appendChild(inhoud);
+                    try {
+                        if (typeof panel.render === "function") panel.render(inhoud);
+                    } catch (err) { console.error(err); }
+                    zijbalk.appendChild(wrap);
+                });
+            }
+        } catch (err) {}
     }
 
     function ververszijbalk() {

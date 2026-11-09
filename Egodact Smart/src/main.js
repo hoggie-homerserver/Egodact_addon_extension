@@ -86,3 +86,33 @@ window.addEventListener('resize', function () {
         try { egodactUpdateHamburger(); } catch (err) {}
     }
 });
+
+// ============================================================
+// SCHEDULER (addon reminders)
+// ============================================================
+(function () {
+    function check() {
+        try {
+            const api = window.EgodactAddons;
+            if (!api || !Array.isArray(api._schedules)) return;
+            const now = Date.now();
+            const due = api._schedules.filter(function (s) { return !s.fired && s.time <= now; });
+            due.forEach(function (s) {
+                s.fired = true;
+                if (typeof egodactToonToast === 'function') {
+                    egodactToonToast(s.message || s.title, { type: 'info' });
+                }
+                if (s.repeat && s.interval > 0) {
+                    s.time = now + s.interval;
+                    s.fired = false;
+                } else {
+                    // remove
+                    api._schedules = api._schedules.filter(function (x) { return x.id !== s.id; });
+                }
+            });
+        } catch (err) {}
+    }
+    setInterval(check, 30000);
+    // initial check after 5s
+    setTimeout(check, 5000);
+})();

@@ -204,6 +204,8 @@ function egodactSetButtonEnabled(id, enabled) {
         _hamburgerItems: [],
         _buttons: [],
         _games: [],
+        _sidebarPanels: [],
+        _schedules: [],
         _readyCallbacks: [],
 
         // ------------------------------------------------------------
@@ -314,6 +316,51 @@ function egodactSetButtonEnabled(id, enabled) {
             this._games.push(entry);
             if (addon) addon.games.push(entry);
             return entry;
+        },
+
+        registerSidebarPanel(meta) {
+            meta = meta || {};
+            const addon = meta.addonId ? this._byId[meta.addonId] : null;
+            const entry = {
+                id: meta.id || (meta.addonId + ':' + (meta.title || 'panel')),
+                addonId: meta.addonId || null,
+                title: meta.title || 'Panel',
+                icon: meta.icon || '',
+                order: typeof meta.order === 'number' ? meta.order : 0,
+                render: typeof meta.render === 'function' ? meta.render : function () {},
+                addon: addon
+            };
+            this._sidebarPanels.push(entry);
+            if (addon) {
+                if (!addon.sidebarPanels) addon.sidebarPanels = [];
+                addon.sidebarPanels.push(entry);
+            }
+            return entry;
+        },
+
+        registerSchedule(meta) {
+            meta = meta || {};
+            const id = meta.id || (meta.addonId + ':' + (meta.title || 'schedule'));
+            // Remove existing with same id.
+            this._schedules = this._schedules.filter(function (s) { return s.id !== id; });
+            const entry = {
+                id: id,
+                addonId: meta.addonId || null,
+                title: meta.title || 'Reminder',
+                message: meta.message || '',
+                time: (typeof meta.time === 'number') ? meta.time : (Date.now() + (meta.delay || 60000)),
+                repeat: meta.repeat || false,
+                interval: meta.interval || 0,
+                fired: false
+            };
+            this._schedules.push(entry);
+            return entry;
+        },
+        cancelSchedule(id) {
+            this._schedules = this._schedules.filter(function (s) { return s.id !== id; });
+        },
+        getSchedules() {
+            return this._schedules.slice();
         },
 
         // ------------------------------------------------------------
@@ -484,6 +531,32 @@ function egodactSetButtonEnabled(id, enabled) {
                 const btnKey = (meta.addonId || '') + ':' + (meta.id || '');
                 egodactSetButtonEnabled(btnKey, meta.enabled !== false);
                 if (typeof voegKnoppenToe === 'function') { try { voegKnoppenToe(); } catch (e) {} }
+            } else if (detail.type === 'schedule') {
+                EgodactAddons.registerSchedule({
+                    addonId: meta.addonId || null,
+                    id: meta.id,
+                    title: meta.title || 'Reminder',
+                    message: meta.message || '',
+                    time: meta.time,
+                    delay: meta.delay,
+                    repeat: meta.repeat,
+                    interval: meta.interval
+                });
+            } else if (detail.type === 'cancel-schedule') {
+                EgodactAddons.cancelSchedule(meta.id);
+            } else if (detail.type === 'sidebar-panel') {
+                EgodactAddons.registerSidebarPanel({
+                    addonId: meta.addonId || null,
+                    id: meta.id,
+                    title: meta.title || 'Panel',
+                    icon: meta.icon || '',
+                    order: meta.order,
+                    render: function (container) {
+                        document.dispatchEvent(new CustomEvent('egodact:addon:open', {
+                            detail: { id: meta.id, container: container }
+                        }));
+                    }
+                });
             } else if (detail.type === 'game') {
                 EgodactAddons.registerGame({
                     addonId: meta.addonId || null,
