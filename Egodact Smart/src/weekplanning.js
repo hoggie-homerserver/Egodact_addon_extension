@@ -177,6 +177,7 @@ function openWeekplanning(e) {
             color: "var(--egd-tekst)",
             width: "min(1400px, 96vw)",
             maxWidth: "96vw",
+            minWidth: "0",
             maxHeight: "94vh",
             boxSizing: "border-box",
             minHeight: "0",
@@ -390,7 +391,28 @@ function openWeekplanning(e) {
         </div>
     `;
 
-    backdrop.appendChild(modal);
+    // De weekplanning en de addon-zijbalk staan naast elkaar in een
+    // wrapper, zodat de addon-balk een echte tweede balk naast het
+    // weekplanningvenster is (en niet erin).
+    const wrap =
+        document.createElement("div");
+
+    wrap.id =
+        "egodact-weekplanning-wrap";
+
+    Object.assign(wrap.style, {
+        display: "flex",
+        alignItems: "stretch",
+        justifyContent: "center",
+        gap: "12px",
+        maxWidth: "96vw",
+        maxHeight: "94vh",
+        minHeight: "0"
+    });
+
+    wrap.appendChild(modal);
+
+    backdrop.appendChild(wrap);
     document.body.appendChild(backdrop);
 
     // ========================================================
@@ -2437,38 +2459,26 @@ function openWeekplanning(e) {
         const kolom = document.createElement("div");
         kolom.id = "egodact-addon-zijbalk";
         Object.assign(kolom.style, {
+            flex: "0 0 clamp(180px, 18vw, 230px)",
+            alignSelf: "stretch",
+            minHeight: "0",
+            maxHeight: "94vh",
+            boxSizing: "border-box",
             background: "var(--egd-paneel)",
             border: "1px solid var(--egd-rand)",
-            borderRadius: "5px",
+            borderRadius: "6px",
             padding: "12px",
             overflowY: "auto",
-            maxHeight: "calc(90vh - 190px)",
             display: "none"
         });
 
         return kolom;
     }
 
-    function zetKolomLayout() {
-
-        const content = document.getElementById("egodact-weekplanning-content");
-        const kolom = document.getElementById("egodact-addon-zijbalk");
-
-        if (!content) {
-            return;
-        }
-
-        const heeftAddons = kolom && kolom.style.display !== "none";
-
-        content.style.gridTemplateColumns = heeftAddons
-            ? "minmax(0, 1fr) minmax(190px, 230px) minmax(190px, 230px)"
-            : "minmax(0, 1fr) minmax(190px, 230px)";
-    }
-
     function verversAddonZijbalk() {
 
-        const content = document.getElementById("egodact-weekplanning-content");
-        if (!content) {
+        const wrap = document.getElementById("egodact-weekplanning-wrap");
+        if (!wrap) {
             return;
         }
 
@@ -2476,12 +2486,17 @@ function openWeekplanning(e) {
 
         if (!kolom) {
             kolom = maakAddonZijbalk();
-            content.appendChild(kolom);
         }
 
-        kolom.style.display = vulAddonZijbalk(kolom) ? "block" : "none";
-        openAddonPanelen(kolom);
-        zetKolomLayout();
+        if (vulAddonZijbalk(kolom)) {
+            if (!kolom.isConnected) {
+                wrap.appendChild(kolom);
+            }
+            kolom.style.display = "block";
+            openAddonPanelen(kolom);
+        } else {
+            kolom.remove();
+        }
     }
 
     function ververszijbalk() {
@@ -3620,13 +3635,6 @@ function openWeekplanning(e) {
             vakken
         );
 
-        const addonZijbalk =
-            maakAddonZijbalk();
-
-        if (vulAddonZijbalk(addonZijbalk)) {
-            addonZijbalk.style.display = "block";
-        }
-
         content.appendChild(
             calendar
         );
@@ -3634,16 +3642,6 @@ function openWeekplanning(e) {
         content.appendChild(
             vakken
         );
-
-        content.appendChild(
-            addonZijbalk
-        );
-
-        openAddonPanelen(
-            addonZijbalk
-        );
-
-        zetKolomLayout();
 
         // ====================================================
         // DROP OP DAGKOLOMMEN
@@ -4227,6 +4225,8 @@ function openWeekplanning(e) {
     // ========================================================
 
     renderWeek();
+
+    verversAddonZijbalk();
 
     egodactLaadChallenges()
         .then(
