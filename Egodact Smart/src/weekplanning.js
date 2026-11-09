@@ -2202,51 +2202,6 @@ function openWeekplanning(e) {
                 zoekTerm
             );
 
-        // ---- Addon-zijbalkpanelen ----
-        try {
-            const api = window.EgodactAddons;
-            if (api && Array.isArray(api._sidebarPanels) && api._sidebarPanels.length) {
-                const kop = document.createElement("div");
-                kop.textContent = "Addons";
-                Object.assign(kop.style, { fontSize: "15px", fontWeight: "bold", marginTop: "12px" });
-                zijbalk.appendChild(kop);
-
-                api._sidebarPanels.slice().sort(function (a, b) {
-                    return (a.order || 0) - (b.order || 0);
-                }).forEach(function (panel) {
-                    const wrap = document.createElement("div");
-                    Object.assign(wrap.style, {
-                        marginTop: "8px",
-                        padding: "6px 8px",
-                        background: "var(--egd-veld)",
-                        border: "1px solid var(--egd-rand)",
-                        borderRadius: "6px",
-                        width: "100%",
-                        boxSizing: "border-box",
-                        overflow: "hidden"
-                    });
-                    const titel = document.createElement("div");
-                    titel.textContent = panel.title || 'Panel';
-                    Object.assign(titel.style, { fontSize: "13px", fontWeight: "bold", marginBottom: "6px" });
-                    wrap.appendChild(titel);
-                    const inhoud = document.createElement("div");
-                    inhoud.id = "egodact-addon-panel-" + String(panel.id || "").replace(/[^a-zA-Z0-9_-]/g, "-");
-                    inhoud.setAttribute("data-egodact-addon-panel", String(panel.id || ""));
-                    wrap.appendChild(inhoud);
-                    zijbalk.appendChild(wrap);
-                    // Laat de addon in de container renderen. We sturen alleen
-                    // strings mee (browser-onafhankelijk); de addon zoekt de
-                    // container zelf op in de DOM.
-                    try {
-                        document.dispatchEvent(new CustomEvent('egodact:addon:open', {
-                            detail: { id: panel.id, containerId: inhoud.id }
-                        }));
-                    } catch (err) { console.error(err); }
-
-                });
-            }
-        } catch (err) {}
-
         // ---- Challenges ----
 
         if (challengeFout) {
@@ -2382,6 +2337,153 @@ function openWeekplanning(e) {
 
     }
 
+    // ========================================================
+    // ADDON-ZIJBALK (tweede kolom naast de vakken-zijbalk)
+    // ========================================================
+
+    function haalSidebarPanelen() {
+
+        try {
+            const api = window.EgodactAddons;
+            if (api && Array.isArray(api._sidebarPanels)) {
+                return api._sidebarPanels.slice().sort(function (a, b) {
+                    return (a.order || 0) - (b.order || 0);
+                });
+            }
+        } catch (err) {}
+
+        return [];
+    }
+
+    function vulAddonZijbalk(kolom) {
+
+        kolom.replaceChildren();
+
+        const panelen = haalSidebarPanelen();
+
+        if (!panelen.length) {
+            return false;
+        }
+
+        const kop = document.createElement("div");
+        kop.textContent = "Addons";
+        Object.assign(kop.style, {
+            fontSize: "15px",
+            fontWeight: "bold"
+        });
+        kolom.appendChild(kop);
+
+        panelen.forEach(function (panel) {
+
+            const wrap = document.createElement("div");
+            Object.assign(wrap.style, {
+                marginTop: "8px",
+                padding: "8px",
+                background: "var(--egd-veld)",
+                border: "1px solid var(--egd-rand)",
+                borderRadius: "6px",
+                boxSizing: "border-box",
+                overflow: "hidden"
+            });
+
+            const titel = document.createElement("div");
+            titel.textContent = panel.title || "Panel";
+            Object.assign(titel.style, {
+                fontSize: "13px",
+                fontWeight: "bold",
+                marginBottom: "6px"
+            });
+            wrap.appendChild(titel);
+
+            const inhoud = document.createElement("div");
+            inhoud.id = "egodact-addon-panel-" + String(panel.id || "").replace(/[^a-zA-Z0-9_-]/g, "-");
+            inhoud.setAttribute("data-egodact-addon-panel", String(panel.id || ""));
+            wrap.appendChild(inhoud);
+            kolom.appendChild(wrap);
+        });
+
+        return true;
+    }
+
+    // Pas openen als de kolom echt in de pagina hangt: addons zoeken hun
+    // container via document.getElementById(), en dat werkt niet op een
+    // losstaand element.
+    function openAddonPanelen(kolom) {
+
+        if (!kolom) {
+            return;
+        }
+
+        const containers =
+            kolom.querySelectorAll("[data-egodact-addon-panel]");
+
+        Array.prototype.forEach.call(containers, function (inhoud) {
+
+            const id =
+                inhoud.getAttribute("data-egodact-addon-panel") || "";
+
+            // Alleen strings meegeven: Chromium laat geen functies of
+            // DOM-nodes door CustomEvent-detail tussen extensies heen.
+            try {
+                document.dispatchEvent(new CustomEvent("egodact:addon:open", {
+                    detail: { id: id, containerId: inhoud.id }
+                }));
+            } catch (err) { console.error(err); }
+        });
+    }
+
+    function maakAddonZijbalk() {
+
+        const kolom = document.createElement("div");
+        kolom.id = "egodact-addon-zijbalk";
+        Object.assign(kolom.style, {
+            background: "var(--egd-paneel)",
+            border: "1px solid var(--egd-rand)",
+            borderRadius: "5px",
+            padding: "12px",
+            overflowY: "auto",
+            maxHeight: "calc(90vh - 190px)",
+            display: "none"
+        });
+
+        return kolom;
+    }
+
+    function zetKolomLayout() {
+
+        const content = document.getElementById("egodact-weekplanning-content");
+        const kolom = document.getElementById("egodact-addon-zijbalk");
+
+        if (!content) {
+            return;
+        }
+
+        const heeftAddons = kolom && kolom.style.display !== "none";
+
+        content.style.gridTemplateColumns = heeftAddons
+            ? "minmax(0, 1fr) minmax(190px, 230px) minmax(190px, 230px)"
+            : "minmax(0, 1fr) minmax(190px, 230px)";
+    }
+
+    function verversAddonZijbalk() {
+
+        const content = document.getElementById("egodact-weekplanning-content");
+        if (!content) {
+            return;
+        }
+
+        let kolom = document.getElementById("egodact-addon-zijbalk");
+
+        if (!kolom) {
+            kolom = maakAddonZijbalk();
+            content.appendChild(kolom);
+        }
+
+        kolom.style.display = vulAddonZijbalk(kolom) ? "block" : "none";
+        openAddonPanelen(kolom);
+        zetKolomLayout();
+    }
+
     function ververszijbalk() {
 
         const zijbalk =
@@ -2402,6 +2504,7 @@ function openWeekplanning(e) {
         "egodact:addons:changed",
         function () {
             ververszijbalk();
+            verversAddonZijbalk();
         }
     );
 
@@ -3517,6 +3620,13 @@ function openWeekplanning(e) {
             vakken
         );
 
+        const addonZijbalk =
+            maakAddonZijbalk();
+
+        if (vulAddonZijbalk(addonZijbalk)) {
+            addonZijbalk.style.display = "block";
+        }
+
         content.appendChild(
             calendar
         );
@@ -3524,6 +3634,16 @@ function openWeekplanning(e) {
         content.appendChild(
             vakken
         );
+
+        content.appendChild(
+            addonZijbalk
+        );
+
+        openAddonPanelen(
+            addonZijbalk
+        );
+
+        zetKolomLayout();
 
         // ====================================================
         // DROP OP DAGKOLOMMEN
