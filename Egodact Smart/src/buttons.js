@@ -152,7 +152,7 @@ function egodactVindNaamElement() {
     let best = null;
     nodes.forEach(function (el) {
         const txt = (el.textContent || '').trim();
-        if (/welcome|hallo|goedemorgen|goedemiddag/i.test(txt) && txt.length < 60) {
+        if (/welkom|welcome|hallo|goedemorgen|goedemiddag/i.test(txt) && txt.length < 60) {
             if (!best || el.children.length < best.children.length) best = el;
         }
     });
@@ -171,7 +171,17 @@ function egodactTopbarSlot(naam) {
     const id = 'egodact-slot-' + naam;
 
     let slot = document.getElementById(id);
-    if (slot && slot.isConnected) return slot;
+    if (slot && slot.isConnected) {
+        // If the slot is no longer right after the name element, recreate it.
+        if (naam === 'name') {
+            const doel = egodactVindNaamElement();
+            if (doel && doel.parentNode && slot.previousSibling !== doel) {
+                if (slot.parentNode) slot.parentNode.removeChild(slot);
+                slot = null;
+            }
+        }
+        if (slot) return slot;
+    }
     if (slot && slot.parentNode) slot.parentNode.removeChild(slot);
 
     slot = document.createElement('div');
