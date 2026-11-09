@@ -80,3 +80,9 @@ if (typeof egodactMisschienOnboarding === 'function') {
         } catch (err) {}
     }, 1000);
 })();
+
+window.addEventListener('resize', function () {
+    if (typeof egodactUpdateHamburger === 'function') {
+        try { egodactUpdateHamburger(); } catch (err) {}
+    }
+});

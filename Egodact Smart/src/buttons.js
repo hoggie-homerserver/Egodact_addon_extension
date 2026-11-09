@@ -256,6 +256,17 @@ function egodactUpdateHamburger() {
         }
     }
 
+    // Make sure the hamburger follows the (possibly changed) name element.
+    const naamEl = egodactVindNaamElement();
+    if (naamEl && naamEl.parentNode && knop.parentNode !== naamEl.parentNode) {
+        egodactTopbarSlot('name'); // (re)create slot after the new name
+    }
+    if (naamEl && naamEl.parentNode && knop.parentNode !== naamEl.parentNode) {
+        naamEl.parentNode.insertBefore(knop, naamEl.nextSibling);
+    } else if (naamEl && naamEl.parentNode && knop.previousSibling !== naamEl) {
+        naamEl.parentNode.insertBefore(knop, naamEl.nextSibling);
+    }
+
     if (!knop.isConnected) {
         // The slot/name container was re-rendered by the host page.
         egodactSlotAdd('name', knop, 0);
