@@ -2464,11 +2464,12 @@ function openWeekplanning(e) {
             minHeight: "0",
             maxHeight: "94vh",
             boxSizing: "border-box",
-            background: "var(--egd-paneel)",
+            background: "var(--egd-modal)",
             border: "1px solid var(--egd-rand)",
             borderRadius: "6px",
             padding: "12px",
             overflowY: "auto",
+            boxShadow: "var(--egd-schaduw)",
             display: "none"
         });
 
