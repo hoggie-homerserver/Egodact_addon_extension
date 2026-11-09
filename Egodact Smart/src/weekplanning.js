@@ -2242,15 +2242,7 @@ function openWeekplanning(e) {
                             detail: { id: panel.id, containerId: inhoud.id }
                         }));
                     } catch (err) { console.error(err); }
-                    if (typeof panel.render === "function" && typeof requestAnimationFrame === "function") {
-                        requestAnimationFrame(function () {
-                            if (inhoud.isConnected && (!inhoud.childNodes || inhoud.childNodes.length === 0)) {
-                                try {
-                                    panel.render(inhoud);
-                                } catch (err) { console.error(err); }
-                            }
-                        });
-                    }
+
                 });
             }
         } catch (err) {}
