@@ -32,7 +32,7 @@
                 name: 'Example Addon',
                 author: 'MaxiTaxi',
                 source: 'https://github.com/hoggie-homerserver/Egodact_addon_extension_addons',
-                version: '1.7.0',
+                version: '1.8.0',
                 sha256: '902f3c6037351e06c71edcf91c3ac676322f10f8893bb5ae4bb7c3e4bfaa90d9',
                 dataUsage: 'Lokaal. Geen externe diensten.'
             },
