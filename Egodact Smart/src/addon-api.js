@@ -550,12 +550,7 @@ function egodactSetButtonEnabled(id, enabled) {
                     id: meta.id,
                     title: meta.title || 'Panel',
                     icon: meta.icon || '',
-                    order: meta.order,
-                    render: function (container) {
-                        document.dispatchEvent(new CustomEvent('egodact:addon:open', {
-                            detail: { id: meta.id, container: container }
-                        }));
-                    }
+                    order: meta.order
                 });
             } else if (detail.type === 'game') {
                 EgodactAddons.registerGame({

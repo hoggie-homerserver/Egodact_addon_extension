@@ -2350,10 +2350,13 @@ function openWeekplanning(e) {
                     const wrap = document.createElement("div");
                     Object.assign(wrap.style, {
                         marginTop: "8px",
-                        padding: "8px",
+                        padding: "6px 8px",
                         background: "var(--egd-veld)",
                         border: "1px solid var(--egd-rand)",
-                        borderRadius: "6px"
+                        borderRadius: "6px",
+                        width: "100%",
+                        boxSizing: "border-box",
+                        overflow: "hidden"
                     });
                     const titel = document.createElement("div");
                     titel.textContent = panel.title || 'Panel';
@@ -2361,10 +2364,13 @@ function openWeekplanning(e) {
                     wrap.appendChild(titel);
                     const inhoud = document.createElement("div");
                     wrap.appendChild(inhoud);
-                    try {
-                        if (typeof panel.render === "function") panel.render(inhoud);
-                    } catch (err) { console.error(err); }
                     zijbalk.appendChild(wrap);
+                    // Laat de addon in de container renderen.
+                    try {
+                        document.dispatchEvent(new CustomEvent('egodact:addon:open', {
+                            detail: { id: panel.id, container: inhoud }
+                        }));
+                    } catch (err) { console.error(err); }
                 });
             }
         } catch (err) {}
