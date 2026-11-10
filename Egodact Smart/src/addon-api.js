@@ -272,6 +272,7 @@ function egodactSetButtonEnabled(id, enabled) {
                 icon: meta.icon || '',
                 order: typeof meta.order === 'number' ? meta.order : 0,
                 open: typeof meta.open === 'function' ? meta.open : function () {},
+                keepInLearningMode: meta.keepInLearningMode === true,
                 addon: addon
             };
             this._hamburgerItems.push(entry);
@@ -295,6 +296,7 @@ function egodactSetButtonEnabled(id, enabled) {
                 y: meta.y,
                 draggable: meta.draggable !== false,
                 onClick: typeof meta.onClick === 'function' ? meta.onClick : function () {},
+                keepInLearningMode: meta.keepInLearningMode === true,
                 addon: addon
             };
             this._buttons.push(entry);

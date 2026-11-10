@@ -93,9 +93,11 @@ function egodactHamburgerMenus() {
         // not silently drop everything. (Learning Mode also registers
         // via registerMenu as a fallback.)
         // Keep hamburger opt-in: only show explicit hamburger items.
-        return items
-            .filter(function (m) { return m && m.title; })
-            .sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+        let filtered = items.filter(function (m) { return m && m.title; });
+    if (egodactLearningModeEnabled()) {
+        filtered = filtered.filter(function (m) { return egodactKeepInLearningMode(m); });
+    }
+    return filtered.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
     } catch (err) { return []; }
 }
 
@@ -104,6 +106,23 @@ function egodactShortcutsAvailable() {
     try { return typeof window.egodactOpenShortcutsModal === 'function'; } catch (e) { return false; }
 }
 
+
+function egodactLearningModeEnabled() {
+    try { return localStorage.getItem('egodact_learning_mode') === '1'; } catch (e) { return false; }
+}
+function egodactSetLearningMode(v) {
+    try { localStorage.setItem('egodact_learning_mode', v ? '1' : '0'); } catch (e) {}
+    window.__egodactLearningMode = !!v;
+}
+window.__egodactLearningMode = egodactLearningModeEnabled();
+
+function egodactKeepInLearningMode(item) {
+    if (!item) return false;
+    if (item.keepInLearningMode === true) return true;
+    const id = String(item.id || '').toLowerCase();
+    const title = String(item.title || '').toLowerCase();
+    return id.indexOf('compact') !== -1 || title.indexOf('compact') !== -1;
+}
 function egodactHamburgerStyle() {
     if (document.getElementById('egodact-hamburger-stijl')) return;
     const style = document.createElement('style');
@@ -362,6 +381,26 @@ function egodactUpdateHamburger() {
         dropdown.appendChild(scItem);
     }
 
+    // Vast item: Leermodus toggle.
+    const lmItem = document.createElement('button');
+    lmItem.type = 'button';
+    lmItem.style.cssText = 'display:flex;align-items:center;gap:8px;';
+    const lmIcon = document.createElement('span');
+    lmIcon.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;flex-shrink:0;';
+    lmIcon.textContent = '🎓';
+    const lmLabel = document.createElement('span');
+    lmLabel.textContent = 'Leermodus: ' + (egodactLearningModeEnabled() ? 'Aan' : 'Uit');
+    lmLabel.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    lmItem.append(lmIcon, lmLabel);
+    lmItem.addEventListener('click', function () {
+        closeMenu();
+        const next = !egodactLearningModeEnabled();
+        egodactSetLearningMode(next);
+        egodactToonToast(next ? 'Leermodus ingeschakeld' : 'Leermodus uitgeschakeld', { type: 'info' });
+        try { voegKnoppenToe(); } catch (e) {}
+    });
+    dropdown.appendChild(lmItem);
+
     dropdown.dataset.egdHamSig = menus.map(function (m) { return m.id || m.title; }).join('|');
 
     if (!knop.dataset.egdHamBound) {
@@ -501,11 +540,14 @@ function voegKnoppenToe() {
             (knownAddonsList && knownAddonsList.length)
         );
 
-    const addonEntries = (window.EgodactAddons && Array.isArray(window.EgodactAddons._buttons))
+    let addonEntries = (window.EgodactAddons && Array.isArray(window.EgodactAddons._buttons))
         ? window.EgodactAddons._buttons.filter(function (entry) {
             return !(entry && egodactButtonDisabled(entry.key));
         })
         : [];
+    if (egodactLearningModeEnabled()) {
+        addonEntries = addonEntries.filter(function (entry) { return egodactKeepInLearningMode(entry); });
+    }
     const addonButtonsComplete = addonEntries.every(function (entry) {
         if (!entry || !entry.id) return true;
         const addonBtnId = 'egodact-addon-btn-' + String(entry.id).replace(/[^a-z0-9_-]/gi, '-');
