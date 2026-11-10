@@ -205,6 +205,7 @@ function egodactSetButtonEnabled(id, enabled) {
         _buttons: [],
         _games: [],
         _sidebarPanels: [],
+        _shortcuts: [],
         _schedules: [],
         _readyCallbacks: [],
 
@@ -339,6 +340,53 @@ function egodactSetButtonEnabled(id, enabled) {
                 document.dispatchEvent(new CustomEvent('egodact:addons:changed'));
             } catch (err) {}
             return entry;
+        },
+
+        registerShortcut(meta) {
+            meta = meta || {};
+            const addon = meta.addonId ? this._byId[meta.addonId] : null;
+            const id = meta.id || (meta.addonId + ':' + (meta.title || 'shortcut'));
+            const fullId = meta.addonId ? (meta.addonId + ':' + id) : id;
+            // dedupe
+            this._shortcuts = this._shortcuts.filter(function (x) { return x.id !== fullId; });
+            const entry = {
+                id: fullId,
+                addonId: meta.addonId || null,
+                title: meta.title || 'Shortcut',
+                keys: meta.keys || '',
+                scope: meta.scope || 'global',
+                addon: addon
+            };
+            this._shortcuts.push(entry);
+            if (addon) {
+                if (!addon.shortcuts) addon.shortcuts = [];
+                addon.shortcuts.push(entry);
+            }
+            // register in central shortcuts registry
+            try {
+                if (typeof egodactRegisterShortcut === 'function') {
+                    egodactRegisterShortcut({
+                        id: fullId,
+                        title: (meta.addonId ? '[' + meta.addonId + '] ' : '') + (meta.title || 'Shortcut'),
+                        keys: meta.keys || '',
+                        scope: meta.scope || 'global',
+                        source: meta.addonId || 'addon',
+                        action: function () {
+                            try {
+                                document.dispatchEvent(new CustomEvent('egodact:addon:shortcut', {
+                                    detail: { id: id, addonId: meta.addonId || null }
+                                }));
+                            } catch (e) {}
+                        }
+                    });
+                }
+            } catch (e) { console.error('shortcut register failed', e); }
+            return entry;
+        },
+
+        unregisterShortcut(id) {
+            this._shortcuts = this._shortcuts.filter(function (x) { return x.id !== id; });
+            try { if (typeof egodactUnregisterShortcut === 'function') egodactUnregisterShortcut(id); } catch (e) {}
         },
 
         registerSchedule(meta) {
@@ -547,6 +595,16 @@ function egodactSetButtonEnabled(id, enabled) {
                 });
             } else if (detail.type === 'cancel-schedule') {
                 EgodactAddons.cancelSchedule(meta.id);
+            } else if (detail.type === 'shortcut') {
+                EgodactAddons.registerShortcut({
+                    addonId: meta.addonId || null,
+                    id: meta.id,
+                    title: meta.title || 'Shortcut',
+                    keys: meta.keys || '',
+                    scope: meta.scope || 'global'
+                });
+            } else if (detail.type === 'unregister-shortcut') {
+                EgodactAddons.unregisterShortcut(meta.id);
             } else if (detail.type === 'sidebar-panel') {
                 EgodactAddons.registerSidebarPanel({
                     addonId: meta.addonId || null,
