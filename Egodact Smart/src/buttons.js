@@ -381,26 +381,6 @@ function egodactUpdateHamburger() {
         dropdown.appendChild(scItem);
     }
 
-    // Vast item: Leermodus toggle.
-    const lmItem = document.createElement('button');
-    lmItem.type = 'button';
-    lmItem.style.cssText = 'display:flex;align-items:center;gap:8px;';
-    const lmIcon = document.createElement('span');
-    lmIcon.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;flex-shrink:0;';
-    lmIcon.textContent = '🎓';
-    const lmLabel = document.createElement('span');
-    lmLabel.textContent = 'Leermodus: ' + (egodactLearningModeEnabled() ? 'Aan' : 'Uit');
-    lmLabel.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-    lmItem.append(lmIcon, lmLabel);
-    lmItem.addEventListener('click', function () {
-        closeMenu();
-        const next = !egodactLearningModeEnabled();
-        egodactSetLearningMode(next);
-        egodactToonToast(next ? 'Leermodus ingeschakeld' : 'Leermodus uitgeschakeld', { type: 'info' });
-        try { voegKnoppenToe(); } catch (e) {}
-    });
-    dropdown.appendChild(lmItem);
-
     dropdown.dataset.egdHamSig = menus.map(function (m) { return m.id || m.title; }).join('|');
 
     if (!knop.dataset.egdHamBound) {
@@ -1451,3 +1431,13 @@ function voegKnoppenToe() {
 
 
 
+
+// ============================================================
+// LEARNING MODE API (voor addons)
+// ============================================================
+window.egodactLearningModeEnabled = egodactLearningModeEnabled;
+window.egodactSetLearningMode = function (v) {
+    egodactSetLearningMode(!!v);
+    try { voegKnoppenToe(); } catch (e) {}
+    try { egodactUpdateHamburger(); } catch (e) {}
+};
