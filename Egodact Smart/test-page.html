@@ -3,382 +3,106 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Egodact Playground</title>
+<title>Egodact Extension — Diagnoseconsole</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="test-page.css">
 </head>
 <body>
-
-<canvas id="fx" aria-hidden="true"></canvas>
-<div class="aurora" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span></div>
-
-<div class="app">
-  <aside class="side">
-    <div class="brand">
-      <div class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 47 47">
-          <g fill="currentColor">
-            <path d="M22.615 4.53c.539-1.467.988-2.934 1.617-4.371.958 2.066 1.587 4.281 2.545 6.317 2.365.928 4.94 1.317 7.335 2.215-5.149 2.575-10.389 5.06-15.628 7.485 1.287-3.922 2.754-7.754 4.131-11.646z"/>
-            <path d="M13.772 8.945c2.37-1.264 4.678-2.655 7.049-3.92-1.897 5.816-4.046 11.536-5.974 17.352-2.117-3.982-3.951-8.123-5.942-12.168-.632-1.359-1.359-2.656-1.896-4.045 2.307.789 4.456 2.085 6.763 2.781z"/>
-            <path d="M24.213 15.075c5.247-2.578 10.525-5.155 15.803-7.671-.859 2.21-1.841 4.327-2.793 6.506 1.227 2.301 2.731 4.48 3.867 6.842-5.646-1.811-11.261-3.713-16.877-5.677z"/>
-            <path d="M29.179 18.05c4.381 1.417 8.729 3.028 13.11 4.51 1.385.515 2.867.902 4.22 1.578-2.287.902-4.606 1.773-6.861 2.674-.838 2.609-1.418 5.315-2.287 7.924-1.772-3.285-3.318-6.699-4.993-10.05-1.063-2.19-2.222-4.38-3.189-6.635z"/>
-            <path d="M28.997 29.35c.582-1.655 1.071-3.338 1.745-4.961.796 1.377 1.439 2.847 2.173 4.256 1.807 3.826 3.766 7.561 5.542 11.387-2.174-.887-4.317-1.866-6.521-2.785-2.296 1.225-4.47 2.694-6.827 3.857 1.194-3.948 2.633-7.836 3.888-11.754z"/>
-            <path d="M4.971 25.646c4.963 1.541 9.803 3.39 14.704 5.024.74.247 1.479.524 2.158.863-5.302 2.435-10.512 5.116-15.875 7.46.863-2.158 1.942-4.224 2.774-6.412-1.048-2.405-2.62-4.562-3.761-6.935z"/>
-            <path d="M15.455 35.877c4.012-1.945 7.993-3.982 12.036-5.834-1.08 3.611-2.469 7.161-3.673 10.771-.709 1.913-1.265 3.889-2.067 5.771-.988-2.099-1.697-4.32-2.623-6.45-2.5-.925-5.124-1.451-7.654-2.16 1.203-.894 2.684-1.388 3.981-2.098z"/>
-            <path d="M8.349.375c1.582 2.959 2.929 6.064 4.394 9.081.996 2.08 2.05 4.131 2.958 6.27C10.458 13.909 5.214 12.034 0 10.072c2.051-.938 4.219-1.582 6.299-2.461.673-2.431 1.376-4.834 2.05-7.236z"/>
-          </g>
-        </svg>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 47 47">
+            <g fill="currentColor">
+              <path d="M22.615 4.53c.539-1.467.988-2.934 1.617-4.371.958 2.066 1.587 4.281 2.545 6.317 2.365.928 4.94 1.317 7.335 2.215-5.149 2.575-10.389 5.06-15.628 7.485 1.287-3.922 2.754-7.754 4.131-11.646z"/>
+              <path d="M13.772 8.945c2.37-1.264 4.678-2.655 7.049-3.92-1.897 5.816-4.046 11.536-5.974 17.352-2.117-3.982-3.951-8.123-5.942-12.168-.632-1.359-1.359-2.656-1.896-4.045 2.307.789 4.456 2.085 6.763 2.781z"/>
+              <path d="M24.213 15.075c5.247-2.578 10.525-5.155 15.803-7.671-.859 2.21-1.841 4.327-2.793 6.506 1.227 2.301 2.731 4.48 3.867 6.842-5.646-1.811-11.261-3.713-16.877-5.677z"/>
+              <path d="M29.179 18.05c4.381 1.417 8.729 3.028 13.11 4.51 1.385.515 2.867.902 4.22 1.578-2.287.902-4.606 1.773-6.861 2.674-.838 2.609-1.418 5.315-2.287 7.924-1.772-3.285-3.318-6.699-4.993-10.05-1.063-2.19-2.222-4.38-3.189-6.635z"/>
+              <path d="M28.997 29.35c.582-1.655 1.071-3.338 1.745-4.961.796 1.377 1.439 2.847 2.173 4.256 1.807 3.826 3.766 7.561 5.542 11.387-2.174-.887-4.317-1.866-6.521-2.785-2.296 1.225-4.47 2.694-6.827 3.857 1.194-3.948 2.633-7.836 3.888-11.754z"/>
+              <path d="M4.971 25.646c4.963 1.541 9.803 3.39 14.704 5.024.74.247 1.479.524 2.158.863-5.302 2.435-10.512 5.116-15.875 7.46.863-2.158 1.942-4.224 2.774-6.412-1.048-2.405-2.62-4.562-3.761-6.935z"/>
+              <path d="M15.455 35.877c4.012-1.945 7.993-3.982 12.036-5.834-1.08 3.611-2.469 7.161-3.673 10.771-.709 1.913-1.265 3.889-2.067 5.771-.988-2.099-1.697-4.32-2.623-6.45-2.5-.925-5.124-1.451-7.654-2.16 1.203-.894 2.684-1.388 3.981-2.098z"/>
+              <path d="M8.349.375c1.582 2.959 2.929 6.064 4.394 9.081.996 2.08 2.05 4.131 2.958 6.27C10.458 13.909 5.214 12.034 0 10.072c2.051-.938 4.219-1.582 6.299-2.461.673-2.431 1.376-4.834 2.05-7.236z"/>
+            </g>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-name">Egodact <span>diagnoseconsole</span></div>
+          <div class="brand-sub">Extensie-testpagina</div>
+        </div>
       </div>
-      <div class="brand-name">Egodact<span>playground</span></div>
-    </div>
-
-    <nav class="nav" aria-label="Hoofdmenu">
-      <button type="button" class="active" data-view="dashboard">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>
-        Dashboard
-      </button>
-      <button type="button" data-view="challenges">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"></path><path d="M12 17v4"></path><path d="M7 4h10v5a5 5 0 0 1-10 0z"></path><path d="M7 6H4a3 3 0 0 0 3 3"></path><path d="M17 6h3a3 3 0 0 1-3 3"></path></svg>
-        Challenges
-      </button>
-      <button type="button" data-view="planning">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M8 2v4M16 2v4M3 9h18"></path></svg>
-        Weekplanning
-      </button>
-      <button type="button" data-view="addons">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 3-3 3-3-3 3-3z"></path><path d="M19 9l3 3-3 3-3-3 3-3z"></path><path d="M5 9l3 3-3 3-3-3 3-3z"></path><path d="M12 16l3 3-3 3-3-3 3-3z"></path></svg>
-        Addons
-      </button>
-      <button type="button" data-view="settings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.12.36.43.62.8.71"></path></svg>
-        Instellingen
-      </button>
-    </nav>
-
-    <div class="side-card">
-      <div class="side-card-label">Streak</div>
-      <div class="streak"><strong id="streak-n">14</strong><span>dagen op rij</span></div>
-      <div class="spark" id="spark" aria-hidden="true"></div>
-    </div>
-
-    <div class="side-foot"><span class="pulse-dot"></span> Alle systemen online</div>
-  </aside>
-
-  <div class="shell">
-    <header id="hdr" class="topbar">
-      <div class="crumbs">
-        <span>Egodact</span>
-        <span class="sep">/</span>
-        <span class="extra">Playground</span>
-        <span class="sep extra">/</span>
-        <b>Dashboard</b>
-      </div>
-      <div id="welcome">Welkom terug, <strong>Max</strong></div>
-
-      <div id="icons" class="icons">
-        <button type="button" id="page-search" class="icon" title="Zoeken (Ctrl+K)" aria-label="Zoeken">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 14h-.79l-.28-.27"></path><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15 15l5 5"></path></svg>
-        </button>
-        <button type="button" id="page-bell" class="icon" title="Meldingen" aria-label="Meldingen">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg>
-          <span class="bell-dot"></span>
-        </button>
+      <div class="top-actions">
         <button type="button" id="theme-btn" class="icon" title="Thema wisselen" aria-label="Thema wisselen">
           <svg id="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
         </button>
-        <button type="button" class="avatar" title="Profiel" aria-label="Profiel">MH</button>
+        <button type="button" id="refresh-btn" class="btn ghost">Vernieuw</button>
+        <button type="button" id="copy-btn" class="btn primary">Kopieer diagnose</button>
       </div>
     </header>
 
     <main class="content">
-      <section class="view" data-view="dashboard">
-      <section class="hero">
-        <div>
-          <p class="eyebrow">
-            <span id="date-line">dinsdag 10 november</span>
-            <span class="live"><i></i><span id="clock">09:58:42</span></span>
-          </p>
-          <h1><span id="greet">Goedemorgen</span>, <span class="grad">Max</span></h1>
-          <p class="sub">Je hebt <strong id="hero-open">3</strong> open taken en <strong>1</strong> challenge-deadline vandaag.</p>
+      <section class="card" id="status-card">
+        <h2>Extensie-status</h2>
+        <p class="card-sub">Gegevens uit <code>chrome.runtime</code>.</p>
+        <div id="status-body" class="rows"></div>
+      </section>
+
+      <section class="card" id="files-card">
+        <h2>Manifest &amp; bestanden</h2>
+        <p class="card-sub">Controleert of de in het manifest genoemde bestanden bereikbaar zijn via <code>chrome.runtime.getURL</code>.</p>
+        <div id="files-body"></div>
+      </section>
+
+      <section class="card" id="storage-card">
+        <h2>chrome.storage dump</h2>
+        <p class="card-sub">Leest alle opslaggebieden. Werkt alleen als de extensie de <code>storage</code>-permissie heeft.</p>
+        <div id="storage-body"></div>
+      </section>
+
+      <section class="card" id="events-card">
+        <h2>Event-log (addon-API)</h2>
+        <p class="card-sub">Luistert naar <code>CustomEvent</code>s op <code>window</code>. Dispatch test-events met de knoppen.</p>
+        <div class="btn-row">
+          <button type="button" class="btn small" id="dispatch-open">Dispatch egodact:addon:open</button>
+          <button type="button" class="btn small" id="dispatch-ready">Dispatch egodact:addon:ready</button>
+          <button type="button" class="btn small ghost" id="clear-log">Log wissen</button>
         </div>
-        <div class="hero-actions">
-          <button type="button" class="btn ghost" id="confetti-btn">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"></path></svg>
-            Vier het
+        <pre id="event-log" class="log"></pre>
+      </section>
+
+      <section class="card" id="links-card">
+        <h2>Snelkoppelingen</h2>
+        <div class="link-grid">
+          <a class="link-tile" href="https://app.egodact.com" target="_blank" rel="noopener">
+            <span class="link-title">Egodact app</span>
+            <span class="link-url">https://app.egodact.com</span>
+          </a>
+          <button type="button" class="link-tile" id="copy-ext-url">
+            <span class="link-title">chrome://extensions</span>
+            <span class="link-url">Klik om te kopiëren</span>
           </button>
-          <button type="button" class="btn primary" id="new-task-btn">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
-            Nieuwe taak
+          <button type="button" class="link-tile" id="open-options">
+            <span class="link-title">Herlaad extensie</span>
+            <span class="link-url">chrome://extensions → 🔄</span>
           </button>
         </div>
+        <p class="hint">Tip: na een update van de extensie, herlaad de extensie op <code>chrome://extensions</code> en refresh deze tab met <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>.</p>
       </section>
 
-      <section class="grid">
-        <div class="stats">
-          <article class="stat">
-            <div class="ring">
-              <svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="18"></circle><circle class="val" cx="22" cy="22" r="18" data-p="68"></circle></svg>
-              <span class="ring-label">68%</span>
-            </div>
-            <div>
-              <p class="stat-k">Focus deze week</p>
-              <p class="stat-v" data-count="6.8" data-suffix="u">0u</p>
-              <p class="stat-d up">+12% vs vorige week</p>
-            </div>
-          </article>
-
-          <article class="stat">
-            <div class="ring">
-              <svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="18"></circle><circle class="val" cx="22" cy="22" r="18" data-p="42"></circle></svg>
-              <span class="ring-label">42%</span>
-            </div>
-            <div>
-              <p class="stat-k">Challenges</p>
-              <p class="stat-v" data-count="9" data-suffix="/21">0/21</p>
-              <p class="stat-d">Nog 12 te gaan</p>
-            </div>
-          </article>
-
-          <article class="stat">
-            <div class="ring">
-              <svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="18"></circle><circle class="val" cx="22" cy="22" r="18" data-p="100"></circle></svg>
-              <span class="ring-label">14</span>
-            </div>
-            <div>
-              <p class="stat-k">Streak</p>
-              <p class="stat-v" data-count="14" data-suffix=" dagen">0 dagen</p>
-              <p class="stat-d up">Persoonlijk record</p>
-            </div>
-          </article>
-        </div>
-
-        <article class="card week card-pad">
-          <div class="card-head">
-            <h2>Deze week</h2>
-            <span class="hint" id="week-hint">week 46</span>
-          </div>
-          <div class="week-days" id="week-days"></div>
-          <div class="week-note">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 6.9L21 9.2l-5.2 4.3 1.9 7-5.7-4-5.7 4 1.9-7L2 9.2l6.6-.3z"></path></svg>
-            <span>Donderdag is je drukste dag — plan daar een focusblok van 50 minuten.</span>
-          </div>
-        </article>
-
-        <article class="card focus card-pad">
-          <div class="card-head">
-            <h2>Focus</h2>
-            <span class="hint">pomodoro</span>
-          </div>
-          <div class="focus-wrap">
-            <div class="focus-ring">
-              <svg viewBox="0 0 160 160"><circle class="track" cx="80" cy="80" r="70"></circle><circle class="val" id="focus-val" cx="80" cy="80" r="70"></circle></svg>
-              <div class="focus-time">
-                <strong id="focus-time">25:00</strong>
-                <span id="focus-state">klaar om te starten</span>
-              </div>
-            </div>
-            <div class="focus-btns">
-              <button type="button" class="btn primary" id="focus-toggle">Start</button>
-              <button type="button" class="btn ghost" id="focus-reset">Reset</button>
-            </div>
-            <div class="sessions" id="sessions">
-              <span>Sessies</span>
-              <i></i><i></i><i></i><i></i><i></i><i></i>
-            </div>
-          </div>
-        </article>
-
-        <article class="card tasks card-pad">
-          <div class="card-head">
-            <h2>Vandaag</h2>
-            <div class="task-progress">
-              <div class="bar"><i id="task-bar"></i></div>
-              <span class="task-count" id="task-count">0 / 0</span>
-            </div>
-          </div>
-
-          <form class="task-add" id="task-add" hidden>
-            <input id="task-input" type="text" maxlength="80" placeholder="Wat ga je doen?" autocomplete="off">
-            <button type="submit" class="btn primary">Voeg toe</button>
-          </form>
-
-          <div class="task-list" id="task-list"></div>
-        </article>
-
-        <article class="card heat card-pad">
-          <div class="card-head">
-            <h2>Activiteit</h2>
-            <span class="hint">12 weken</span>
-          </div>
-          <div class="heat-grid" id="heat-grid" aria-hidden="true"></div>
-          <div class="heat-foot">
-            <span id="heat-summary">—</span>
-            <span class="legend" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
-          </div>
-        </article>
-      </section>
-
-      </section>
-
-      <section class="view" data-view="challenges" hidden>
-        <div class="hero">
-          <div>
-            <p class="eyebrow">SMART · uitdagingen <span class="live"><i></i>week 46</span></p>
-            <h1>Uitdagingen</h1>
-            <p class="sub"><strong id="challenge-active">3</strong> actief · <strong id="challenge-done">1</strong> voltooid · <strong id="challenge-points">130</strong> punten totaal</p>
-          </div>
-          <div class="hero-actions" id="challenge-filter">
-            <button type="button" class="btn small active" data-filter="all">Alles</button>
-            <button type="button" class="btn small" data-filter="open">Actief</button>
-            <button type="button" class="btn small" data-filter="done">Voltooid</button>
-          </div>
-        </div>
-        <div class="grid">
-          <article class="card card-pad split-7">
-            <div class="card-head"><h2>Jouw uitdagingen</h2><span class="hint">claim = punten</span></div>
-            <div class="challenge-list" id="challenge-list"></div>
-          </article>
-          <aside class="card card-pad split-5">
-            <div class="card-head"><h2>Deze week</h2><span class="hint">overzicht</span></div>
-            <div class="mini-stats">
-              <div class="mini-stat"><span>Punten</span><strong>120</strong><em>van 210</em></div>
-              <div class="mini-stat"><span>Reeks</span><strong>14</strong><em>dagen op rij</em></div>
-              <div class="mini-stat"><span>Voltooid</span><strong>9</strong><em>van 12</em></div>
-            </div>
-            <div class="week-note">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 6.9L21 9.2l-5.2 4.3 1.9 7-5.7-4-5.7 4 1.9-7L2 9.2l6.6-.3z"></path></svg>
-              <span>Nog 2 dagen om je weekdoel te halen.</span>
-            </div>
-          </aside>
-        </div>
-      </section>
-
-      <section class="view" data-view="planning" hidden>
-        <div class="hero">
-          <div>
-            <p class="eyebrow">Planning <span class="live"><i></i>week 46</span></p>
-            <h1>Weekplanning</h1>
-            <p class="sub"><span id="plan-dates">9 – 15 november</span> · <strong id="plan-summary">6 blokken</strong></p>
-          </div>
-          <div class="hero-actions">
-            <button type="button" class="btn ghost" id="plan-today">Vandaag</button>
-            <button type="button" class="btn primary" id="plan-add">+ Nieuw blok</button>
-          </div>
-        </div>
-        <div class="grid">
-          <article class="card card-pad split-8">
-            <div class="card-head"><h2>Week 46</h2><span class="hint" id="plan-week">9 – 15 nov</span></div>
-            <div class="plan-board" id="plan-board"></div>
-          </article>
-          <aside class="card card-pad split-4">
-            <div class="card-head"><h2>Vandaag</h2><span class="hint" id="plan-today-label">—</span></div>
-            <div class="plan-today" id="plan-today-list"></div>
-          </aside>
-        </div>
-      </section>
-
-      <section class="view" data-view="addons" hidden>
-        <div class="hero">
-          <div>
-            <p class="eyebrow">Extensies <span class="live"><i></i>host 3.4</span></p>
-            <h1>Addons</h1>
-            <p class="sub"><strong id="addon-active">3</strong> van <strong id="addon-total">4</strong> actief · beheer wat er in Egodact verschijnt</p>
-          </div>
-          <div class="hero-actions">
-            <button type="button" class="btn ghost" id="addon-refresh">Status verversen</button>
-          </div>
-        </div>
-        <div class="grid">
-          <article class="card card-pad split-7">
-            <div class="card-head"><h2>Geïnstalleerd</h2><span class="hint">lokaal</span></div>
-            <div class="addon-list" id="addon-list"></div>
-          </article>
-          <aside class="card card-pad split-5">
-            <div class="card-head"><h2>Addon-events</h2><span class="hint">DOM</span></div>
-            <p class="aside-note">Host en addons praten via <code>CustomEvent</code>. Klik op <strong>Open</strong> om een event te sturen en te kijken wie meeluistert.</p>
-            <ul class="event-log" id="addon-log"></ul>
-          </aside>
-        </div>
-      </section>
-
-      <section class="view" data-view="settings" hidden>
-        <div class="hero">
-          <div>
-            <p class="eyebrow">Demo <span class="live"><i></i>lokaal</span></p>
-            <h1>Instellingen</h1>
-            <p class="sub">Alles hier beïnvloedt alleen deze testpagina.</p>
-          </div>
-        </div>
-        <div class="grid">
-          <article class="card card-pad split-7">
-            <div class="card-head"><h2>Weergave</h2><span class="hint">bewaart lokaal</span></div>
-            <div class="setting">
-              <div class="setting-body">
-                <span class="setting-title">Thema</span>
-                <span class="setting-desc">Dezelfde kleuren als de donkere en lichte Egodact-app.</span>
-              </div>
-              <div class="segmented" id="theme-seg">
-                <button type="button" data-theme-value="dark">Donker</button>
-                <button type="button" data-theme-value="light">Licht</button>
-              </div>
-            </div>
-            <div class="setting">
-              <div class="setting-body">
-                <span class="setting-title">Beweging</span>
-                <span class="setting-desc">Zet animaties en confetti uit.</span>
-              </div>
-              <button type="button" class="switch" id="motion-switch" role="switch" aria-checked="false" aria-label="Beweging"><span></span></button>
-            </div>
-
-            <div class="card-head settings-sub"><h2>Demo-data</h2></div>
-            <div class="setting">
-              <div class="setting-body">
-                <span class="setting-title">Alles resetten</span>
-                <span class="setting-desc">Taken, thema, addons en verborgen instellingen wissen.</span>
-              </div>
-              <button type="button" class="btn ghost" id="reset-demo">Reset</button>
-            </div>
-          </article>
-
-          <aside class="card card-pad split-5">
-            <div class="card-head"><h2>Over</h2><span class="hint">versies</span></div>
-            <div class="about">
-              <div class="about-row"><span>Extensie</span><code>3.4</code></div>
-              <div class="about-row"><span>Chat-addon</span><code>1.0.7</code></div>
-              <div class="about-row"><span>Testpagina</span><code>2.0</code></div>
-              <div class="about-row"><span>Modus</span><code>lokaal</code></div>
-            </div>
-            <p class="aside-note" style="margin-top:14px">Deze pagina is een speeltuin voor de addon-API. Er wordt geen echte Egodact-data gebruikt.</p>
-          </aside>
-        </div>
+      <section class="card" id="raw-card">
+        <details>
+          <summary>Manifest (raw JSON)</summary>
+          <pre id="manifest-raw" class="log"></pre>
+        </details>
       </section>
     </main>
 
     <footer class="foot">
-      <span>Demo-pagina voor de Egodact addon-test · alles is lokaal en nep</span>
-      <span>Druk op <kbd>Ctrl</kbd> + <kbd>K</kbd> voor commando's</span>
+      Egodact Pantagora · diagnoseconsole · <span id="foot-time"></span>
     </footer>
   </div>
-</div>
 
-<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
-
-<div class="palette" id="palette" hidden>
-  <div class="palette-box" role="dialog" aria-modal="true" aria-label="Commando's">
-    <div class="palette-top">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 14h-.79l-.28-.27"></path><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15 15l5 5"></path></svg>
-      <input id="palette-input" type="text" placeholder="Typ een commando…" autocomplete="off" spellcheck="false">
-      <kbd>Esc</kbd>
-    </div>
-    <div class="palette-list" id="palette-list"></div>
-  </div>
-</div>
-
-<canvas id="confetti" aria-hidden="true"></canvas>
-<pre id="result" hidden></pre>
-
-<script src="test-page.js"></script>
+  <script src="test-page.js"></script>
 </body>
 </html>
