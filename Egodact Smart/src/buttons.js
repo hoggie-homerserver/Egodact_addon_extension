@@ -97,6 +97,7 @@ function egodactHamburgerMenus() {
     if (egodactLearningModeEnabled()) {
         filtered = filtered.filter(function (m) { return egodactKeepInLearningMode(m); });
     }
+    console.log('[Egodact] hamburgerMenus learningMode=' + egodactLearningModeEnabled() + ' count=' + filtered.length + ' items=' + filtered.map(function(m){return m.id;}).join(','));
     return filtered.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
     } catch (err) { return []; }
 }
@@ -255,6 +256,7 @@ function egodactSlotAdd(naam, element, order) {
 
 function egodactUpdateHamburger() {
     const menus = egodactHamburgerMenus();
+    console.log('[Egodact] updateHamburger menus=' + menus.map(function(m){return m.id;}).join(',') + ' bestaand=' + !!document.getElementById('egodact-hamburger-knop'));
     const bestaand = document.getElementById('egodact-hamburger-knop');
 
     const showShortcuts = egodactShortcutsAvailable();
