@@ -388,19 +388,20 @@
     function registerCoreShortcuts() {
         registerShortcut({ id: 'core.shortcuts.settings', title: 'Sneltoetsen openen', keys: 'f2', scope: 'global', source: 'core', action: function () { openShortcutsModal(); } });
         registerShortcut({ id: 'core.weekplanning', title: 'Weekplanning openen', keys: 'f3', scope: 'global', source: 'core', action: function () {
-            try { if (typeof openWeekplanning === 'function') openWeekplanning(); } catch (e) {}
+            try { if (typeof openWeekplanning === 'function') openWeekplanning({ preventDefault: function(){}, stopPropagation: function(){} }); } catch (e) { console.error('weekplanning shortcut failed', e); }
         }});
-        registerShortcut({ id: 'core.challenges', title: 'Challenges openen', keys: 'f4', scope: 'global', source: 'core', action: function () {
+        registerShortcut({ id: 'core.challenges', title: 'Challenges (weekplanning)', keys: 'f4', scope: 'global', source: 'core', action: function () {
             try {
-                const btn = document.querySelector('[data-egodact-view="challenges"], #egodact-challenges-knop');
-                if (btn) btn.click();
-            } catch (e) {}
+                if (typeof openWeekplanning === 'function') openWeekplanning({ preventDefault: function(){}, stopPropagation: function(){} });
+                egodactToonToast('Challenges staan in de weekplanning-zijbalk', { type: 'info' });
+            } catch (e) { console.error('challenges shortcut failed', e); }
         }});
         registerShortcut({ id: 'core.search', title: 'Zoeken focussen', keys: 'f9', scope: 'global', source: 'core', allowInInput: false, action: function () {
             try {
-                const el = document.querySelector('input[type="search"], #egodact-zoekveld');
-                if (el) el.focus();
-            } catch (e) {}
+                const el = document.querySelector('input[type="search"], #egodact-zoekveld, input[placeholder*="zoek" i], input[placeholder*="search" i]');
+                if (el) { el.focus(); }
+                else { egodactToonToast('Geen zoekveld gevonden op deze pagina', { type: 'info' }); }
+            } catch (e) { console.error('search shortcut failed', e); }
         }});
         registerShortcut({ id: 'core.closeModal', title: 'Sluiten (Escape)', keys: 'escape', scope: 'global', source: 'core', action: function () {
             const bd = document.getElementById('egodact-custom-modal-backdrop') || document.getElementById('egodact-weekplanning-backdrop') || document.getElementById('egodact-shortcuts-modal');
