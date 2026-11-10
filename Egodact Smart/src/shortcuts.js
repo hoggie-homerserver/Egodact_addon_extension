@@ -170,6 +170,7 @@
 
     function handleKeydown(e) {
         if (!state.enabled) return;
+        if (global.__egodactShortcutCapturing) return;
         const combo = comboFromEvent(e);
         if (!combo) return;
 
@@ -217,7 +218,7 @@
         const closeBtn = document.createElement('button');
         closeBtn.textContent = 'Sluiten';
         closeBtn.style.cssText = 'padding:6px 12px;border:none;border-radius:4px;background:var(--egd-accent,#90caf9);color:var(--egd-accent-tekst,#0d47a1);cursor:pointer;font-weight:bold;';
-        closeBtn.addEventListener('click', function () { backdrop.remove(); });
+        closeBtn.addEventListener('click', function () { global.__egodactShortcutCapturing = false; backdrop.remove(); });
         head.append(title, closeBtn);
         modal.appendChild(head);
 
@@ -279,8 +280,9 @@
                     editBtn.textContent = capturingFor === s.id ? 'Druk toetsen…' : 'Wijzig';
                     editBtn.style.cssText = 'padding:4px 8px;font-size:12px;border:1px solid var(--egd-rand,#555);border-radius:4px;background:transparent;color:var(--egd-tekst,#fff);cursor:pointer;';
                     editBtn.addEventListener('click', function () {
-                        if (capturingFor === s.id) { capturingFor = null; renderList(); return; }
+                        if (capturingFor === s.id) { capturingFor = null; global.__egodactShortcutCapturing = false; renderList(); return; }
                         capturingFor = s.id;
+                        global.__egodactShortcutCapturing = true;
                         renderList();
                     });
                     const resetBtn = document.createElement('button');
@@ -324,7 +326,7 @@
             if (!combo) return;
             // ignore bare modifiers
             if (['mod', 'alt', 'shift'].includes(combo)) return;
-            if (combo === 'escape') { capturingFor = null; renderList(); return; }
+            if (combo === 'escape') { capturingFor = null; global.__egodactShortcutCapturing = false; renderList(); return; }
             const res = setShortcutKeys(capturingFor, combo);
             if (res.ok) {
                 egodactToonToast('Opgeslagen', { type: 'success' });
@@ -332,6 +334,7 @@
                 egodactToonToast('Conflict met ' + res.conflictId, { type: 'error' });
             }
             capturingFor = null;
+            global.__egodactShortcutCapturing = false;
             renderList();
         };
         backdrop.addEventListener('keydown', captureHandler, true);
@@ -352,7 +355,7 @@
         footer.append(resetAllBtn, enabledInfo);
         modal.appendChild(footer);
 
-        backdrop.addEventListener('click', function (e) { if (e.target === backdrop) backdrop.remove(); });
+        backdrop.addEventListener('click', function (e) { if (e.target === backdrop) { global.__egodactShortcutCapturing = false; backdrop.remove(); } });
         document.body.appendChild(backdrop);
         // focus for key capture
         modal.tabIndex = -1;
