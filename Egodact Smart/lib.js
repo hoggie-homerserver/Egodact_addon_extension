@@ -115,6 +115,33 @@
         return node;
     };
 
+    // iframe helper voor sidebar-panelen (of andere plekken waar je
+    // externe/lokale inhoud wilt embedden). Let op: de host-pagina CSP en
+    // de web_accessible_resources van de addon bepalen wat er geladen mag.
+    ui.iframe = function (opts) {
+        opts = opts || {};
+        const t = theme();
+        const props = {
+            src: opts.src || 'about:blank',
+            title: opts.title || '',
+            style: {
+                width: opts.width || '100%',
+                height: opts.height || '200px',
+                border: '1px solid ' + (opts.border || t.rand),
+                borderRadius: (opts.radius || 6) + 'px',
+                background: opts.background || t.paneel,
+                display: 'block'
+            }
+        };
+        if (opts.sandbox) props.sandbox = opts.sandbox;
+        if (opts.allow) props.allow = opts.allow;
+        const node = el('iframe', props);
+        if (opts.onload && typeof opts.onload === 'function') {
+            node.addEventListener('load', opts.onload);
+        }
+        return node;
+    };
+
     ui.row = function (opts) {
         opts = opts || {};
         const node = el('div', {
