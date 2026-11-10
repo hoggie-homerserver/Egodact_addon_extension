@@ -94,12 +94,23 @@ function egodactHamburgerMenus() {
         // via registerMenu as a fallback.)
         // Keep hamburger opt-in: only show explicit hamburger items.
         let filtered = items.filter(function (m) { return m && m.title; });
-    if (egodactLearningModeEnabled()) {
-        filtered = filtered.filter(function (m) { return egodactKeepInLearningMode(m); });
-    }
-    console.log('[Egodact] hamburgerMenus learningMode=' + egodactLearningModeEnabled() + ' count=' + filtered.length + ' items=' + filtered.map(function(m){return m.id;}).join(','));
-    return filtered.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+        const hidden = egodactHamburgerHiddenIds();
+        if (hidden.length) {
+            filtered = filtered.filter(function (m) {
+                const id = String((m && (m.id || m.title)) || '');
+                return hidden.indexOf(id) === -1;
+            });
+        }
+        if (egodactLearningModeEnabled()) {
+            filtered = filtered.filter(function (m) { return egodactKeepInLearningMode(m); });
+        }
+        return filtered.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
     } catch (err) { return []; }
+}
+
+
+function egodactHamburgerHiddenIds() {
+    try { return Array.isArray(window.__egodactHiddenHamburgerIds) ? window.__egodactHiddenHamburgerIds : []; } catch (e) { return []; }
 }
 
 
@@ -256,7 +267,6 @@ function egodactSlotAdd(naam, element, order) {
 
 function egodactUpdateHamburger() {
     const menus = egodactHamburgerMenus();
-    console.log('[Egodact] updateHamburger menus=' + menus.map(function(m){return m.id;}).join(',') + ' bestaand=' + !!document.getElementById('egodact-hamburger-knop'));
     const bestaand = document.getElementById('egodact-hamburger-knop');
 
     const showShortcuts = egodactShortcutsAvailable();
@@ -343,6 +353,9 @@ function egodactUpdateHamburger() {
         item.style.display = 'flex';
         item.style.alignItems = 'center';
         item.style.gap = '8px';
+        item.dataset.egdHamId = String(m.id || m.title || '');
+        if (m.addonId) item.dataset.egdHamAddon = String(m.addonId);
+        if (egodactKeepInLearningMode(m)) item.dataset.egdHamKeep = '1';
 
         // Icons can be plain text, HTML entities (&#10024;) or an SVG string.
         const icon = document.createElement('span');
@@ -368,6 +381,8 @@ function egodactUpdateHamburger() {
     if (egodactShortcutsAvailable()) {
         const scItem = document.createElement('button');
         scItem.type = 'button';
+        scItem.dataset.egdHamId = 'shortcuts';
+        scItem.dataset.egdHamKeep = '1';
         scItem.style.cssText = 'display:flex;align-items:center;gap:8px;';
         const scIcon = document.createElement('span');
         scIcon.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;flex-shrink:0;';
@@ -1440,8 +1455,24 @@ function voegKnoppenToe() {
 window.egodactLearningModeEnabled = egodactLearningModeEnabled;
 window.egodactSetLearningMode = function (v) {
     egodactSetLearningMode(!!v);
-    console.log('[Egodact] learning mode =', !!v);
-    try { if (typeof egodactToonToast === 'function') egodactToonToast(!!v ? 'Leermodus aan' : 'Leermodus uit', { type: 'info' }); } catch (e) {}
     try { voegKnoppenToe(); } catch (e) { console.error(e); }
     try { egodactUpdateHamburger(); } catch (e) { console.error(e); }
+};
+
+// Verberg specifieke hamburger-items (addon-API). Lege lijst = alles terug.
+window.egodactSetHamburgerHidden = function (ids) {
+    const next = Array.isArray(ids) ? ids.map(String) : [];
+    const prev = Array.isArray(window.__egodactHiddenHamburgerIds) ? window.__egodactHiddenHamburgerIds : [];
+    if (next.length === prev.length && next.every(function (v, i) { return v === prev[i]; })) return;
+    window.__egodactHiddenHamburgerIds = next;
+    try { egodactUpdateHamburger(); } catch (e) { console.error(e); }
+};
+
+// Geeft de momenteel zichtbare hamburger-items terug (id/title/addonId).
+window.egodactGetHamburgerItems = function () {
+    try {
+        return egodactHamburgerMenus().map(function (m) {
+            return { id: m.id || m.title, title: m.title || '', addonId: m.addonId || null, keepInLearningMode: egodactKeepInLearningMode(m) };
+        });
+    } catch (e) { return []; }
 };

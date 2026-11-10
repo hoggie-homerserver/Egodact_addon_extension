@@ -605,6 +605,8 @@ function egodactSetButtonEnabled(id, enabled) {
                     keys: meta.keys || '',
                     scope: meta.scope || 'global'
                 });
+            } else if (detail.type === 'hamburger-hide') {
+                try { window.egodactSetHamburgerHidden(Array.isArray(meta.hidden) ? meta.hidden : []); } catch (e) {}
             } else if (detail.type === 'learning-mode') {
                 try { window.egodactSetLearningMode(!!(meta && meta.enabled)); } catch (e) {}
             } else if (detail.type === 'unregister-shortcut') {
