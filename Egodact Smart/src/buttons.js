@@ -1438,6 +1438,8 @@ function voegKnoppenToe() {
 window.egodactLearningModeEnabled = egodactLearningModeEnabled;
 window.egodactSetLearningMode = function (v) {
     egodactSetLearningMode(!!v);
-    try { voegKnoppenToe(); } catch (e) {}
-    try { egodactUpdateHamburger(); } catch (e) {}
+    console.log('[Egodact] learning mode =', !!v);
+    try { if (typeof egodactToonToast === 'function') egodactToonToast(!!v ? 'Leermodus aan' : 'Leermodus uit', { type: 'info' }); } catch (e) {}
+    try { voegKnoppenToe(); } catch (e) { console.error(e); }
+    try { egodactUpdateHamburger(); } catch (e) { console.error(e); }
 };
