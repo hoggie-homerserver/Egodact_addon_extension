@@ -390,19 +390,8 @@
         registerShortcut({ id: 'core.weekplanning', title: 'Weekplanning openen', keys: 'f3', scope: 'global', source: 'core', action: function () {
             try { if (typeof openWeekplanning === 'function') openWeekplanning({ preventDefault: function(){}, stopPropagation: function(){} }); } catch (e) { console.error('weekplanning shortcut failed', e); }
         }});
-        registerShortcut({ id: 'core.challenges', title: 'Challenges (weekplanning)', keys: 'f4', scope: 'global', source: 'core', action: function () {
-            try {
-                if (typeof openWeekplanning === 'function') openWeekplanning({ preventDefault: function(){}, stopPropagation: function(){} });
-                egodactToonToast('Challenges staan in de weekplanning-zijbalk', { type: 'info' });
-            } catch (e) { console.error('challenges shortcut failed', e); }
-        }});
-        registerShortcut({ id: 'core.search', title: 'Zoeken focussen', keys: 'f9', scope: 'global', source: 'core', allowInInput: false, action: function () {
-            try {
-                const el = document.querySelector('input[type="search"], #egodact-zoekveld, input[placeholder*="zoek" i], input[placeholder*="search" i]');
-                if (el) { el.focus(); }
-                else { egodactToonToast('Geen zoekveld gevonden op deze pagina', { type: 'info' }); }
-            } catch (e) { console.error('search shortcut failed', e); }
-        }});
+
+
         registerShortcut({ id: 'core.closeModal', title: 'Sluiten (Escape)', keys: 'escape', scope: 'global', source: 'core', action: function () {
             const bd = document.getElementById('egodact-custom-modal-backdrop') || document.getElementById('egodact-weekplanning-backdrop') || document.getElementById('egodact-shortcuts-modal');
             if (bd && bd.parentNode) bd.remove();
