@@ -93,11 +93,9 @@ function egodactHamburgerMenus() {
         // not silently drop everything. (Learning Mode also registers
         // via registerMenu as a fallback.)
         // Keep hamburger opt-in: only show explicit hamburger items.
-        let filtered = items.filter(function (m) { return m && m.title; });
-    if (egodactLearningModeEnabled()) {
-        filtered = filtered.filter(function (m) { return egodactKeepInLearningMode(m); });
-    }
-    return filtered.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+        return items
+            .filter(function (m) { return m && m.title; })
+            .sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
     } catch (err) { return []; }
 }
 
