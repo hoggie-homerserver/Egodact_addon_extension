@@ -380,8 +380,12 @@ function egodactUpdateHamburger() {
 
 function voegKnoppenToe() {
 
+    // Voorkom herhaalde uitvoering door eigen DOM-wijzigingen (MutationObserver).
+    if (window.__egodactVoegKnoppenToeBezig) return;
     // Na het uitschakelen van de extensie niets meer opbouwen.
     if (window.__egodactUitgeschakeld) return;
+    window.__egodactVoegKnoppenToeBezig = true;
+    try {
 
     // Alleen op Pantagora
     if (
@@ -1399,6 +1403,7 @@ function voegKnoppenToe() {
     try { egodactUpdateHamburger(); } catch (err) { console.error('Hamburger update failed:', err); }
 
     egodactSyncMenuButtonTheme();
+    } finally { window.__egodactVoegKnoppenToeBezig = false; }
 }
 
 
