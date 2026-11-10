@@ -99,6 +99,11 @@ function egodactHamburgerMenus() {
     } catch (err) { return []; }
 }
 
+
+function egodactShortcutsAvailable() {
+    try { return typeof window.egodactOpenShortcutsModal === 'function'; } catch (e) { return false; }
+}
+
 function egodactHamburgerStyle() {
     if (document.getElementById('egodact-hamburger-stijl')) return;
     const style = document.createElement('style');
@@ -233,7 +238,8 @@ function egodactUpdateHamburger() {
     const menus = egodactHamburgerMenus();
     const bestaand = document.getElementById('egodact-hamburger-knop');
 
-    if (!menus.length) {
+    const showShortcuts = egodactShortcutsAvailable();
+    if (!menus.length && !showShortcuts) {
         if (bestaand && bestaand.parentNode) bestaand.parentNode.removeChild(bestaand);
         const oudeDropdown = document.getElementById('egodact-hamburger-dropdown');
         if (oudeDropdown && oudeDropdown.parentNode) oudeDropdown.parentNode.removeChild(oudeDropdown);
@@ -336,6 +342,25 @@ function egodactUpdateHamburger() {
         });
         dropdown.appendChild(item);
     });
+
+    // Vast item: Sneltoetsen (altijd beschikbaar als shortcuts geladen zijn).
+    if (egodactShortcutsAvailable()) {
+        const scItem = document.createElement('button');
+        scItem.type = 'button';
+        scItem.style.cssText = 'display:flex;align-items:center;gap:8px;';
+        const scIcon = document.createElement('span');
+        scIcon.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;flex-shrink:0;';
+        scIcon.textContent = '⌨';
+        const scLabel = document.createElement('span');
+        scLabel.textContent = 'Sneltoetsen';
+        scLabel.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        scItem.append(scIcon, scLabel);
+        scItem.addEventListener('click', function () {
+            closeMenu();
+            try { window.egodactOpenShortcutsModal(); } catch (e) { console.error(e); }
+        });
+        dropdown.appendChild(scItem);
+    }
 
     dropdown.dataset.egdHamSig = menus.map(function (m) { return m.id || m.title; }).join('|');
 
