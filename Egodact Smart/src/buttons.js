@@ -178,7 +178,23 @@ function egodactHamburgerStyle() {
             font-size: 13px; font-family: inherit; width: 100%;
         }
         #egodact-hamburger-dropdown button:hover { background: var(--egd-hover, rgba(255,255,255,.08)); }
-        #egodact-hamburger-dropdown button svg { width: 16px; height: 16px; }
+        #egodact-hamburger-dropdown button.egd-ham-item {
+            display: grid; grid-template-columns: 20px minmax(0, 1fr);
+            align-items: center; column-gap: 10px; line-height: 1.2;
+        }
+        #egodact-hamburger-dropdown .egd-ham-item-icon {
+            width: 20px; height: 20px; display: inline-flex;
+            align-items: center; justify-content: center;
+            flex-shrink: 0; overflow: hidden; line-height: 1;
+            font-size: 15px; text-align: center;
+        }
+        #egodact-hamburger-dropdown .egd-ham-item-icon svg {
+            width: 16px; height: 16px; display: block; flex-shrink: 0;
+        }
+        #egodact-hamburger-dropdown .egd-ham-item-label {
+            display: block; min-width: 0; overflow: hidden;
+            text-overflow: ellipsis; white-space: nowrap; text-align: left;
+        }
     `;
     document.head.appendChild(style);
 }
@@ -350,24 +366,20 @@ function egodactUpdateHamburger() {
     menus.forEach(function (m) {
         const item = document.createElement('button');
         item.type = 'button';
-        item.style.display = 'flex';
-        item.style.alignItems = 'center';
-        item.style.gap = '8px';
+        item.className = 'egd-ham-item';
         item.dataset.egdHamId = String(m.id || m.title || '');
         if (m.addonId) item.dataset.egdHamAddon = String(m.addonId);
         if (egodactKeepInLearningMode(m)) item.dataset.egdHamKeep = '1';
 
         // Icons can be plain text, HTML entities (&#10024;) or an SVG string.
         const icon = document.createElement('span');
-        icon.style.cssText = 'display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; flex-shrink:0; overflow:hidden;';
+        icon.className = 'egd-ham-item-icon';
         if (m.icon) icon.innerHTML = String(m.icon);
         else icon.textContent = '';
 
         const label = document.createElement('span');
+        label.className = 'egd-ham-item-label';
         label.textContent = m.title || 'Menu';
-        label.style.overflow = 'hidden';
-        label.style.textOverflow = 'ellipsis';
-        label.style.whiteSpace = 'nowrap';
 
         item.append(icon, label);
         item.addEventListener('click', function () {
@@ -381,15 +393,15 @@ function egodactUpdateHamburger() {
     if (egodactShortcutsAvailable()) {
         const scItem = document.createElement('button');
         scItem.type = 'button';
+        scItem.className = 'egd-ham-item';
         scItem.dataset.egdHamId = 'shortcuts';
         scItem.dataset.egdHamKeep = '1';
-        scItem.style.cssText = 'display:flex;align-items:center;gap:8px;';
         const scIcon = document.createElement('span');
-        scIcon.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;flex-shrink:0;';
+        scIcon.className = 'egd-ham-item-icon';
         scIcon.textContent = '⌨';
         const scLabel = document.createElement('span');
+        scLabel.className = 'egd-ham-item-label';
         scLabel.textContent = 'Sneltoetsen';
-        scLabel.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
         scItem.append(scIcon, scLabel);
         scItem.addEventListener('click', function () {
             closeMenu();
