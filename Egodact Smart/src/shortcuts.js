@@ -96,20 +96,25 @@
         if (state.combos[id]) { delete state.combos[id]; saveState(); }
     }
 
-    function setShortcutKeys(id, newCombo) {
+    function setShortcutKeys(id, newCombo, opts) {
+        opts = opts || {};
         newCombo = String(newCombo || '').toLowerCase().trim();
         if (!registry[id]) return { ok: false, reason: 'unknown' };
-        // conflict check
         const conflict = Object.keys(registry).find(function (k) {
             return k !== id && registry[k].combo === newCombo && newCombo;
         });
-        if (conflict) {
+        if (conflict && !opts.override) {
             return { ok: false, reason: 'conflict', conflictId: conflict };
+        }
+        if (conflict && opts.override) {
+            delete state.combos[conflict];
+            registry[conflict].combo = registry[conflict].defaultCombo;
+            state.combos[conflict] = registry[conflict].defaultCombo;
         }
         registry[id].combo = newCombo;
         state.combos[id] = newCombo;
         saveState();
-        return { ok: true };
+        return { ok: true, overridden: !!conflict };
     }
 
     function resetShortcut(id) {
@@ -329,15 +334,25 @@
             if (combo === 'escape') { capturingFor = null; global.__egodactShortcutCapturing = false; renderList(); return; }
             const res = setShortcutKeys(capturingFor, combo);
             if (res.ok) {
-                egodactToonToast('Opgeslagen', { type: 'success' });
+                if (res.overridden) egodactToonToast('Opgeslagen (andere shortcut gereset)', { type: 'info' });
+                else egodactToonToast('Opgeslagen', { type: 'success' });
             } else if (res.reason === 'conflict') {
-                egodactToonToast('Conflict met ' + res.conflictId, { type: 'error' });
+                const other = res.conflictId;
+                const ok = confirm('Deze combinatie wordt al gebruikt door "' + other + '". Overschrijven? (De andere wordt gereset naar standaard.)');
+                if (ok) {
+                    const r2 = setShortcutKeys(capturingFor, combo, { override: true });
+                    if (r2.ok) egodactToonToast('Opgeslagen (overschreven)', { type: 'success' });
+                } else {
+                    egodactToonToast('Geannuleerd', { type: 'info' });
+                }
             }
             capturingFor = null;
             global.__egodactShortcutCapturing = false;
             renderList();
         };
-        backdrop.addEventListener('keydown', captureHandler, true);
+        function docCapture(e) { if (capturingFor) captureHandler(e); }
+        document.addEventListener('keydown', docCapture, true);
+        backdrop.addEventListener('egodact-shortcuts-close', function () { document.removeEventListener('keydown', docCapture, true); });
 
         const footer = document.createElement('div');
         footer.style.cssText = 'display:flex;justify-content:space-between;margin-top:12px;';
@@ -364,17 +379,17 @@
 
     // ---------- init core shortcuts ----------
     function registerCoreShortcuts() {
-        registerShortcut({ id: 'core.shortcuts.settings', title: 'Sneltoetsen openen', keys: 'mod+/', scope: 'global', source: 'core', action: function () { openShortcutsModal(); } });
-        registerShortcut({ id: 'core.weekplanning', title: 'Weekplanning openen', keys: 'mod+shift+w', scope: 'global', source: 'core', action: function () {
+        registerShortcut({ id: 'core.shortcuts.settings', title: 'Sneltoetsen openen', keys: 'alt+shift+/', scope: 'global', source: 'core', action: function () { openShortcutsModal(); } });
+        registerShortcut({ id: 'core.weekplanning', title: 'Weekplanning openen', keys: 'alt+shift+w', scope: 'global', source: 'core', action: function () {
             try { if (typeof openWeekplanning === 'function') openWeekplanning(); } catch (e) {}
         }});
-        registerShortcut({ id: 'core.challenges', title: 'Challenges openen', keys: 'mod+shift+c', scope: 'global', source: 'core', action: function () {
+        registerShortcut({ id: 'core.challenges', title: 'Challenges openen', keys: 'alt+shift+c', scope: 'global', source: 'core', action: function () {
             try {
                 const btn = document.querySelector('[data-egodact-view="challenges"], #egodact-challenges-knop');
                 if (btn) btn.click();
             } catch (e) {}
         }});
-        registerShortcut({ id: 'core.search', title: 'Zoeken focussen', keys: 'mod+k', scope: 'global', source: 'core', allowInInput: false, action: function () {
+        registerShortcut({ id: 'core.search', title: 'Zoeken focussen', keys: 'alt+shift+f', scope: 'global', source: 'core', allowInInput: false, action: function () {
             try {
                 const el = document.querySelector('input[type="search"], #egodact-zoekveld');
                 if (el) el.focus();
