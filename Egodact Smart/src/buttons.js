@@ -517,7 +517,8 @@ function voegKnoppenToe() {
     const hamburgerDropdown = document.getElementById('egodact-hamburger-dropdown');
     const hamburgerSig = hamburgerMenus.map(function (m) { return m.id || m.title; }).join('|');
     const hamburgerItemsOk = !!hamburgerDropdown && hamburgerDropdown.dataset.egdHamSig === hamburgerSig;
-    const hamburgerOk = hamburgerMenus.length ? (hamburgerBestaat && hamburgerItemsOk) : !hamburgerBestaat;
+    const hasHamburgerContent = hamburgerMenus.length > 0 || egodactShortcutsAvailable();
+    const hamburgerOk = hasHamburgerContent ? (hamburgerBestaat && (hamburgerMenus.length === 0 || hamburgerItemsOk)) : !hamburgerBestaat;
 
     if (
         bestaandeInfo &&
