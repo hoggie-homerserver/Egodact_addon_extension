@@ -178,6 +178,79 @@
         return node;
     };
 
+    // Scrollbare Shorts-feed: stapelt meerdere Shorts onder elkaar in een
+    // container met scroll-snap, zodat je door Shorts kunt scrollen.
+    ui.shortsFeed = function (opts) {
+        opts = opts || {};
+        const t = theme();
+        const ids = (opts.ids || []).map(function (x) {
+            if (typeof x !== 'string') return '';
+            let id = '';
+            const patterns = [
+                /youtube\.com\/shorts\/([A-Za-z0-9_-]{6,})/,
+                /youtube\.com\/watch\?[^#]*v=([A-Za-z0-9_-]{6,})/,
+                /youtu\.be\/([A-Za-z0-9_-]{6,})/,
+                /youtube\.com\/embed\/([A-Za-z0-9_-]{6,})/
+            ];
+            for (let i = 0; i < patterns.length; i++) {
+                const m = x.match(patterns[i]);
+                if (m) { id = m[1]; break; }
+            }
+            if (!id && /^[A-Za-z0-9_-]{6,}$/.test(x)) id = x;
+            return id;
+        }).filter(Boolean);
+        const height = opts.height || '400px';
+        const container = el('div', {
+            style: {
+                height: height,
+                overflowY: 'auto',
+                scrollSnapType: 'y mandatory',
+                border: '1px solid ' + (opts.border || t.rand),
+                borderRadius: (opts.radius || 8) + 'px',
+                background: opts.background || t.paneel,
+                position: 'relative'
+            }
+        });
+        if (!ids.length) {
+            container.appendChild(el('div', { text: opts.emptyText || 'Geen Shorts opgegeven.', style: { padding: '16px', color: t.tekstZacht } }));
+            return container;
+        }
+        ids.forEach(function (id, i) {
+            const item = el('div', {
+                style: {
+                    height: '100%',
+                    scrollSnapAlign: 'start',
+                    scrollSnapStop: 'always',
+                    position: 'relative',
+                    background: '#000'
+                }
+            });
+            const iframe = ui.youtube({
+                url: 'https://www.youtube.com/shorts/' + id,
+                height: '100%',
+                width: '100%',
+                autoplay: opts.autoplay === true,
+                mute: opts.mute !== false,
+                loop: opts.loop !== false,
+                controls: opts.controls !== false
+            });
+            iframe.style.position = 'absolute';
+            iframe.style.inset = '0';
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = '0';
+            item.appendChild(iframe);
+            const badge = el('div', { text: (i + 1) + ' / ' + ids.length, style: {
+                position: 'absolute', top: '8px', right: '8px',
+                background: 'rgba(0,0,0,.55)', color: '#fff',
+                fontSize: '11px', padding: '2px 6px', borderRadius: '999px', zIndex: '2'
+            }});
+            item.appendChild(badge);
+            container.appendChild(item);
+        });
+        return container;
+    };
+
     ui.row = function (opts) {
         opts = opts || {};
         const node = el('div', {
