@@ -142,6 +142,42 @@
         return node;
     };
 
+    // YouTube helper: zet een gewone of Shorts-URL om naar een embed-URL.
+    // Voorbeeld: L.ui.youtube({ url: 'https://www.youtube.com/shorts/ABC123', height: '320px' })
+    ui.youtube = function (opts) {
+        opts = opts || {};
+        const url = String(opts.url || opts.src || '');
+        let id = '';
+        const patterns = [
+            /youtube\.com\/shorts\/([A-Za-z0-9_-]{6,})/,
+            /youtube\.com\/watch\?[^#]*v=([A-Za-z0-9_-]{6,})/,
+            /youtu\.be\/([A-Za-z0-9_-]{6,})/,
+            /youtube\.com\/embed\/([A-Za-z0-9_-]{6,})/
+        ];
+        for (let i = 0; i < patterns.length; i++) {
+            const m = url.match(patterns[i]);
+            if (m) { id = m[1]; break; }
+        }
+        if (!id && /^[A-Za-z0-9_-]{6,}$/.test(url)) id = url;
+        const params = [];
+        if (opts.autoplay) params.push('autoplay=1');
+        if (opts.mute !== false && opts.autoplay) params.push('mute=1');
+        if (opts.controls === false) params.push('controls=0');
+        if (opts.loop) { params.push('loop=1'); params.push('playlist=' + encodeURIComponent(id)); }
+        if (opts.start) params.push('start=' + encodeURIComponent(opts.start));
+        const src = id
+            ? 'https://www.youtube.com/embed/' + id + (params.length ? '?' + params.join('&') : '')
+            : (url || 'about:blank');
+        const node = ui.iframe(Object.assign({}, opts, {
+            src: src,
+            title: opts.title || 'YouTube',
+            height: opts.height || '320px',
+            allow: opts.allow || 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
+            sandbox: opts.sandbox || 'allow-scripts allow-same-origin allow-presentation'
+        }));
+        return node;
+    };
+
     ui.row = function (opts) {
         opts = opts || {};
         const node = el('div', {
