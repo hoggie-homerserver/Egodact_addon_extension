@@ -183,9 +183,9 @@
     ui.shortsFeed = function (opts) {
         opts = opts || {};
         const t = theme();
-        const ids = (opts.ids || []).map(function (x) {
-            if (typeof x !== 'string') return '';
-            let id = '';
+        const toId = function (x) {
+            if (typeof x !== "string") return "";
+            let id = "";
             const patterns = [
                 /youtube\.com\/shorts\/([A-Za-z0-9_-]{6,})/,
                 /youtube\.com\/watch\?[^#]*v=([A-Za-z0-9_-]{6,})/,
@@ -198,56 +198,96 @@
             }
             if (!id && /^[A-Za-z0-9_-]{6,}$/.test(x)) id = x;
             return id;
-        }).filter(Boolean);
-        const height = opts.height || '400px';
-        const container = el('div', {
+        };
+        const normalize = function (arr) { return (arr || []).map(toId).filter(Boolean); };
+        const height = opts.height || "400px";
+        const container = el("div", {
             style: {
                 height: height,
-                overflowY: 'auto',
-                scrollSnapType: 'y mandatory',
-                border: '1px solid ' + (opts.border || t.rand),
-                borderRadius: (opts.radius || 8) + 'px',
+                overflowY: "auto",
+                scrollSnapType: "y mandatory",
+                border: "1px solid " + (opts.border || t.rand),
+                borderRadius: (opts.radius || 8) + "px",
                 background: opts.background || t.paneel,
-                position: 'relative'
+                position: "relative"
             }
         });
-        if (!ids.length) {
-            container.appendChild(el('div', { text: opts.emptyText || 'Geen Shorts opgegeven.', style: { padding: '16px', color: t.tekstZacht } }));
-            return container;
-        }
-        ids.forEach(function (id, i) {
-            const item = el('div', {
-                style: {
-                    height: '100%',
-                    scrollSnapAlign: 'start',
-                    scrollSnapStop: 'always',
-                    position: 'relative',
-                    background: '#000'
-                }
-            });
+        const itemsWrap = el("div", { style: { position: "relative" } });
+        const sentinel = el("div", { style: { height: "1px" } });
+        container.appendChild(itemsWrap);
+        container.appendChild(sentinel);
+        let ids = normalize(opts.ids || []);
+        let loading = false;
+        let exhausted = false;
+        let itemIndex = 0;
+        const maxItems = opts.maxItems || 200;
+        function makeItem(id) {
+            const item = el("div", { style: {
+                height: "100%", scrollSnapAlign: "start", scrollSnapStop: "always",
+                position: "relative", background: "#000", flex: "0 0 100%"
+            } });
             const iframe = ui.youtube({
-                url: 'https://www.youtube.com/shorts/' + id,
-                height: '100%',
-                width: '100%',
+                url: "https://www.youtube.com/shorts/" + id,
+                height: "100%", width: "100%",
                 autoplay: opts.autoplay === true,
                 mute: opts.mute !== false,
                 loop: opts.loop !== false,
                 controls: opts.controls !== false
             });
-            iframe.style.position = 'absolute';
-            iframe.style.inset = '0';
-            iframe.style.width = '100%';
-            iframe.style.height = '100%';
-            iframe.style.border = '0';
+            iframe.style.position = "absolute";
+            iframe.style.inset = "0";
+            iframe.style.width = "100%";
+            iframe.style.height = "100%";
+            iframe.style.border = "0";
             item.appendChild(iframe);
-            const badge = el('div', { text: (i + 1) + ' / ' + ids.length, style: {
-                position: 'absolute', top: '8px', right: '8px',
-                background: 'rgba(0,0,0,.55)', color: '#fff',
-                fontSize: '11px', padding: '2px 6px', borderRadius: '999px', zIndex: '2'
-            }});
+            const badge = el("div", { text: (itemIndex + 1) + "", style: {
+                position: "absolute", top: "8px", right: "8px",
+                background: "rgba(0,0,0,.55)", color: "#fff",
+                fontSize: "11px", padding: "2px 6px", borderRadius: "999px", zIndex: "2"
+            } });
             item.appendChild(badge);
-            container.appendChild(item);
-        });
+            return item;
+        }
+        function appendIds(list) {
+            list.forEach(function (id) {
+                if (itemsWrap.children.length >= maxItems) return;
+                itemsWrap.appendChild(makeItem(id));
+                itemIndex++;
+            });
+        }
+        if (!ids.length && !opts.loadMore) {
+            itemsWrap.appendChild(el("div", { text: opts.emptyText || "Geen Shorts opgegeven.", style: { padding: "16px", color: t.tekstZacht } }));
+            return container;
+        }
+        appendIds(ids);
+        async function loadMore() {
+            if (loading || exhausted) return;
+            loading = true;
+            try {
+                let more = [];
+                if (typeof opts.loadMore === "function") {
+                    more = normalize(await opts.loadMore());
+                } else if (opts.infinite && ids.length) {
+                    more = ids.slice();
+                }
+                if (!more.length) { exhausted = true; }
+                else { appendIds(more); }
+            } catch (err) { console.error(err); exhausted = true; }
+            finally { loading = false; }
+        }
+        if ("IntersectionObserver" in window) {
+            const io = new IntersectionObserver(function (entries) {
+                entries.forEach(function (e) { if (e.isIntersecting) loadMore(); });
+            }, { root: container, rootMargin: "300px" });
+            io.observe(sentinel);
+        } else {
+            container.addEventListener("scroll", function () {
+                if (container.scrollTop + container.clientHeight >= container.scrollHeight - 300) loadMore();
+            });
+        }
+        if (opts.infinite && ids.length) {
+            setTimeout(function () { if (itemsWrap.children.length < 6) loadMore(); }, 100);
+        }
         return container;
     };
 
