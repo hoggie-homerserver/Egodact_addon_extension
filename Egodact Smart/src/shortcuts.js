@@ -244,8 +244,14 @@
 
         const hint = document.createElement('p');
         hint.style.cssText = 'font-size:12px;color:var(--egd-tekst-zacht,#b0b0b0);margin:0 0 10px;';
-        hint.textContent = 'Platform: ' + (isMac ? 'macOS (⌘)' : 'Windows/Linux (Ctrl)') + '. Klik "Wijzig" en druk een nieuwe combinatie.';
+        hint.textContent = 'Platform: ' + (isMac ? 'macOS (Cmd)' : 'Windows/Linux (Ctrl)') + '. Klik "Wijzig" en druk een nieuwe combinatie. (F-toetsen werken het best.)';
         modal.appendChild(hint);
+
+        const status = document.createElement('div');
+        status.id = 'egodact-shortcuts-status';
+        status.style.cssText = 'font-size:12px;color:var(--egd-accent,#90caf9);margin:0 0 10px;min-height:16px;';
+        status.textContent = '';
+        modal.appendChild(status);
 
         const listWrap = document.createElement('div');
         modal.appendChild(listWrap);
@@ -328,6 +334,7 @@
             e.preventDefault();
             e.stopPropagation();
             const combo = comboFromEvent(e);
+            status.textContent = combo ? ('Gedetecteerd: ' + comboDisplay(combo)) : '';
             if (!combo) return;
             // ignore bare modifiers
             if (['mod', 'alt', 'shift'].includes(combo)) return;
@@ -379,17 +386,17 @@
 
     // ---------- init core shortcuts ----------
     function registerCoreShortcuts() {
-        registerShortcut({ id: 'core.shortcuts.settings', title: 'Sneltoetsen openen', keys: 'alt+shift+/', scope: 'global', source: 'core', action: function () { openShortcutsModal(); } });
-        registerShortcut({ id: 'core.weekplanning', title: 'Weekplanning openen', keys: 'alt+shift+w', scope: 'global', source: 'core', action: function () {
+        registerShortcut({ id: 'core.shortcuts.settings', title: 'Sneltoetsen openen', keys: 'f2', scope: 'global', source: 'core', action: function () { openShortcutsModal(); } });
+        registerShortcut({ id: 'core.weekplanning', title: 'Weekplanning openen', keys: 'f3', scope: 'global', source: 'core', action: function () {
             try { if (typeof openWeekplanning === 'function') openWeekplanning(); } catch (e) {}
         }});
-        registerShortcut({ id: 'core.challenges', title: 'Challenges openen', keys: 'alt+shift+c', scope: 'global', source: 'core', action: function () {
+        registerShortcut({ id: 'core.challenges', title: 'Challenges openen', keys: 'f4', scope: 'global', source: 'core', action: function () {
             try {
                 const btn = document.querySelector('[data-egodact-view="challenges"], #egodact-challenges-knop');
                 if (btn) btn.click();
             } catch (e) {}
         }});
-        registerShortcut({ id: 'core.search', title: 'Zoeken focussen', keys: 'alt+shift+f', scope: 'global', source: 'core', allowInInput: false, action: function () {
+        registerShortcut({ id: 'core.search', title: 'Zoeken focussen', keys: 'f9', scope: 'global', source: 'core', allowInInput: false, action: function () {
             try {
                 const el = document.querySelector('input[type="search"], #egodact-zoekveld');
                 if (el) el.focus();
