@@ -23,8 +23,8 @@
                 name: 'Learning Mode',
                 author: 'MaxiTaxi',
                 source: 'https://github.com/MaxiTaxi/Egodact_addon_Learning_Mode',
-                version: '0.3.0',
-                sha256: '3aa085d00bdcf22a85e6980d8822f12afedd5436d5343551a3cf593b425c9550',
+                version: '0.3.1',
+                sha256: 'bd200c433be391c64478a22e9b0c3cadaccb94cbd3999c7350ea71ca4945aec3',
                 dataUsage: 'Lokaal (browseropslag). Geen externe diensten.'
             },
             {
@@ -33,7 +33,7 @@
                 author: 'MaxiTaxi',
                 source: 'https://github.com/hoggie-homerserver/Egodact_addon_extension_addons',
                 version: '1.9.0',
-                sha256: '902f3c6037351e06c71edcf91c3ac676322f10f8893bb5ae4bb7c3e4bfaa90d9',
+                sha256: '499a010985b138a504c7e70666a9fa2a45d2e9399091dff3fc27479a19ee6731',
                 dataUsage: 'Lokaal. Geen externe diensten.'
             },
             {
