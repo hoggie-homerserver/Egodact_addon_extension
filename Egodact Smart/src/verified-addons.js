@@ -22,9 +22,9 @@
                 id: 'egodact-learning-mode',
                 name: 'Learning Mode',
                 author: 'MaxiTaxi',
-                source: 'https://github.com/MaxiTaxi/Egodact_addon_Learning_Mode',
+                source: 'https://github.com/hoggie-homerserver/Egodact_addon_Learning_Mode',
                 version: '0.3.1',
-                sha256: 'bd200c433be391c64478a22e9b0c3cadaccb94cbd3999c7350ea71ca4945aec3',
+                sha256: '4f52adf779d8e159805ebc20605531c7c22844a7524ecfb50a5b1c4e85fb21d5',
                 dataUsage: 'Lokaal (browseropslag). Geen externe diensten.'
             },
             {
@@ -42,7 +42,7 @@
                 author: 'MaxiTaxi',
                 source: 'https://github.com/hoggie-homerserver/Egodact_addon_chat',
                 version: '1.0.0',
-                sha256: '1d1676ca0c538f891b30bbca50b4673a2e3d9fa606c51486397ffeeb86b983eb',
+                sha256: 'ff7098c53543d29dbdef88bf7a83a5f2dff70a58c0e7676752bc3de4b56e6f22',
                 dataUsage: 'Externe dienst: Firebase (chatberichten worden extern opgeslagen/verzonden).'
             }
         ]
