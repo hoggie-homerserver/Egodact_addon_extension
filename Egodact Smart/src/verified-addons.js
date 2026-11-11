@@ -44,6 +44,15 @@
                 version: '1.0.0',
                 sha256: 'ff7098c53543d29dbdef88bf7a83a5f2dff70a58c0e7676752bc3de4b56e6f22',
                 dataUsage: 'Externe dienst: Firebase (chatberichten worden extern opgeslagen/verzonden).'
+            },
+            {
+                id: 'tower-stack-addon',
+                name: 'Tower Stack',
+                author: 'MaxiTaxi',
+                source: 'https://github.com/hoggie-homerserver/Egodact_addon_Tower_Stack',
+                version: '0.1.0',
+                sha256: '6515dfa24d97665fef30a39353a0759d3e9738082362c14b0802f7b69c5933c6',
+                dataUsage: 'Lokaal (browseropslag). Geen externe diensten.'
             }
         ]
     };
