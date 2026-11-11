@@ -335,6 +335,91 @@ function openGamesMenu(e) {
 
     const sluitMenu = () => backdrop.remove();
 
+    // Addon-games (geregistreerd via de addon-API) onder de vaste games.
+    const addonGames = (window.EgodactAddons && Array.isArray(window.EgodactAddons._games))
+        ? window.EgodactAddons._games
+        : [];
+    const uniekeGames = [];
+    const gezien = Object.create(null);
+    addonGames.forEach(game => {
+        if (!game || !game.id || gezien[game.id]) return;
+        gezien[game.id] = true;
+        uniekeGames.push(game);
+    });
+
+    if (uniekeGames.length) {
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'display:flex; flex-direction:column; gap:10px;';
+
+        const label = document.createElement('div');
+        label.textContent = 'Addon-games';
+        label.style.cssText = 'font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--egd-tekst-zacht); margin-top:2px;';
+        wrap.appendChild(label);
+
+        uniekeGames.forEach(game => {
+            const kaart = document.createElement('button');
+            kaart.type = 'button';
+            kaart.style.cssText = 'display:flex; align-items:center; gap:16px; width:100%; text-align:left; background-color:var(--egd-veld); color:var(--egd-tekst); border:1px solid var(--egd-rand); border-radius:6px; padding:14px; cursor:pointer; font-family:inherit;';
+
+            const icoonBox = document.createElement('div');
+            icoonBox.style.cssText = 'width:56px; height:56px; flex-shrink:0; display:flex; align-items:center; justify-content:center; border-radius:10px; background:#1b2333; color:var(--egd-accent); overflow:hidden;';
+            if (game.icon) {
+                icoonBox.innerHTML = game.icon;
+                icoonBox.querySelectorAll('svg').forEach(svg => {
+                    svg.setAttribute('width', '32');
+                    svg.setAttribute('height', '32');
+                    svg.style.width = '32px';
+                    svg.style.height = '32px';
+                    svg.style.display = 'block';
+                });
+            } else {
+                icoonBox.textContent = '?';
+                icoonBox.style.fontSize = '24px';
+                icoonBox.style.fontWeight = 'bold';
+            }
+
+            const info = document.createElement('span');
+            info.style.cssText = 'flex:1; min-width:0; display:flex; flex-direction:column; gap:4px;';
+
+            const titel = document.createElement('span');
+            titel.textContent = game.title || 'Game';
+            titel.style.cssText = 'font-size:17px; font-weight:bold;';
+
+            const beschrijving = document.createElement('span');
+            beschrijving.textContent = game.description || 'Addon-game';
+            beschrijving.style.cssText = 'font-size:13px; color:var(--egd-tekst-zacht); line-height:1.4;';
+
+            info.append(titel, beschrijving);
+
+            const speel = document.createElement('span');
+            speel.textContent = 'Spelen';
+            speel.style.cssText = 'background-color:var(--egd-accent); color:var(--egd-accent-tekst); border-radius:4px; padding:8px 14px; font-size:13px; font-weight:bold; text-transform:uppercase;';
+
+            kaart.append(icoonBox, info, speel);
+            kaart.addEventListener('mouseenter', () => {
+                kaart.style.borderColor = 'var(--egd-accent)';
+            });
+            kaart.addEventListener('mouseleave', () => {
+                kaart.style.borderColor = 'var(--egd-rand)';
+            });
+            kaart.addEventListener('click', () => {
+                sluitMenu();
+                try {
+                    game.open();
+                } catch (err) {
+                    console.error('Addon-game openen mislukt:', err);
+                }
+            });
+
+            wrap.appendChild(kaart);
+        });
+
+        const sluitKnop = modal.querySelector('#egodact-games-sluiten');
+        const sluitRij = sluitKnop ? sluitKnop.parentElement : null;
+        if (sluitRij) modal.insertBefore(wrap, sluitRij);
+        else modal.appendChild(wrap);
+    }
+
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
 

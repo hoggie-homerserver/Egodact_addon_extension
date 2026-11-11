@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Egodact Pantagora Dev Build",
-  "version": "3.7.7",
+  "version": "3.7.8",
   "description": "Development build of the Egodact Pantagora extension for testing purposes.",
   "content_scripts": [
     {
