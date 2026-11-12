@@ -349,6 +349,7 @@ function openGamesMenu(e) {
 
     if (uniekeGames.length) {
         const wrap = document.createElement('div');
+        wrap.className = 'egodact-addon-games-section';
         wrap.style.cssText = 'display:flex; flex-direction:column; gap:10px;';
 
         const label = document.createElement('div');
