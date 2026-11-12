@@ -50,8 +50,8 @@
                 name: 'Tower Stack',
                 author: 'MaxiTaxi',
                 source: 'https://github.com/hoggie-homerserver/Egodact_addon_Tower_Stack',
-                version: '0.1.0',
-                sha256: '6515dfa24d97665fef30a39353a0759d3e9738082362c14b0802f7b69c5933c6',
+                version: '0.1.1',
+                sha256: '3c69e0954db6e12aae360d0079eee2c1854131d6b92b894e992c3c9ea32571c3',
                 dataUsage: 'Lokaal (browseropslag). Geen externe diensten.'
             }
         ]
