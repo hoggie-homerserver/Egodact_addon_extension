@@ -59,8 +59,8 @@
                 name: 'Egodact Group Project',
                 author: 'MaxiTaxi',
                 source: 'https://github.com/hoggie-homerserver/Egodact_addon_group_project',
-                version: '0.1.3',
-                sha256: 'de91f1382c45c61087a183b0454d938234262adee39759ae99c42f671d52c6d7',
+                version: '0.1.4',
+                sha256: '208e941ef1a5026b6d14b76a59ea6d245dbabb1ca045c1dd44d1a45e8488f8e1',
                 dataUsage: 'Externe dienst: Firebase (taken worden extern opgeslagen/gesynchroniseerd).'
             }
         ]
