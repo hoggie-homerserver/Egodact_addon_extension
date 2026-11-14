@@ -53,6 +53,15 @@
                 version: '0.1.1',
                 sha256: '3c69e0954db6e12aae360d0079eee2c1854131d6b92b894e992c3c9ea32571c3',
                 dataUsage: 'Lokaal (browseropslag). Geen externe diensten.'
+            },
+            {
+                id: 'egodact-group-project',
+                name: 'Egodact Group Project',
+                author: 'MaxiTaxi',
+                source: 'https://github.com/hoggie-homerserver/Egodact_addon_group_project',
+                version: '0.1.0',
+                sha256: '0000000000000000000000000000000000000000000000000000000000000000',
+                dataUsage: 'Externe dienst: Firebase (taken worden extern opgeslagen/gesynchroniseerd).'
             }
         ]
     };
