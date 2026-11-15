@@ -35,7 +35,9 @@ function logDebug(level, msg) {
 
 function tabStateFor(tabId) {
     const key = String(tabId);
-    if (!injectedTabs[key]) injectedTabs[key] = { addons: {} };
+    if (!injectedTabs[key]) {
+        injectedTabs[key] = { addons: {}, running: null };
+    }
     return injectedTabs[key];
 }
 
@@ -223,24 +225,44 @@ async function injectAddon(tabId, addonData) {
     return result;
 }
 
-async function injectAllAddons(tabId, force) {
-    const items = await chrome.storage.local.get(null);
-    const addons = listInstalled(items);
-    if (!addons.length) {
-        logDebug('info', 'Geen addons geinstalleerd');
-        return [];
-    }
-
+// Serializes all injection work per tab. The content script retries
+// contentReady a few times; without this a retry could start while a
+// large addon (Firebase vendor bundles) is still being injected and
+// run the same code twice in the same world, resetting globals such as
+// window.firebase. Installs use the same queue, so a fresh install can
+// never overlap a running batch either.
+function queueInjection(tabId, task) {
     const state = tabStateFor(tabId);
-    if (force) state.addons = {};
+    const run = (state.running || Promise.resolve()).catch(function () {}).then(task);
+    state.running = run;
+    run.then(function () {
+        if (state.running === run) state.running = null;
+    }, function () {
+        if (state.running === run) state.running = null;
+    });
+    return run;
+}
 
-    await waitForHost(tabId);
+function injectAllAddons(tabId, force) {
+    return queueInjection(tabId, async function () {
+        const items = await chrome.storage.local.get(null);
+        const addons = listInstalled(items);
+        if (!addons.length) {
+            logDebug('info', 'Geen addons geinstalleerd');
+            return [];
+        }
 
-    const results = [];
-    for (const addon of addons) {
-        results.push(await injectAddon(tabId, addon));
-    }
-    return results;
+        const state = tabStateFor(tabId);
+        if (force) state.addons = {};
+
+        await waitForHost(tabId);
+
+        const results = [];
+        for (const addon of addons) {
+            results.push(await injectAddon(tabId, addon));
+        }
+        return results;
+    });
 }
 
 chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
@@ -308,15 +330,24 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
             installedAt: Date.now()
         };
         const key = STORAGE_PREFIX + record.id;
+        // A repair must re-run the addon even when the version did not
+        // change (the stored file list was stale), so the marketplace
+        // marks those installs as forced.
+        const forceInject = !!(raw.force);
 
         chrome.storage.local.set({ [key]: record }).then(async function () {
             logDebug('info', 'Addon opgeslagen: ' + record.id + ' v' + record.version);
             const tabs = await chrome.tabs.query({ url: APP_ORIGIN + '/*' });
             const results = [];
             for (const tab of tabs) {
-                const state = tabStateFor(tab.id);
-                delete state.addons[record.id];
-                results.push(await injectAddon(tab.id, record));
+                results.push(await queueInjection(tab.id, async function () {
+                    const state = tabStateFor(tab.id);
+                    if (!forceInject && state.addons[record.id] === record.version) {
+                        return { ok: true, id: record.id, skipped: true, strategy: 'cached' };
+                    }
+                    delete state.addons[record.id];
+                    return injectAddon(tab.id, record);
+                }));
             }
             sendResponse({ success: true, results: results, tabs: tabs.length });
         }).catch(function (err) {

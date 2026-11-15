@@ -459,7 +459,8 @@
                         name: addon.name,
                         version: addon.version,
                         order: order,
-                        files: files
+                        files: files,
+                        force: mode === 'bijwerken'
                     }
                 });
 
