@@ -4,15 +4,17 @@
 // Injects marketplace addons into app.egodact.com.
 //
 // Strategy 1: chrome.userScripts.execute (Chrome 135+). Runs the
-//             addon code in the USER_SCRIPT world, which is exempt
+//             addon code in a user script world, which is exempt
 //             from the page CSP. Needs the "Allow User Scripts"
 //             toggle in chrome://extensions.
 // Strategy 2: chrome.scripting.executeScript + eval in the
 //             extension's isolated world (works when the page/
 //             extension CSP allows eval).
 //
-// The addon SDK (sdk.js + lib.js) is bundled with the host and is
-// always injected first, so addons do not have to ship it.
+// Every addon gets its OWN user script world (worldId per addon).
+// That mirrors the old "one extension per addon" model, so global
+// state cannot collide: chat and the group project each get their
+// own window.firebase and their own default Firebase app.
 
 const STORAGE_PREFIX = 'egodact_marketplace_addon_';
 const APP_ORIGIN = 'https://app.egodact.com';
@@ -29,6 +31,16 @@ function logDebug(level, msg) {
     if (level === 'error') console.error('[Injector]', msg);
     else if (level === 'warn') console.warn('[Injector]', msg);
     else console.log('[Injector]', msg);
+}
+
+function tabStateFor(tabId) {
+    const key = String(tabId);
+    if (!injectedTabs[key]) injectedTabs[key] = { addons: {} };
+    return injectedTabs[key];
+}
+
+function worldIdFor(addonId) {
+    return 'egodact-addon-' + String(addonId).replace(/[^A-Za-z0-9_-]/g, '-');
 }
 
 let bundledSourcePromise = null;
@@ -97,22 +109,24 @@ function orderedFiles(addonData) {
     return list;
 }
 
-async function runInTab(tabId, codes, label) {
+async function runInTab(tabId, codes, label, worldId) {
     if (!codes.length) return { ok: false, error: 'Geen code om te injecteren' };
 
     if (isUserScriptsAvailable()) {
         try {
-            const results = await chrome.userScripts.execute({
+            const injection = {
                 target: { tabId: tabId },
                 injectImmediately: true,
                 js: codes.map(function (code) { return { code: code }; })
-            });
+            };
+            if (worldId) injection.worldId = worldId;
+            const results = await chrome.userScripts.execute(injection);
             const errors = (results || []).map(function (r) { return r && r.error; }).filter(Boolean);
             if (errors.length) {
                 logDebug('error', label + ' (userScripts): ' + errors.join(' | '));
                 return { ok: false, strategy: 'userScripts', error: errors.join(' | ') };
             }
-            logDebug('info', label + ' geinjecteerd via userScripts');
+            logDebug('info', label + ' geinjecteerd via userScripts in world ' + (worldId || 'default'));
             return { ok: true, strategy: 'userScripts' };
         } catch (err) {
             logDebug('warn', label + ' userScripts mislukt: ' + err.message);
@@ -177,10 +191,9 @@ async function waitForHost(tabId) {
 }
 
 async function injectAddon(tabId, addonData) {
-    const key = String(tabId);
-    const tabState = injectedTabs[key] || (injectedTabs[key] = {});
+    const state = tabStateFor(tabId);
 
-    if (tabState[addonData.id] === addonData.version) {
+    if (state.addons[addonData.id] === addonData.version) {
         return { ok: true, id: addonData.id, skipped: true, strategy: 'cached' };
     }
 
@@ -204,9 +217,9 @@ async function injectAddon(tabId, addonData) {
         codes.push('/* egodact addon file: ' + path + ' */\n' + addonData.files[path]);
     });
 
-    const result = await runInTab(tabId, codes, addonData.id);
+    const result = await runInTab(tabId, codes, addonData.id, worldIdFor(addonData.id));
     result.id = addonData.id;
-    if (result.ok) tabState[addonData.id] = addonData.version;
+    if (result.ok) state.addons[addonData.id] = addonData.version;
     return result;
 }
 
@@ -218,7 +231,9 @@ async function injectAllAddons(tabId, force) {
         return [];
     }
 
-    if (force) injectedTabs[String(tabId)] = {};
+    const state = tabStateFor(tabId);
+    if (force) state.addons = {};
+
     await waitForHost(tabId);
 
     const results = [];
@@ -230,7 +245,7 @@ async function injectAllAddons(tabId, force) {
 
 chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
     if (changeInfo.status === 'loading') {
-        injectedTabs[String(tabId)] = {};
+        delete injectedTabs[String(tabId)];
         return;
     }
     if (changeInfo.status !== 'complete') return;
@@ -238,7 +253,7 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
     const url = (tab && tab.url) || '';
     if (url.indexOf(APP_ORIGIN) !== 0) return;
 
-    injectedTabs[String(tabId)] = {};
+    delete injectedTabs[String(tabId)];
     setTimeout(function () {
         injectAllAddons(tabId).catch(function (err) {
             logDebug('error', 'Injectie na paginalading mislukt: ' + err.message);
@@ -299,7 +314,8 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
             const tabs = await chrome.tabs.query({ url: APP_ORIGIN + '/*' });
             const results = [];
             for (const tab of tabs) {
-                injectedTabs[String(tab.id)] = {};
+                const state = tabStateFor(tab.id);
+                delete state.addons[record.id];
                 results.push(await injectAddon(tab.id, record));
             }
             sendResponse({ success: true, results: results, tabs: tabs.length });
@@ -318,7 +334,7 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
         }
         chrome.storage.local.remove(STORAGE_PREFIX + addonId).then(function () {
             Object.keys(injectedTabs).forEach(function (tabKey) {
-                delete injectedTabs[tabKey][addonId];
+                delete injectedTabs[tabKey].addons[addonId];
             });
             logDebug('info', 'Addon verwijderd: ' + addonId);
             sendResponse({ success: true });
@@ -375,14 +391,16 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
                     id: addon.id,
                     version: addon.version,
                     files: paths.length,
+                    world: worldIdFor(addon.id),
                     missing: (addon.order || []).filter(function (p) { return !addon.files[p]; }),
                     bytes: JSON.stringify(addon.files).length
                 };
             });
+            const state = typeof senderTabId === 'number' ? tabStateFor(senderTabId) : null;
             const report = {
                 userScripts: isUserScriptsAvailable(),
                 addons: addons,
-                injectedInThisTab: typeof senderTabId === 'number' ? (injectedTabs[String(senderTabId)] || {}) : {},
+                injectedInThisTab: state ? state.addons : {},
                 host: typeof senderTabId === 'number' ? await probeTab(senderTabId) : null,
                 log: debugLog.slice(-40).map(function (entry) { return entry.line; })
             };
