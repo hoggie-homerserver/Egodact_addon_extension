@@ -27,17 +27,58 @@
     const busyState = {};
     let activeModal = null;
 
+    async function fetchPublishedAddons() {
+        try {
+            const F = window.EgodactMarketplaceFirebase || {};
+            const cfg = F.config || {};
+            if (!cfg.apiKey || cfg.apiKey === 'PASTE_API_KEY' || !cfg.projectId || cfg.projectId === 'PASTE_PROJECT_ID') return [];
+            if (typeof firebase === 'undefined' || !firebase.firestore) return [];
+            const name = 'egodact-marketplace-ext';
+            const existing = firebase.apps && firebase.apps.find(function (a) { return a.name === name; });
+            const app = existing || firebase.initializeApp(cfg, name);
+            const db = firebase.firestore(app);
+            const snap = await db.collection('published').get();
+            const out = [];
+            snap.forEach(function (doc) {
+                const d = doc.data() || {};
+                d.id = d.id || doc.id;
+                d.verified = !!d.verified;
+                out.push(d);
+            });
+            return out;
+        } catch (err) {
+            console.warn('[Marketplace] Published addons laden mislukt:', err);
+            return [];
+        }
+    }
+
+    function mergeAddons(base, extra) {
+        const map = {};
+        (base || []).forEach(function (a) { if (a && a.id) map[a.id] = a; });
+        (extra || []).forEach(function (a) { if (a && a.id) map[a.id] = a; });
+        return Object.keys(map).map(function (k) { return map[k]; });
+    }
+
     async function fetchRegistry() {
         if (cachedRegistry && (Date.now() - cacheTime) < CACHE_MS) return cachedRegistry;
         try {
-            const res = await fetch(REGISTRY_URL, { cache: 'no-store' });
+            const [res, published] = await Promise.all([
+                fetch(REGISTRY_URL, { cache: 'no-store' }),
+                fetchPublishedAddons()
+            ]);
             if (!res.ok) throw new Error('HTTP ' + res.status);
             cachedRegistry = await res.json();
+            cachedRegistry.addons = mergeAddons(cachedRegistry.addons || [], published || []);
             cacheTime = Date.now();
             return cachedRegistry;
         } catch (err) {
             console.warn('[Marketplace] Registry laden mislukt:', err);
-            return cachedRegistry || { addons: [], categories: [] };
+            if (cachedRegistry) return cachedRegistry;
+            try {
+                const published = await fetchPublishedAddons();
+                return { addons: mergeAddons([], published || []), categories: [] };
+            } catch (e) {}
+            return { addons: [], categories: [] };
         }
     }
 
