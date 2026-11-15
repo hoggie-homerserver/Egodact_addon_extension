@@ -145,7 +145,7 @@
         devBtn.title = 'Addon aanmelden / publiceren op de marketplace';
         styleButton(devBtn, 'ghost');
         devBtn.addEventListener('click', function () {
-            try { window.open(MARKETPLACE_SITE + '#developer', '_blank', 'noopener'); } catch (e) {}
+            try { window.open(MARKETPLACE_SITE + 'developer.html', '_blank', 'noopener'); } catch (e) {}
         });
 
         const diagnoseBtn = document.createElement('button');

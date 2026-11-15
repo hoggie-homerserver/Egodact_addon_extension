@@ -152,7 +152,7 @@ function openAddonsMenu(e) {
     });
     const publishBtn = modal.querySelector('#egodact-addons-publish');
     if (publishBtn) publishBtn.addEventListener('click', function () {
-        const url = 'https://hoggie-homerserver.github.io/Egodact_addon_marketplace/#developer';
+        const url = 'https://hoggie-homerserver.github.io/Egodact_addon_marketplace/developer.html';
         try { window.open(url, '_blank', 'noopener'); } catch (err) { window.location.href = url; }
     });
     backdrop.addEventListener('click', (ev) => { if (ev.target === backdrop) sluit(); });
