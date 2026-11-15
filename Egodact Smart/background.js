@@ -33,19 +33,20 @@ function logDebug(level, msg) {
 
 let bundledSourcePromise = null;
 
-function getBundledSource() {
+function getBundledSources() {
     if (!bundledSourcePromise) {
         bundledSourcePromise = Promise.all(BUNDLED_FILES.map(function (file) {
             return fetch(chrome.runtime.getURL(file))
                 .then(function (res) { return res.text(); })
+                .then(function (text) { return { file: file, text: text }; })
                 .catch(function (err) {
                     logDebug('warn', 'Kon ' + file + ' niet laden: ' + err.message);
-                    return '';
+                    return { file: file, text: '' };
                 });
-        })).then(function (parts) {
-            const src = parts.filter(Boolean).join('\n;\n');
-            if (!src) logDebug('error', 'Addon SDK kon niet geladen worden');
-            return src;
+        })).then(function (entries) {
+            const map = {};
+            entries.forEach(function (entry) { map[entry.file] = entry.text; });
+            return map;
         });
     }
     return bundledSourcePromise;
@@ -183,7 +184,7 @@ async function injectAddon(tabId, addonData) {
         return { ok: true, id: addonData.id, skipped: true, strategy: 'cached' };
     }
 
-    const sdk = await getBundledSource();
+    const sdk = await getBundledSources();
     const files = orderedFiles(addonData);
     if (!files.length) {
         logDebug('error', 'Geen bestanden voor ' + addonData.id);
@@ -191,7 +192,12 @@ async function injectAddon(tabId, addonData) {
     }
 
     const codes = [];
-    if (sdk) codes.push(sdk);
+    // Prefer the SDK that the addon itself ships; fall back to the copy
+    // bundled with the host so addons do not have to include it.
+    BUNDLED_FILES.forEach(function (file) {
+        if (files.indexOf(file) !== -1) return;
+        if (sdk[file]) codes.push(sdk[file]);
+    });
     files.forEach(function (path) {
         codes.push('/* egodact addon file: ' + path + ' */\n' + addonData.files[path]);
     });
