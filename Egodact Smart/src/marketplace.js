@@ -59,8 +59,8 @@
         return Object.keys(map).map(function (k) { return map[k]; });
     }
 
-    async function fetchRegistry() {
-        if (cachedRegistry && (Date.now() - cacheTime) < CACHE_MS) return cachedRegistry;
+    async function fetchRegistry(force) {
+        if (!force && cachedRegistry && (Date.now() - cacheTime) < CACHE_MS) return cachedRegistry;
         try {
             const [res, published] = await Promise.all([
                 fetch(REGISTRY_URL, { cache: 'no-store' }),
@@ -199,7 +199,10 @@
         closeBtn.type = 'button';
         closeBtn.textContent = 'Sluiten';
         styleButton(closeBtn, 'primary');
-        closeBtn.addEventListener('click', function () { backdrop.remove(); activeModal = null; });
+        let autoRefreshTimer = null;
+        const stopAutoRefresh = function () { if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; } };
+        const closeModal = function () { stopAutoRefresh(); backdrop.remove(); activeModal = null; };
+        closeBtn.addEventListener('click', closeModal);
 
         header.append(title, devBtn, diagnoseBtn, closeBtn);
         modal.appendChild(header);
@@ -240,7 +243,7 @@
 
         backdrop.appendChild(modal);
         document.body.appendChild(backdrop);
-        backdrop.addEventListener('click', function (event) { if (event.target === backdrop) backdrop.remove(); });
+        backdrop.addEventListener('click', function (event) { if (event.target === backdrop) closeModal(); });
 
         activeModal = { render: function () { return renderAddons(); } };
 
@@ -623,7 +626,17 @@
 
         searchInput.addEventListener('input', function () { renderAddons(); });
         showBanner();
+        async function refreshFromSource(force) {
+            try {
+                const registry = await fetchRegistry(force);
+                allAddons = (registry && registry.addons) || [];
+                renderCategories((registry && registry.categories) || []);
+                await refreshInstalled();
+                await renderAddons();
+            } catch (err) { console.error('[Marketplace] Verversen mislukt:', err); }
+        }
         loadAddons().catch(function (err) { console.error('[Marketplace] Laden mislukt:', err); });
+        autoRefreshTimer = setInterval(function () { if (document.body.contains(backdrop)) { refreshFromSource(true); } else { stopAutoRefresh(); } }, 30000);
     }
 
     window.EgodactMarketplace = {
