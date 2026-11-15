@@ -3,10 +3,7 @@
   "name": "Egodact Pantagora Dev Build",
   "version": "3.7.8",
   "description": "Development build of the Egodact Pantagora extension for testing purposes.",
-  "permissions": ["storage"],
-  "content_security_policy": {
-    "extension_pages": "script-src 'self' 'unsafe-eval'; object-src 'self'"
-  },
+  "permissions": ["storage", "scripting"],
   "content_scripts": [
     {
       "matches": [
@@ -41,7 +38,8 @@
     }
   ],
   "host_permissions": [
-    "https://api.egodact.com/*"
+    "https://api.egodact.com/*",
+    "https://app.egodact.com/*"
   ],
   "web_accessible_resources": [
     {

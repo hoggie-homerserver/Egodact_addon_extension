@@ -2,8 +2,7 @@
 // EGODACT ADDON INJECTOR
 // ============================================================
 // Loads addon code from chrome.storage and injects it into the page.
-// Uses eval() in the content script's isolated world so addons have
-// access to window.EgodactAddonClient and window.EgodactAddonLib.
+// Uses chrome.scripting.executeScript (MV3 compatible, no eval needed).
 
 (function () {
     'use strict';
@@ -16,7 +15,6 @@
             callback();
             return;
         }
-        // Listen for host ready event
         const handler = function () {
             if (window.EgodactAddonClient && window.EgodactAddonLib) {
                 document.removeEventListener('egodact:host:ready', handler);
@@ -24,7 +22,6 @@
             }
         };
         document.addEventListener('egodact:host:ready', handler);
-        // Also poll as fallback
         let attempts = 0;
         const poll = setInterval(function () {
             attempts++;
@@ -40,7 +37,7 @@
         }, 100);
     }
 
-    // Inject a single addon's code.
+    // Inject a single addon's code using chrome.scripting (MV3 compatible).
     function injectAddon(addonData) {
         if (!addonData || !addonData.files) return;
         const entryPoint = addonData.entryPoint || 'content.js';
@@ -49,15 +46,42 @@
             console.warn('[Injector] No entry point found for', addonData.id);
             return;
         }
-        try {
-            // Use eval in the content script's isolated world so the addon
-            // has access to window.EgodactAddonClient etc.
-            // Wrap in a try/catch and a function scope.
-            const wrappedCode = '(function() { try { ' + code + ' } catch (e) { console.error("[Addon ' + addonData.id + ']", e); } })();';
-            eval(wrappedCode);
-            console.log('[Injector] Loaded addon:', addonData.id, addonData.version);
-        } catch (err) {
-            console.error('[Injector] Failed to inject', addonData.id, err);
+
+        // Use chrome.scripting.executeScript to run code in the isolated world.
+        // This bypasses CSP restrictions in MV3.
+        if (typeof chrome !== 'undefined' && chrome.scripting && chrome.scripting.executeScript) {
+            chrome.tabs.getCurrent(function (tab) {
+                if (!tab || !tab.id) {
+                    console.warn('[Injector] Could not get current tab for', addonData.id);
+                    return;
+                }
+                chrome.scripting.executeScript({
+                    target: { tabId: tab.id },
+                    world: 'ISOLATED',
+                    func: function (code, addonId) {
+                        try {
+                            // eslint-disable-next-line no-eval
+                            (0, eval)(code);
+                            console.log('[Injector] Loaded addon:', addonId);
+                        } catch (e) {
+                            console.error('[Injector] Failed to inject', addonId, e);
+                        }
+                    },
+                    args: [code, addonData.id]
+                }, function (results) {
+                    if (chrome.runtime.lastError) {
+                        console.error('[Injector] executeScript error:', chrome.runtime.lastError.message);
+                    }
+                });
+            });
+        } else {
+            // Fallback: try direct eval (may be blocked by CSP)
+            try {
+                eval(code);
+                console.log('[Injector] Loaded addon (fallback):', addonData.id);
+            } catch (err) {
+                console.error('[Injector] Fallback eval failed for', addonData.id, err);
+            }
         }
     }
 
@@ -85,7 +109,6 @@
                 return;
             }
             console.log('[Injector] Found installed addons:', addonIds);
-            // Wait for host to be ready before injecting
             waitForHostReady(function () {
                 addonIds.forEach(function (id) {
                     const key = STORAGE_PREFIX + id;
@@ -100,14 +123,13 @@
     function isInstalled(addonId, callback) {
         if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
             if (callback) callback(false);
-            return false;
+            return;
         }
         const key = STORAGE_PREFIX + addonId;
         chrome.storage.local.get(key, function (items) {
             const installed = !!(items && items[key]);
             if (callback) callback(installed);
         });
-        return false;
     }
 
     // Remove an addon from storage.
