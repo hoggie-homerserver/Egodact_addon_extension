@@ -4,6 +4,10 @@
 // Addon catalog that installs addons straight into the host
 // extension. The actual file download + injection is handled by
 // background.js (the addon injector service worker).
+//
+// On open, installed addons whose stored file list no longer
+// matches the registry are updated automatically, so an outdated
+// install never silently breaks.
 
 (function () {
     'use strict';
@@ -20,6 +24,8 @@
     let cacheTime = 0;
     const CACHE_MS = 5 * 60 * 1000;
     const installResults = {};
+    const busyState = {};
+    let activeModal = null;
 
     async function fetchRegistry() {
         if (cachedRegistry && (Date.now() - cacheTime) < CACHE_MS) return cachedRegistry;
@@ -135,7 +141,7 @@
         closeBtn.type = 'button';
         closeBtn.textContent = 'Sluiten';
         styleButton(closeBtn, 'primary');
-        closeBtn.addEventListener('click', function () { backdrop.remove(); });
+        closeBtn.addEventListener('click', function () { backdrop.remove(); activeModal = null; });
 
         header.append(title, diagnoseBtn, closeBtn);
         modal.appendChild(header);
@@ -177,8 +183,11 @@
         document.body.appendChild(backdrop);
         backdrop.addEventListener('click', function (event) { if (event.target === backdrop) backdrop.remove(); });
 
+        activeModal = { render: function () { return renderAddons(); } };
+
         let allAddons = [];
         let activeCategory = 'all';
+        let installedMap = {};
 
         function showBanner() {
             bgMessage({ type: 'injector:capabilities' }).then(function (caps) {
@@ -199,11 +208,37 @@
             });
         }
 
+        async function refreshInstalled() {
+            const map = {};
+            await Promise.all(allAddons.map(function (addon) {
+                return bgMessage({ type: 'injector:isInstalled', addonId: addon.id }).then(function (res) {
+                    map[addon.id] = res && res.installed ? res : null;
+                });
+            }));
+            installedMap = map;
+        }
+
+        function isOutdated(addon) {
+            const record = installedMap[addon.id];
+            if (!record) return false;
+            const expected = (addon.files || []).length;
+            if (!expected) return false;
+            return record.version !== addon.version || (record.fileCount || 0) !== expected;
+        }
+
         async function loadAddons() {
             const registry = await fetchRegistry();
             allAddons = (registry && registry.addons) || [];
             renderCategories((registry && registry.categories) || []);
+            await refreshInstalled();
             await renderAddons();
+
+            // Repair installs that were made with an older registry.
+            for (const addon of allAddons) {
+                if (isOutdated(addon)) {
+                    await installAddon(addon, 'bijwerken');
+                }
+            }
         }
 
         function renderCategories(categories) {
@@ -244,13 +279,6 @@
                 });
             }
 
-            const installedMap = {};
-            await Promise.all(filtered.map(function (addon) {
-                return bgMessage({ type: 'injector:isInstalled', addonId: addon.id }).then(function (res) {
-                    installedMap[addon.id] = res && res.installed ? res : null;
-                });
-            }));
-
             listContainer.innerHTML = '';
             if (!filtered.length) {
                 const empty = document.createElement('div');
@@ -261,17 +289,15 @@
             }
 
             filtered.forEach(function (addon) {
-                listContainer.appendChild(buildCard(addon, installedMap[addon.id]));
+                listContainer.appendChild(buildCard(addon));
             });
         }
 
-        function buildCard(addon, installedRecord) {
-            const isInstalled = !!(installedRecord && installedRecord.installed);
-            const expectedFiles = (addon.files || []).length;
-            const needsUpdate = isInstalled && (
-                installedRecord.version !== addon.version ||
-                (installedRecord.fileCount || 0) !== expectedFiles
-            );
+        function buildCard(addon) {
+            const record = installedMap[addon.id];
+            const isInstalled = !!(record && record.installed);
+            const outdated = isOutdated(addon);
+            const busy = busyState[addon.id];
 
             const card = document.createElement('div');
             Object.assign(card.style, {
@@ -329,20 +355,36 @@
 
             const installBtn = document.createElement('button');
             installBtn.type = 'button';
-            installBtn.textContent = needsUpdate ? 'Bijwerken' : (isInstalled ? 'Geinstalleerd' : 'Installeren');
-            styleButton(installBtn, isInstalled && !needsUpdate ? 'done' : 'primary');
-            installBtn.disabled = isInstalled && !needsUpdate;
-            if (!installBtn.disabled) {
-                installBtn.addEventListener('click', function () { installAddon(addon, installBtn); });
+            let label = 'Installeren';
+            let variant = 'primary';
+            let disabled = false;
+            if (busy) {
+                label = busy.label;
+                disabled = true;
+                variant = 'ghost';
+            } else if (outdated) {
+                label = 'Bijwerken';
+            } else if (isInstalled) {
+                label = 'Geinstalleerd';
+                variant = 'done';
+                disabled = true;
+            }
+            installBtn.textContent = label;
+            styleButton(installBtn, variant);
+            installBtn.disabled = disabled;
+            if (!disabled) {
+                installBtn.addEventListener('click', function () { installAddon(addon, 'installeren'); });
             }
             actions.appendChild(installBtn);
 
-            if (isInstalled) {
+            if (isInstalled && !busy) {
                 const uninstallBtn = document.createElement('button');
                 uninstallBtn.type = 'button';
                 uninstallBtn.textContent = 'Verwijderen';
                 styleButton(uninstallBtn, 'danger');
-                uninstallBtn.addEventListener('click', function () { uninstallAddon(addon, uninstallBtn); });
+                uninstallBtn.addEventListener('click', function () {
+                    uninstallAddon(addon.id);
+                });
                 actions.appendChild(uninstallBtn);
             }
 
@@ -376,11 +418,15 @@
             return card;
         }
 
-        async function installAddon(addon, button) {
-            button.disabled = true;
-            button.textContent = 'Installeren...';
-
+        async function installAddon(addon, mode) {
+            if (busyState[addon.id]) return;
             const order = (addon.files || []).slice();
+            const verb = mode === 'bijwerken' ? 'Bijwerken' : 'Installeren';
+
+            busyState[addon.id] = { label: verb + '...' };
+            delete installResults[addon.id];
+            await renderAddons();
+
             try {
                 if (!order.length) throw new Error('Registry bevat geen bestanden voor deze addon');
                 if (!rawBaseFor(addon.repo, 'main')) throw new Error('Ongeldige repo-URL in registry');
@@ -388,13 +434,16 @@
                 const files = {};
                 for (let index = 0; index < order.length; index++) {
                     const path = order[index];
-                    button.textContent = 'Installeren... (' + (index + 1) + '/' + order.length + ')';
+                    busyState[addon.id] = { label: verb + '... (' + (index + 1) + '/' + order.length + ')' };
+                    await renderAddons();
                     const loaded = await fetchAddonFile(addon.repo, path);
                     if (!loaded.ok) throw new Error(loaded.error);
                     files[path] = loaded.text;
                 }
 
-                button.textContent = 'Injecteren...';
+                busyState[addon.id] = { label: 'Injecteren...' };
+                await renderAddons();
+
                 const response = await bgMessage({
                     type: 'injector:install',
                     addonData: {
@@ -413,39 +462,40 @@
                 const results = response.results || [];
                 const failed = results.filter(function (r) { return r && r.ok === false; });
                 if (failed.length) {
-                    const first = failed[0];
-                    installResults[addon.id] = { ok: false, error: (first.error || 'onbekende fout') };
-                } else if (!results.length) {
-                    installResults[addon.id] = { ok: true };
-                } else {
-                    installResults[addon.id] = { ok: true };
+                    throw new Error(failed[0].error || 'Injectie mislukt');
+                }
+                if (!results.length) {
+                    throw new Error('Addon opgeslagen, maar geen geopende Egodact-tab gevonden om in te laden. Herlaad de pagina.');
                 }
 
-                await renderAddons();
+                installResults[addon.id] = { ok: true };
             } catch (err) {
                 installResults[addon.id] = { ok: false, error: err.message || String(err) };
-                button.disabled = false;
-                button.textContent = 'Installeren';
-                console.error('[Marketplace] Installatie mislukt:', err);
-                await renderAddons();
+                console.error('[Marketplace] ' + verb + ' mislukt:', err);
+            } finally {
+                delete busyState[addon.id];
             }
+
+            await refreshInstalled();
+            await renderAddons();
         }
 
-        async function uninstallAddon(addon, button) {
-            button.disabled = true;
-            button.textContent = 'Verwijderen...';
+        async function uninstallAddon(addonId) {
+            busyState[addonId] = { label: 'Verwijderen...' };
+            await renderAddons();
             try {
-                const response = await bgMessage({ type: 'injector:uninstall', addonId: addon.id });
+                const response = await bgMessage({ type: 'injector:uninstall', addonId: addonId });
                 if (!response || !response.success) {
                     throw new Error((response && response.error) || 'Verwijderen mislukt');
                 }
-                delete installResults[addon.id];
-                await renderAddons();
+                delete installResults[addonId];
             } catch (err) {
-                button.disabled = false;
-                button.textContent = 'Verwijderen';
-                console.error('[Marketplace] Verwijderen mislukt:', err);
+                installResults[addonId] = { ok: false, error: err.message || String(err) };
+            } finally {
+                delete busyState[addonId];
             }
+            await refreshInstalled();
+            await renderAddons();
         }
 
         function openDiagnose() {

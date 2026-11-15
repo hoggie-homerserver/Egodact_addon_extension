@@ -8,24 +8,30 @@
 (function () {
     'use strict';
 
-    let notified = 0;
+    const warned = {};
+
+    function reportResults(results) {
+        if (!results || !results.length) return;
+        const failed = results.filter(function (entry) { return entry && entry.ok === false; });
+        failed.forEach(function (entry) {
+            const id = entry.id || 'onbekend';
+            const message = entry.error || 'onbekende fout';
+            if (warned[id] === message) return;
+            warned[id] = message;
+            console.warn('[Injector CS] Addon "' + id + '" niet geladen: ' + message);
+        });
+    }
 
     function notifyBackground() {
         if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
             return;
         }
-        notified += 1;
         chrome.runtime.sendMessage({ type: 'injector:contentReady' }, function (response) {
             if (chrome.runtime.lastError) {
                 console.warn('[Injector CS] Background niet bereikbaar:', chrome.runtime.lastError.message);
                 return;
             }
-            if (response && response.results && response.results.length) {
-                const failed = response.results.filter(function (r) { return r && r.ok === false; });
-                if (failed.length) {
-                    console.warn('[Injector CS] Injectie mislukt voor:', failed);
-                }
-            }
+            if (response) reportResults(response.results);
         });
     }
 
