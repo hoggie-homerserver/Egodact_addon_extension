@@ -16,7 +16,7 @@
     'use strict';
 
     global.EGODACT_VERIFIED_ADDONS = {
-        version: 1,
+        version: 2,
         official: [
             {
                 id: 'egodact-learning-mode',
@@ -44,6 +44,15 @@
                 version: '1.0.7',
                 sha256: 'a8f24d24d8bf60ffa8f5f6594852f9eec224ba62cbbc4eacaec9dd77dbac5ac6',
                 dataUsage: 'Externe dienst: Firebase (chatberichten worden extern opgeslagen/verzonden).'
+            },
+            {
+                id: 'egodact-chat-arcade',
+                name: 'Chat Arcade',
+                author: 'MaxiTaxi',
+                source: 'https://github.com/hoggie-homerserver/Egodact_chat_game_addon',
+                version: '0.2.0',
+                sha256: '69af6c10f0301711cd76cd2b79a5db7313b029680bdfb51dbf228145f711a333',
+                dataUsage: 'Externe dienst: Firebase (online multiplayer en scores worden extern opgeslagen).'
             },
             {
                 id: 'tower-stack-addon',

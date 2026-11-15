@@ -65,9 +65,17 @@
         return 'https://raw.githubusercontent.com/' + user + '/' + name + '/' + branch + '/';
     }
 
-    async function fetchAddonFile(repo, path) {
+    async function fetchAddonFile(repo, path, preferredBranch) {
         let lastError = null;
-        for (const branch of RAW_BRANCHES) {
+        const branches = [];
+        // Addons can pin their branch in the registry (e.g. Tower Stack
+        // still uses master); fall back to the defaults afterwards so a
+        // stale branch value never blocks an install.
+        if (preferredBranch) branches.push(preferredBranch);
+        RAW_BRANCHES.forEach(function (branch) {
+            if (branches.indexOf(branch) === -1) branches.push(branch);
+        });
+        for (const branch of branches) {
             const base = rawBaseFor(repo, branch);
             if (!base) return { ok: false, error: 'Ongeldige repo-URL: ' + repo };
             try {
@@ -436,7 +444,7 @@
                     const path = order[index];
                     busyState[addon.id] = { label: verb + '... (' + (index + 1) + '/' + order.length + ')' };
                     await renderAddons();
-                    const loaded = await fetchAddonFile(addon.repo, path);
+                    const loaded = await fetchAddonFile(addon.repo, path, addon.branch);
                     if (!loaded.ok) throw new Error(loaded.error);
                     files[path] = loaded.text;
                 }
