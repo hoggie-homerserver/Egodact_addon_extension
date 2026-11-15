@@ -291,6 +291,7 @@
             title: 'Marketplace',
             icon: ICON_CART,
             order: 99,
+            keepInLearningMode: true,
             open: openMarketplace
         });
     }

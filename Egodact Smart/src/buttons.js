@@ -98,6 +98,8 @@ function egodactHamburgerMenus() {
         if (hidden.length) {
             filtered = filtered.filter(function (m) {
                 const id = String((m && (m.id || m.title)) || '');
+                // The marketplace should always remain visible.
+                if (id === 'egodact-marketplace') return true;
                 return hidden.indexOf(id) === -1;
             });
         }
