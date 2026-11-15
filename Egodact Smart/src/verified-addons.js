@@ -50,8 +50,8 @@
                 name: 'Chat Arcade',
                 author: 'MaxiTaxi',
                 source: 'https://github.com/hoggie-homerserver/Egodact_chat_game_addon',
-                version: '0.2.0',
-                sha256: '69af6c10f0301711cd76cd2b79a5db7313b029680bdfb51dbf228145f711a333',
+                version: '0.2.1',
+                sha256: '2c86f4c70818a9f03dc0eac93856fb01beb1077a2698b302877ac7ea8d7a8ef2',
                 dataUsage: 'Externe dienst: Firebase (online multiplayer en scores worden extern opgeslagen).'
             },
             {
