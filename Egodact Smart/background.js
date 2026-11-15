@@ -267,7 +267,10 @@ function injectAllAddons(tabId, force) {
 
 chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
     if (changeInfo.status === 'loading') {
-        delete injectedTabs[String(tabId)];
+        // Keep any in-flight injection promise (queueInjection) so the
+        // next batch waits for it; only the per-document cache resets.
+        const state = tabStateFor(tabId);
+        state.addons = {};
         return;
     }
     if (changeInfo.status !== 'complete') return;
@@ -275,7 +278,6 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
     const url = (tab && tab.url) || '';
     if (url.indexOf(APP_ORIGIN) !== 0) return;
 
-    delete injectedTabs[String(tabId)];
     setTimeout(function () {
         injectAllAddons(tabId).catch(function (err) {
             logDebug('error', 'Injectie na paginalading mislukt: ' + err.message);
