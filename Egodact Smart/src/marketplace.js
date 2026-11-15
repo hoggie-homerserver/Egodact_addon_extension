@@ -105,7 +105,7 @@
 
         const footer = document.createElement('div');
         Object.assign(footer.style, { fontSize: '11px', color: 'var(--egd-tekst-zacht)', textAlign: 'center', borderTop: '1px solid var(--egd-rand)', paddingTop: '12px' });
-        footer.innerHTML = 'Addons worden gevalideerd door de maintainer. <a href="' + MARKETPLACE_SITE + '" target="_blank" style="color:var(--egd-accent);">Bekijk op GitHub Pages →</a>';
+        footer.innerHTML = 'Addons worden gevalideerd door de maintainer. <a href="' + MARKETPLACE_SITE + '" target="_blank" style="color:var(--egd-accent);">Bekijk op GitHub Pages ---</a>';
         modal.appendChild(footer);
 
         backdrop.appendChild(modal);

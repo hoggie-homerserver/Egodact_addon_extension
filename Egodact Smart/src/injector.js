@@ -1,5 +1,5 @@
 // ============================================================
-// EGODACT ADDON INJECTOR — CONTENT SCRIPT
+// EGODACT ADDON INJECTOR --- CONTENT SCRIPT
 // ============================================================
 // Runs in the content script context. The actual injection is
 // handled by the background service worker via chrome.scripting.

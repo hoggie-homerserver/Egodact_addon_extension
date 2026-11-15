@@ -1,5 +1,5 @@
 // ============================================================
-// EGODACT ADDON INJECTOR — BACKGROUND SERVICE WORKER
+// EGODACT ADDON INJECTOR --- BACKGROUND SERVICE WORKER
 // ============================================================
 
 const STORAGE_PREFIX = 'egodact_marketplace_addon_';
