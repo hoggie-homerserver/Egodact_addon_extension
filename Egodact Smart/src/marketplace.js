@@ -129,7 +129,7 @@
             });
         }
 
-        function renderAddons() {
+        async function renderAddons() {
             const query = searchInput.value.trim().toLowerCase();
             let filtered = allAddons.slice();
             if (activeCategory !== 'all') filtered = filtered.filter(function (a) { return a.category === activeCategory; });
@@ -138,6 +138,19 @@
                     (a.description || '').toLowerCase().indexOf(query) !== -1 ||
                     (a.tags || []).some(function (t) { return t.toLowerCase().indexOf(query) !== -1; });
             });
+
+            // Check installed status
+            const installedMap = {};
+            if (window.EgodactAddonInjector) {
+                await Promise.all(filtered.map(function (addon) {
+                    return new Promise(function (resolve) {
+                        window.EgodactAddonInjector.isInstalled(addon.id, function (installed) {
+                            installedMap[addon.id] = installed;
+                            resolve();
+                        });
+                    });
+                }));
+            }
 
             listContainer.innerHTML = '';
             if (!filtered.length) {
@@ -198,7 +211,7 @@
                 const actions = document.createElement('div');
                 Object.assign(actions.style, { display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' });
 
-                const isInstalled = (typeof window.EgodactAddonInjector !== 'undefined' && window.EgodactAddonInjector.isInstalled(addon.id));
+                const isInstalled = !!installedMap[addon.id];
                 const installBtn = document.createElement('button');
                 installBtn.type = 'button';
                 installBtn.textContent = isInstalled ? 'Geinstalleerd' : 'Installeren';
