@@ -11,27 +11,55 @@ function injectAddonIntoTab(tabId, addonData) {
         console.warn('[Injector BG] No entry point found for', addonData.id);
         return;
     }
-    console.log('[Injector BG] Injecting', addonData.id, 'into tab', tabId, 'code length:', code.length);
+    console.log('[Injector BG] Injecting', addonData.id, 'into tab', tabId);
 
+    // First, check if window.EgodactAddonClient is available
     chrome.scripting.executeScript({
         target: { tabId: tabId },
         world: 'ISOLATED',
-        func: function (code, addonId) {
-            console.log('[Injected] Running for', addonId, 'client available:', typeof window.EgodactAddonClient);
-            try {
-                (0, eval)(code);
-                console.log('[Injected] Success:', addonId);
-            } catch (e) {
-                console.error('[Injected] Failed:', addonId, e.message, e.stack);
-            }
-        },
-        args: [code, addonData.id]
-    }, function (results) {
-        if (chrome.runtime.lastError) {
-            console.error('[Injector BG] executeScript error:', chrome.runtime.lastError.message);
-        } else {
-            console.log('[Injector BG] executeScript done for', addonData.id, results);
+        func: function () {
+            return {
+                hasClient: typeof window.EgodactAddonClient !== 'undefined',
+                hasLib: typeof window.EgodactAddonLib !== 'undefined',
+                clientType: typeof window.EgodactAddonClient
+            };
         }
+    }, function (checkResults) {
+        if (chrome.runtime.lastError) {
+            console.error('[Injector BG] Check failed:', chrome.runtime.lastError.message);
+            return;
+        }
+        const check = checkResults && checkResults[0] && checkResults[0].result;
+        console.log('[Injector BG] Client check:', JSON.stringify(check));
+
+        if (!check || !check.hasClient || !check.hasLib) {
+            console.warn('[Injector BG] Host not ready yet, retrying in 2s...');
+            setTimeout(function () {
+                injectAddonIntoTab(tabId, addonData);
+            }, 2000);
+            return;
+        }
+
+        // Host is ready, inject the addon code
+        chrome.scripting.executeScript({
+            target: { tabId: tabId },
+            world: 'ISOLATED',
+            func: function (code, addonId) {
+                try {
+                    (0, eval)(code);
+                    console.log('[Injected] Success:', addonId);
+                } catch (e) {
+                    console.error('[Injected] Failed:', addonId, e.message);
+                }
+            },
+            args: [code, addonData.id]
+        }, function (results) {
+            if (chrome.runtime.lastError) {
+                console.error('[Injector BG] executeScript error:', chrome.runtime.lastError.message);
+            } else {
+                console.log('[Injector BG] executeScript done for', addonData.id);
+            }
+        });
     });
 }
 
@@ -44,13 +72,11 @@ function injectAllAddons(tabId) {
         const addonIds = Object.keys(items).filter(function (key) {
             return key.indexOf(STORAGE_PREFIX) === 0;
         });
-        console.log('[Injector BG] Found', addonIds.length, 'installed addons:', addonIds);
+        console.log('[Injector BG] Found', addonIds.length, 'installed addons');
         addonIds.forEach(function (key) {
             const addonData = items[key];
             if (addonData && addonData.id && addonData.files) {
                 injectAddonIntoTab(tabId, addonData);
-            } else {
-                console.warn('[Injector BG] Invalid addon data for', key);
             }
         });
     });
@@ -62,23 +88,28 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
     console.log('[Injector BG] Tab updated:', tabId, tab.url);
     setTimeout(function () {
         injectAllAddons(tabId);
-    }, 1000);
+    }, 2000);
 });
 
 chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
     console.log('[Injector BG] Message received:', message.type);
-    if (message.type === 'injector:install') {
+    if (message.type === 'injector:contentReady') {
+        console.log('[Injector BG] Content script ready in tab', sender.tab && sender.tab.id);
+        if (sender.tab && sender.tab.id && sender.tab.url && sender.tab.url.indexOf('https://app.egodact.com') === 0) {
+            injectAllAddons(sender.tab.id);
+        }
+        sendResponse({ success: true });
+        return true;
+    }
         const addonData = message.addonData;
         if (addonData && addonData.id) {
             const key = STORAGE_PREFIX + addonData.id;
             chrome.storage.local.set({ [key]: addonData }, function () {
                 if (chrome.runtime.lastError) {
-                    console.error('[Injector BG] Storage set failed:', chrome.runtime.lastError);
                     sendResponse({ success: false, error: chrome.runtime.lastError.message });
                 } else {
                     console.log('[Injector BG] Stored addon:', addonData.id);
                     chrome.tabs.query({ url: 'https://app.egodact.com/*' }, function (tabs) {
-                        console.log('[Injector BG] Found', tabs.length, 'app tabs');
                         tabs.forEach(function (tab) {
                             injectAddonIntoTab(tab.id, addonData);
                         });
@@ -109,7 +140,6 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
         const key = STORAGE_PREFIX + addonId;
         chrome.storage.local.get(key, function (items) {
             const installed = !!(items && items[key]);
-            console.log('[Injector BG] isInstalled', addonId, installed);
             sendResponse({ installed: installed });
         });
         return true;
