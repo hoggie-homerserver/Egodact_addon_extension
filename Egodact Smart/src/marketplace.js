@@ -1,9 +1,6 @@
 // ============================================================
 // EGODACT MARKETPLACE
 // ============================================================
-// Browse and install validated addons from the community.
-// Method 1: Marketplace (injector) for verified addons.
-// Method 2: Traditional extension install for unverified addons.
 
 (function () {
     'use strict';
@@ -30,6 +27,23 @@
             console.warn('[Marketplace] Registry fetch failed:', err);
             return cachedRegistry || { addons: [], categories: [] };
         }
+    }
+
+    // Helper: send message to background script
+    function bgMessage(msg) {
+        return new Promise(function (resolve) {
+            if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
+                resolve({ success: false, error: 'No runtime' });
+                return;
+            }
+            chrome.runtime.sendMessage(msg, function (response) {
+                if (chrome.runtime.lastError) {
+                    resolve({ success: false, error: chrome.runtime.lastError.message });
+                } else {
+                    resolve(response || {});
+                }
+            });
+        });
     }
 
     function openMarketplace(e) {
@@ -106,7 +120,7 @@
             allAddons = (reg && reg.addons) || [];
             const cats = (reg && reg.categories) || [];
             renderCategories(cats);
-            renderAddons();
+            await renderAddons();
         }
 
         function renderCategories(cats) {
@@ -139,18 +153,13 @@
                     (a.tags || []).some(function (t) { return t.toLowerCase().indexOf(query) !== -1; });
             });
 
-            // Check installed status
+            // Check installed status for all addons
             const installedMap = {};
-            if (window.EgodactAddonInjector) {
-                await Promise.all(filtered.map(function (addon) {
-                    return new Promise(function (resolve) {
-                        window.EgodactAddonInjector.isInstalled(addon.id, function (installed) {
-                            installedMap[addon.id] = installed;
-                            resolve();
-                        });
-                    });
-                }));
-            }
+            await Promise.all(filtered.map(function (addon) {
+                return bgMessage({ type: 'injector:isInstalled', addonId: addon.id }).then(function (res) {
+                    installedMap[addon.id] = !!(res && res.installed);
+                });
+            }));
 
             listContainer.innerHTML = '';
             if (!filtered.length) {
@@ -186,7 +195,7 @@
                 if (addon.verified) {
                     const badge = document.createElement('span');
                     badge.textContent = 'Official';
-                    badge.style.cssText = 'font-size:10px;padding:2px 8px;border-radius:999px;background:#2e7d32;color:#fff;font-weight:bold;';
+                    badge.style.cssText = 'font-size:10px;padding:2px 8px;border-radius:4px;background:#2e7d32;color:#fff;font-weight:bold;';
                     top.appendChild(badge);
                 }
                 card.appendChild(top);
@@ -202,7 +211,7 @@
                     addon.tags.forEach(function (t) {
                         const tag = document.createElement('span');
                         tag.textContent = t;
-                        tag.style.cssText = 'font-size:11px;padding:2px 8px;border-radius:999px;background:var(--egd-paneel);color:var(--egd-tekst-zacht);';
+                        tag.style.cssText = 'font-size:11px;padding:2px 8px;border-radius:4px;background:var(--egd-paneel);color:var(--egd-tekst-zacht);';
                         tagsWrap.appendChild(tag);
                     });
                     card.appendChild(tagsWrap);
@@ -224,6 +233,18 @@
                 }
                 actions.appendChild(installBtn);
 
+                // Uninstall button (only if installed)
+                if (isInstalled) {
+                    const uninstallBtn = document.createElement('button');
+                    uninstallBtn.type = 'button';
+                    uninstallBtn.textContent = 'Verwijderen';
+                    Object.assign(uninstallBtn.style, { padding: '6px 14px', border: '1px solid #c62828', borderRadius: '4px', background: 'transparent', color: '#c62828', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' });
+                    uninstallBtn.addEventListener('click', function () {
+                        uninstallAddon(addon, uninstallBtn, installBtn);
+                    });
+                    actions.appendChild(uninstallBtn);
+                }
+
                 if (addon.repo) {
                     const srcLink = document.createElement('a');
                     srcLink.href = addon.repo;
@@ -242,36 +263,40 @@
             btn.disabled = true;
             btn.textContent = 'Installeren...';
             try {
-                if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-                    const files = {};
-                    for (const f of (addon.files || [])) {
-                        const url = addon.repo.replace('github.com', 'raw.githubusercontent.com') + '/main/' + f;
-                        const r = await fetch(url);
-                        if (!r.ok) throw new Error('Kan ' + f + ' niet laden');
-                        files[f] = await r.text();
-                    }
-                    const key = 'egodact_marketplace_addon_' + addon.id;
-                    await new Promise(function (resolve, reject) {
-                        chrome.storage.local.set({ [key]: { id: addon.id, name: addon.name, version: addon.version, files: files, entryPoint: addon.entryPoint, installedAt: Date.now() } }, function () {
-                            if (chrome.runtime.lastError) reject(chrome.runtime.lastError);
-                            else resolve();
-                        });
-                    });
-                    btn.textContent = 'Geinstalleerd';
-                    btn.style.background = '#2e7d32';
-                    btn.style.color = '#fff';
-                    if (window.EgodactAddonInjector) {
-                        window.EgodactAddonInjector.inject(addon.id);
-                    }
-                } else {
-                    window.open(addon.repo, '_blank');
-                    btn.textContent = 'Geopend in nieuw tabblad';
+                const files = {};
+                for (const f of (addon.files || [])) {
+                    const url = addon.repo.replace('github.com', 'raw.githubusercontent.com') + '/main/' + f;
+                    const r = await fetch(url);
+                    if (!r.ok) throw new Error('Kan ' + f + ' niet laden');
+                    files[f] = await r.text();
                 }
+                const res = await bgMessage({ type: 'injector:install', addonData: { id: addon.id, name: addon.name, version: addon.version, files: files, entryPoint: addon.entryPoint } });
+                if (!res || !res.success) throw new Error((res && res.error) || 'Installatie mislukt');
+                btn.textContent = 'Geinstalleerd';
+                btn.style.background = '#2e7d32';
+                btn.style.color = '#fff';
+                // Re-render to show uninstall button
+                await renderAddons();
             } catch (err) {
                 btn.disabled = false;
                 btn.textContent = 'Installeren';
                 console.error('[Marketplace] Install failed:', err);
                 alert('Installatie mislukt: ' + (err && err.message));
+            }
+        }
+
+        async function uninstallAddon(addon, uninstallBtn, installBtn) {
+            uninstallBtn.disabled = true;
+            uninstallBtn.textContent = 'Verwijderen...';
+            try {
+                const res = await bgMessage({ type: 'injector:uninstall', addonId: addon.id });
+                if (!res || !res.success) throw new Error((res && res.error) || 'Verwijderen mislukt');
+                await renderAddons();
+            } catch (err) {
+                uninstallBtn.disabled = false;
+                uninstallBtn.textContent = 'Verwijderen';
+                console.error('[Marketplace] Uninstall failed:', err);
+                alert('Verwijderen mislukt: ' + (err && err.message));
             }
         }
 
