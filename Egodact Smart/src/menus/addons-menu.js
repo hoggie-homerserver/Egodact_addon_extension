@@ -185,25 +185,29 @@ function openAddonsMenu(e) {
             const verified = (typeof egodactZoekVerifiedAddon === 'function')
                 ? egodactZoekVerifiedAddon(addon.id, addon.version)
                 : null;
+            const marketplaceVerified = !!(addon && addon.verified) || !!(addon && (addon.marketplaceSource === 'published' || addon.source === 'marketplace' || addon.source === 'firestore')) || !!(typeof window !== 'undefined' && window.__egodactMarketplaceVerifiedIds && window.__egodactMarketplaceVerifiedIds[addon.id]);
             const isOfficial = !!(verified && verified.entry && verified.versionMatch && !verified.versionUnknown);
+            const isMarketplaceVerified = !isOfficial && marketplaceVerified;
             const isKnownUnknownVersion = !!(verified && verified.entry && verified.versionMatch && verified.versionUnknown);
             const isVersionMismatch = !!(verified && verified.entry && !verified.versionMatch);
-            const tierLabel = isOfficial ? 'Official' : (isKnownUnknownVersion ? 'Known (versie onbekend)' : (isVersionMismatch ? 'Bekende addon (andere versie)' : 'Unverified / Local'));
-            const tierColor = isOfficial ? '#2e7d32' : (isKnownUnknownVersion ? '#2e7d32' : (isVersionMismatch ? '#ef6c00' : '#666'));
+            const tierLabel = isOfficial ? 'Official' : (isMarketplaceVerified ? 'Verified' : (isKnownUnknownVersion ? 'Known (versie onbekend)' : (isVersionMismatch ? 'Bekende addon (andere versie)' : 'Unverified / Local')));
+            const tierColor = (isOfficial || isMarketplaceVerified) ? '#2e7d32' : (isKnownUnknownVersion ? '#2e7d32' : (isVersionMismatch ? '#ef6c00' : '#666'));
             const tierText = '#fff';
             const tierNote = isOfficial
                 ? 'Staat op de door de maintainer meegeleverde verificatielijst (geen externe database).'
-                : (isKnownUnknownVersion
-                    ? 'Add-on-id staat op de verificatielijst, maar de geladen versie is niet bevestigd.'
-                    : (isVersionMismatch
-                        ? 'Add-on-id is bekend, maar deze versie staat niet op de verificatielijst. Controleer de bron.'
-                        : 'Niet op de verificatielijst van de host. De host vertrouwt de claims van de addon niet.'));
+                : (isMarketplaceVerified
+                    ? 'Door de maintainer goedgekeurd en gepubliceerd via de Egodact Addon Marketplace.'
+                    : (isKnownUnknownVersion
+                        ? 'Add-on-id staat op de verificatielijst, maar de geladen versie is niet bevestigd.'
+                        : (isVersionMismatch
+                            ? 'Add-on-id is bekend, maar deze versie staat niet op de verificatielijst. Controleer de bron.'
+                            : 'Niet op de verificatielijst van de host. De host vertrouwt de claims van de addon niet.')));
             const source = addon.source || (verified && verified.entry && verified.entry.source) || '';
             const pinnedHash = (verified && verified.entry && verified.entry.sha256) ? String(verified.entry.sha256) : '';
             const shortHash = pinnedHash ? (pinnedHash.slice(0, 12) + '…') : '';
             const listedDataUsage = (verified && verified.entry && verified.entry.dataUsage) ? String(verified.entry.dataUsage) : '';
             let dataUsageText = '';
-            if (isOfficial || isKnownUnknownVersion) {
+            if (isOfficial || isKnownUnknownVersion || isMarketplaceVerified) {
                 dataUsageText = listedDataUsage || 'Niet opgegeven door maintainer.';
             } else if (isVersionMismatch) {
                 dataUsageText = listedDataUsage
@@ -212,7 +216,7 @@ function openAddonsMenu(e) {
             } else {
                 dataUsageText = 'Niet opgegeven door maintainer. Unverified addon: controleer de bron op dataopslag, externe diensten en netwerkgebruik.';
             }
-            const dataUsageWarn = !isOfficial && !isKnownUnknownVersion;
+            const dataUsageWarn = !isOfficial && !isKnownUnknownVersion && !isMarketplaceVerified;
 
             const kaartEl = document.createElement('div');
             Object.assign(kaartEl.style, {

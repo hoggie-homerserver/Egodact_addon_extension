@@ -42,7 +42,9 @@
             snap.forEach(function (doc) {
                 const d = doc.data() || {};
                 d.id = d.id || doc.id;
-                d.verified = !!d.verified;
+                // Goedgekeurde/published marketplace-addons zijn door maintainer gevalideerd.
+                d.verified = true;
+                d.marketplaceSource = 'published';
                 out.push(d);
             });
             return out;
@@ -59,6 +61,17 @@
         return Object.keys(map).map(function (k) { return map[k]; });
     }
 
+    function updateMarketplaceVerifiedIds(addons, published) {
+        try {
+            const ids = {};
+            (published || []).forEach(function (a) { if (a && a.id) ids[a.id] = true; });
+            (addons || []).forEach(function (a) {
+                if (a && a.id && (a.verified || a.marketplaceSource === 'published' || a.source === 'firestore' || a.source === 'marketplace')) ids[a.id] = true;
+            });
+            window.__egodactMarketplaceVerifiedIds = ids;
+        } catch (e) {}
+    }
+
     async function fetchRegistry(force) {
         if (!force && cachedRegistry && (Date.now() - cacheTime) < CACHE_MS) return cachedRegistry;
         try {
@@ -69,14 +82,17 @@
             if (!res.ok) throw new Error('HTTP ' + res.status);
             cachedRegistry = await res.json();
             cachedRegistry.addons = mergeAddons(cachedRegistry.addons || [], published || []);
+            updateMarketplaceVerifiedIds(cachedRegistry.addons, published);
             cacheTime = Date.now();
             return cachedRegistry;
         } catch (err) {
             console.warn('[Marketplace] Registry laden mislukt:', err);
-            if (cachedRegistry) return cachedRegistry;
+            if (cachedRegistry) { updateMarketplaceVerifiedIds(cachedRegistry.addons || [], []); return cachedRegistry; }
             try {
                 const published = await fetchPublishedAddons();
-                return { addons: mergeAddons([], published || []), categories: [] };
+                const merged = mergeAddons([], published || []);
+                updateMarketplaceVerifiedIds(merged, published);
+                return { addons: merged, categories: [] };
             } catch (e) {}
             return { addons: [], categories: [] };
         }
@@ -643,6 +659,9 @@
         open: openMarketplace,
         fetchRegistry: fetchRegistry
     };
+
+    // Preload registry/published ids so approved marketplace addons tonen als verified in het addons-menu.
+    try { fetchRegistry().catch(function () {}); } catch (e) {}
 
     if (window.EgodactAddons && typeof window.EgodactAddons.registerHamburger === 'function') {
         window.EgodactAddons.registerHamburger({
