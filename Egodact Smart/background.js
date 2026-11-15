@@ -1,162 +1,389 @@
 // ============================================================
-// EGODACT ADDON INJECTOR --- BACKGROUND SERVICE WORKER
+// EGODACT ADDON INJECTOR - BACKGROUND SERVICE WORKER
 // ============================================================
+// Injects marketplace addons into app.egodact.com.
+//
+// Strategy 1: chrome.userScripts.execute (Chrome 135+). Runs the
+//             addon code in the USER_SCRIPT world, which is exempt
+//             from the page CSP. Needs the "Allow User Scripts"
+//             toggle in chrome://extensions.
+// Strategy 2: chrome.scripting.executeScript + eval in the
+//             extension's isolated world (works when the page/
+//             extension CSP allows eval).
+//
+// The addon SDK (sdk.js + lib.js) is bundled with the host and is
+// always injected first, so addons do not have to ship it.
 
 const STORAGE_PREFIX = 'egodact_marketplace_addon_';
+const APP_ORIGIN = 'https://app.egodact.com';
+const BUNDLED_FILES = ['sdk.js', 'lib.js'];
+const MAX_LOG = 300;
 
-function injectAddonIntoTab(tabId, addonData) {
-    const entryPoint = addonData.entryPoint || 'content.js';
-    const code = addonData.files && addonData.files[entryPoint];
-    if (!code) {
-        console.warn('[Injector BG] No entry point found for', addonData.id);
-        return;
-    }
-    console.log('[Injector BG] Injecting', addonData.id, 'into tab', tabId);
+const debugLog = [];
+const injectedTabs = {};
 
-    // First, check if window.EgodactAddonClient is available
-    chrome.scripting.executeScript({
-        target: { tabId: tabId },
-        world: 'ISOLATED',
-        func: function () {
-            return {
-                hasClient: typeof window.EgodactAddonClient !== 'undefined',
-                hasLib: typeof window.EgodactAddonLib !== 'undefined',
-                clientType: typeof window.EgodactAddonClient
-            };
-        }
-    }, function (checkResults) {
-        if (chrome.runtime.lastError) {
-            console.error('[Injector BG] Check failed:', chrome.runtime.lastError.message);
-            return;
-        }
-        const check = checkResults && checkResults[0] && checkResults[0].result;
-        console.log('[Injector BG] Client check:', JSON.stringify(check));
-
-        if (!check || !check.hasClient || !check.hasLib) {
-            console.warn('[Injector BG] Host not ready yet, retrying in 2s...');
-            setTimeout(function () {
-                injectAddonIntoTab(tabId, addonData);
-            }, 2000);
-            return;
-        }
-
-        // Host is ready, inject the addon code
-        chrome.scripting.executeScript({
-            target: { tabId: tabId },
-            world: 'ISOLATED',
-            func: function (code, addonId) {
-                try {
-                    (0, eval)(code);
-                    console.log('[Injected] Success:', addonId);
-                } catch (e) {
-                    console.error('[Injected] Failed:', addonId, e.message);
-                }
-            },
-            args: [code, addonData.id]
-        }, function (results) {
-            if (chrome.runtime.lastError) {
-                console.error('[Injector BG] executeScript error:', chrome.runtime.lastError.message);
-            } else {
-                console.log('[Injector BG] executeScript done for', addonData.id);
-            }
-        });
-    });
+function logDebug(level, msg) {
+    const line = '[' + level + '] ' + msg;
+    debugLog.push({ t: Date.now(), line: line });
+    if (debugLog.length > MAX_LOG) debugLog.shift();
+    if (level === 'error') console.error('[Injector]', msg);
+    else if (level === 'warn') console.warn('[Injector]', msg);
+    else console.log('[Injector]', msg);
 }
 
-function injectAllAddons(tabId) {
-    chrome.storage.local.get(null, function (items) {
-        if (chrome.runtime.lastError) {
-            console.error('[Injector BG] Storage read failed:', chrome.runtime.lastError);
-            return;
-        }
-        const addonIds = Object.keys(items).filter(function (key) {
-            return key.indexOf(STORAGE_PREFIX) === 0;
+let bundledSourcePromise = null;
+
+function getBundledSource() {
+    if (!bundledSourcePromise) {
+        bundledSourcePromise = Promise.all(BUNDLED_FILES.map(function (file) {
+            return fetch(chrome.runtime.getURL(file))
+                .then(function (res) { return res.text(); })
+                .catch(function (err) {
+                    logDebug('warn', 'Kon ' + file + ' niet laden: ' + err.message);
+                    return '';
+                });
+        })).then(function (parts) {
+            const src = parts.filter(Boolean).join('\n;\n');
+            if (!src) logDebug('error', 'Addon SDK kon niet geladen worden');
+            return src;
         });
-        console.log('[Injector BG] Found', addonIds.length, 'installed addons');
-        addonIds.forEach(function (key) {
-            const addonData = items[key];
-            if (addonData && addonData.id && addonData.files) {
-                injectAddonIntoTab(tabId, addonData);
+    }
+    return bundledSourcePromise;
+}
+
+function isUserScriptsAvailable() {
+    try {
+        if (!chrome.userScripts || typeof chrome.userScripts.execute !== 'function') return false;
+        const pending = chrome.userScripts.getScripts();
+        if (pending && typeof pending.catch === 'function') pending.catch(function () {});
+        return true;
+    } catch (err) {
+        return false;
+    }
+}
+
+function listInstalled(items) {
+    const list = [];
+    Object.keys(items || {}).forEach(function (key) {
+        if (key.indexOf(STORAGE_PREFIX) !== 0) return;
+        const value = items[key];
+        if (value && value.id && value.files) list.push(value);
+    });
+    return list;
+}
+
+function orderedFiles(addonData) {
+    const files = addonData.files || {};
+    const order = (Array.isArray(addonData.order) && addonData.order.length)
+        ? addonData.order.slice()
+        : Object.keys(files);
+    const seen = {};
+    const list = [];
+
+    order.forEach(function (path) {
+        if (!path || seen[path]) return;
+        seen[path] = true;
+        if (typeof files[path] === 'string' && files[path].length) list.push(path);
+        else logDebug('warn', 'Bestand ontbreekt: ' + path + ' (' + addonData.id + ')');
+    });
+
+    Object.keys(files).forEach(function (path) {
+        if (seen[path]) return;
+        seen[path] = true;
+        if (typeof files[path] === 'string' && files[path].length) list.push(path);
+    });
+
+    return list;
+}
+
+async function runInTab(tabId, codes, label) {
+    if (!codes.length) return { ok: false, error: 'Geen code om te injecteren' };
+
+    if (isUserScriptsAvailable()) {
+        try {
+            const results = await chrome.userScripts.execute({
+                target: { tabId: tabId },
+                injectImmediately: true,
+                js: codes.map(function (code) { return { code: code }; })
+            });
+            const errors = (results || []).map(function (r) { return r && r.error; }).filter(Boolean);
+            if (errors.length) {
+                logDebug('error', label + ' (userScripts): ' + errors.join(' | '));
+                return { ok: false, strategy: 'userScripts', error: errors.join(' | ') };
+            }
+            logDebug('info', label + ' geinjecteerd via userScripts');
+            return { ok: true, strategy: 'userScripts' };
+        } catch (err) {
+            logDebug('warn', label + ' userScripts mislukt: ' + err.message);
+        }
+    } else {
+        logDebug('warn', 'userScripts niet beschikbaar (toggle staat uit)');
+    }
+
+    try {
+        const results = await chrome.scripting.executeScript({
+            target: { tabId: tabId },
+            world: 'ISOLATED',
+            args: [codes.join('\n;\n')],
+            func: function (src) {
+                try {
+                    (0, eval)(src);
+                    return { ok: true };
+                } catch (err) {
+                    return { ok: false, error: String((err && err.message) || err) };
+                }
             }
         });
+        const result = results && results[0] && results[0].result;
+        if (result && result.ok) {
+            logDebug('info', label + ' geinjecteerd via scripting/eval');
+            return { ok: true, strategy: 'scripting-eval' };
+        }
+        const message = (result && result.error) || 'Onbekende fout';
+        logDebug('error', label + ' (scripting/eval): ' + message);
+        return { ok: false, strategy: 'scripting-eval', error: message };
+    } catch (err) {
+        logDebug('error', label + ' scripting mislukt: ' + err.message);
+        return { ok: false, strategy: 'scripting', error: err.message };
+    }
+}
+
+async function probeTab(tabId) {
+    try {
+        const results = await chrome.scripting.executeScript({
+            target: { tabId: tabId },
+            world: 'ISOLATED',
+            func: function () {
+                return {
+                    host: typeof window.EgodactAddons !== 'undefined',
+                    ready: window.__egodactHostReady === true
+                };
+            }
+        });
+        return (results && results[0] && results[0].result) || null;
+    } catch (err) {
+        return null;
+    }
+}
+
+async function waitForHost(tabId) {
+    for (let attempt = 0; attempt < 6; attempt++) {
+        const probe = await probeTab(tabId);
+        if (probe && probe.host) return probe;
+        await new Promise(function (resolve) { setTimeout(resolve, 300 + attempt * 400); });
+    }
+    return null;
+}
+
+async function injectAddon(tabId, addonData) {
+    const key = String(tabId);
+    const tabState = injectedTabs[key] || (injectedTabs[key] = {});
+
+    if (tabState[addonData.id] === addonData.version) {
+        return { ok: true, id: addonData.id, skipped: true, strategy: 'cached' };
+    }
+
+    const sdk = await getBundledSource();
+    const files = orderedFiles(addonData);
+    if (!files.length) {
+        logDebug('error', 'Geen bestanden voor ' + addonData.id);
+        return { ok: false, id: addonData.id, error: 'Geen addon-bestanden gevonden' };
+    }
+
+    const codes = [];
+    if (sdk) codes.push(sdk);
+    files.forEach(function (path) {
+        codes.push('/* egodact addon file: ' + path + ' */\n' + addonData.files[path]);
     });
+
+    const result = await runInTab(tabId, codes, addonData.id);
+    result.id = addonData.id;
+    if (result.ok) tabState[addonData.id] = addonData.version;
+    return result;
+}
+
+async function injectAllAddons(tabId, force) {
+    const items = await chrome.storage.local.get(null);
+    const addons = listInstalled(items);
+    if (!addons.length) {
+        logDebug('info', 'Geen addons geinstalleerd');
+        return [];
+    }
+
+    if (force) injectedTabs[String(tabId)] = {};
+    await waitForHost(tabId);
+
+    const results = [];
+    for (const addon of addons) {
+        results.push(await injectAddon(tabId, addon));
+    }
+    return results;
 }
 
 chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
+    if (changeInfo.status === 'loading') {
+        injectedTabs[String(tabId)] = {};
+        return;
+    }
     if (changeInfo.status !== 'complete') return;
-    if (!tab.url || tab.url.indexOf('https://app.egodact.com') !== 0) return;
-    console.log('[Injector BG] Tab updated:', tabId, tab.url);
+
+    const url = (tab && tab.url) || '';
+    if (url.indexOf(APP_ORIGIN) !== 0) return;
+
+    injectedTabs[String(tabId)] = {};
     setTimeout(function () {
-        injectAllAddons(tabId);
-    }, 2000);
+        injectAllAddons(tabId).catch(function (err) {
+            logDebug('error', 'Injectie na paginalading mislukt: ' + err.message);
+        });
+    }, 600);
+});
+
+chrome.tabs.onRemoved.addListener(function (tabId) {
+    delete injectedTabs[String(tabId)];
 });
 
 chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
-    console.log('[Injector BG] Message received:', message.type);
-    if (message.type === 'injector:contentReady') {
-        console.log('[Injector BG] Content script ready in tab', sender.tab && sender.tab.id);
-        if (sender.tab && sender.tab.id && sender.tab.url && sender.tab.url.indexOf('https://app.egodact.com') === 0) {
-            injectAllAddons(sender.tab.id);
-        }
-        sendResponse({ success: true });
-        return true;
-    }
-    if (message.type === 'injector:install') {
-        const addonData = message.addonData;
-        if (addonData && addonData.id) {
-            const key = STORAGE_PREFIX + addonData.id;
-            chrome.storage.local.set({ [key]: addonData }, function () {
-                if (chrome.runtime.lastError) {
-                    sendResponse({ success: false, error: chrome.runtime.lastError.message });
-                } else {
-                    console.log('[Injector BG] Stored addon:', addonData.id);
-                    chrome.tabs.query({ url: 'https://app.egodact.com/*' }, function (tabs) {
-                        tabs.forEach(function (tab) {
-                            injectAddonIntoTab(tab.id, addonData);
-                        });
-                    });
-                    sendResponse({ success: true });
-                }
+    const type = message && message.type;
+    if (!type) return false;
+
+    const senderTabId = sender && sender.tab && sender.tab.id;
+    const senderUrl = (sender && sender.tab && sender.tab.url) || '';
+
+    if (type === 'injector:contentReady') {
+        if (typeof senderTabId === 'number' && senderUrl.indexOf(APP_ORIGIN) === 0) {
+            injectAllAddons(senderTabId).then(function (results) {
+                sendResponse({ success: true, results: results });
+            }).catch(function (err) {
+                sendResponse({ success: false, error: err.message });
             });
             return true;
         }
-        sendResponse({ success: false, error: 'No addon data' });
-    } else if (message.type === 'injector:uninstall') {
-        const addonId = message.addonId;
-        if (addonId) {
-            const key = STORAGE_PREFIX + addonId;
-            chrome.storage.local.remove(key, function () {
-                if (chrome.runtime.lastError) {
-                    sendResponse({ success: false, error: chrome.runtime.lastError.message });
-                } else {
-                    console.log('[Injector BG] Uninstalled addon:', addonId);
-                    sendResponse({ success: true });
-                }
-            });
-            return true;
-        }
-        sendResponse({ success: false, error: 'No addon id' });
-    } else if (message.type === 'injector:isInstalled') {
-        const addonId = message.addonId;
-        const key = STORAGE_PREFIX + addonId;
-        chrome.storage.local.get(key, function (items) {
-            const installed = !!(items && items[key]);
-            sendResponse({ installed: installed });
+        sendResponse({ success: true, results: [] });
+        return false;
+    }
+
+    if (type === 'injector:capabilities') {
+        sendResponse({
+            userScripts: isUserScriptsAvailable(),
+            hasUserScriptsApi: !!(chrome.userScripts && chrome.userScripts.execute)
         });
-        return true;
-    } else if (message.type === 'injector:list') {
-        chrome.storage.local.get(null, function (items) {
-            const addons = [];
-            Object.keys(items).forEach(function (key) {
-                if (key.indexOf(STORAGE_PREFIX) === 0) {
-                    addons.push(items[key]);
-                }
-            });
-            sendResponse({ addons: addons });
+        return false;
+    }
+
+    if (type === 'injector:install') {
+        const raw = message.addonData || {};
+        if (!raw.id) {
+            sendResponse({ success: false, error: 'Geen addon-id' });
+            return false;
+        }
+        const record = {
+            id: raw.id,
+            name: raw.name || raw.id,
+            version: raw.version || '0.0.0',
+            order: Array.isArray(raw.order) ? raw.order : [],
+            files: raw.files || {},
+            installedAt: Date.now()
+        };
+        const key = STORAGE_PREFIX + record.id;
+
+        chrome.storage.local.set({ [key]: record }).then(async function () {
+            logDebug('info', 'Addon opgeslagen: ' + record.id + ' v' + record.version);
+            const tabs = await chrome.tabs.query({ url: APP_ORIGIN + '/*' });
+            const results = [];
+            for (const tab of tabs) {
+                injectedTabs[String(tab.id)] = {};
+                results.push(await injectAddon(tab.id, record));
+            }
+            sendResponse({ success: true, results: results, tabs: tabs.length });
+        }).catch(function (err) {
+            logDebug('error', 'Opslaan mislukt: ' + err.message);
+            sendResponse({ success: false, error: err.message });
         });
         return true;
     }
+
+    if (type === 'injector:uninstall') {
+        const addonId = message.addonId;
+        if (!addonId) {
+            sendResponse({ success: false, error: 'Geen addon-id' });
+            return false;
+        }
+        chrome.storage.local.remove(STORAGE_PREFIX + addonId).then(function () {
+            Object.keys(injectedTabs).forEach(function (tabKey) {
+                delete injectedTabs[tabKey][addonId];
+            });
+            logDebug('info', 'Addon verwijderd: ' + addonId);
+            sendResponse({ success: true });
+        }).catch(function (err) {
+            sendResponse({ success: false, error: err.message });
+        });
+        return true;
+    }
+
+    if (type === 'injector:isInstalled') {
+        const key = STORAGE_PREFIX + message.addonId;
+        chrome.storage.local.get(key).then(function (items) {
+            const record = items && items[key];
+            sendResponse({
+                installed: !!record,
+                version: record ? record.version : null,
+                fileCount: record ? Object.keys(record.files || {}).length : 0
+            });
+        }).catch(function () {
+            sendResponse({ installed: false });
+        });
+        return true;
+    }
+
+    if (type === 'injector:list') {
+        chrome.storage.local.get(null).then(function (items) {
+            sendResponse({ addons: listInstalled(items) });
+        }).catch(function () {
+            sendResponse({ addons: [] });
+        });
+        return true;
+    }
+
+    if (type === 'injector:reinject') {
+        const tabId = typeof message.tabId === 'number' ? message.tabId : senderTabId;
+        if (typeof tabId !== 'number') {
+            sendResponse({ success: false, error: 'Geen tab' });
+            return false;
+        }
+        injectAllAddons(tabId, true).then(function (results) {
+            sendResponse({ success: true, results: results });
+        }).catch(function (err) {
+            sendResponse({ success: false, error: err.message });
+        });
+        return true;
+    }
+
+    if (type === 'injector:diagnose') {
+        (async function () {
+            const items = await chrome.storage.local.get(null);
+            const addons = listInstalled(items).map(function (addon) {
+                const paths = orderedFiles(addon);
+                return {
+                    id: addon.id,
+                    version: addon.version,
+                    files: paths.length,
+                    missing: (addon.order || []).filter(function (p) { return !addon.files[p]; }),
+                    bytes: JSON.stringify(addon.files).length
+                };
+            });
+            const report = {
+                userScripts: isUserScriptsAvailable(),
+                addons: addons,
+                injectedInThisTab: typeof senderTabId === 'number' ? (injectedTabs[String(senderTabId)] || {}) : {},
+                host: typeof senderTabId === 'number' ? await probeTab(senderTabId) : null,
+                log: debugLog.slice(-40).map(function (entry) { return entry.line; })
+            };
+            sendResponse(report);
+        })();
+        return true;
+    }
+
     return false;
 });
 
-console.log('[Injector BG] Service worker loaded');
+logDebug('info', 'Service worker geladen');

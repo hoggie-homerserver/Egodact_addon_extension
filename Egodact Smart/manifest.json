@@ -1,12 +1,16 @@
 {
   "manifest_version": 3,
   "name": "Egodact Pantagora Dev Build",
-  "version": "3.7.8",
+  "version": "3.8.0",
   "description": "Development build of the Egodact Pantagora extension for testing purposes.",
   "permissions": [
     "storage",
-    "scripting"
+    "scripting",
+    "userScripts"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": [
@@ -63,8 +67,5 @@
         ]
       }
     }
-  },
-  "background": {
-    "service_worker": "background.js"
   }
 }
