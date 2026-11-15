@@ -11,9 +11,12 @@
     const REGISTRY_URL = 'https://raw.githubusercontent.com/hoggie-homerserver/Egodact_addon_marketplace/main/registry.json';
     const MARKETPLACE_SITE = 'https://hoggie-homerserver.github.io/Egodact_addon_marketplace/';
 
+    const ICON_CART = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>';
+    const ICON_PACKAGE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>';
+
     let cachedRegistry = null;
     let cacheTime = 0;
-    const CACHE_MS = 5 * 60 * 1000; // 5 minutes
+    const CACHE_MS = 5 * 60 * 1000;
 
     async function fetchRegistry() {
         if (cachedRegistry && (Date.now() - cacheTime) < CACHE_MS) return cachedRegistry;
@@ -29,7 +32,6 @@
         }
     }
 
-    // Open the marketplace modal.
     function openMarketplace(e) {
         e?.preventDefault?.();
         e?.stopPropagation?.();
@@ -57,8 +59,8 @@
         const header = document.createElement('div');
         Object.assign(header.style, { display: 'flex', alignItems: 'center', gap: '12px' });
         const title = document.createElement('h2');
-        title.textContent = '🛒 Addon Marketplace';
-        title.style.cssText = 'margin:0;font-size:20px;flex:1;';
+        title.innerHTML = ICON_CART + ' Addon Marketplace';
+        title.style.cssText = 'margin:0;font-size:20px;flex:1;display:flex;align-items:center;gap:8px;';
         const closeBtn = document.createElement('button');
         closeBtn.type = 'button'; closeBtn.textContent = 'Sluiten';
         Object.assign(closeBtn.style, { padding: '8px 14px', border: 'none', borderRadius: '4px', background: 'var(--egd-accent)', color: 'var(--egd-accent-tekst)', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' });
@@ -66,7 +68,6 @@
         header.append(title, closeBtn);
         modal.appendChild(header);
 
-        // Search bar
         const searchWrap = document.createElement('div');
         Object.assign(searchWrap.style, { display: 'flex', gap: '8px' });
         const searchInput = document.createElement('input');
@@ -76,12 +77,10 @@
         searchWrap.appendChild(searchInput);
         modal.appendChild(searchWrap);
 
-        // Category filter
         const catWrap = document.createElement('div');
         Object.assign(catWrap.style, { display: 'flex', gap: '6px', flexWrap: 'wrap' });
         modal.appendChild(catWrap);
 
-        // Addon list container
         const listContainer = document.createElement('div');
         Object.assign(listContainer.style, { display: 'flex', flexDirection: 'column', gap: '12px', minHeight: '200px' });
         const loading = document.createElement('div');
@@ -90,7 +89,6 @@
         listContainer.appendChild(loading);
         modal.appendChild(listContainer);
 
-        // Footer
         const footer = document.createElement('div');
         Object.assign(footer.style, { fontSize: '11px', color: 'var(--egd-tekst-zacht)', textAlign: 'center', borderTop: '1px solid var(--egd-rand)', paddingTop: '12px' });
         footer.innerHTML = 'Addons worden gevalideerd door de maintainer. <a href="' + MARKETPLACE_SITE + '" target="_blank" style="color:var(--egd-accent);">Bekijk op GitHub Pages →</a>';
@@ -100,7 +98,6 @@
         document.body.appendChild(backdrop);
         backdrop.addEventListener('click', function (e) { if (e.target === backdrop) backdrop.remove(); });
 
-        // Load and render
         let allAddons = [];
         let activeCategory = 'all';
 
@@ -124,7 +121,7 @@
             cats.forEach(function (cat) {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.textContent = (cat.icon || '') + ' ' + cat.name;
+                btn.textContent = (cat.name || cat.id);
                 Object.assign(btn.style, { padding: '4px 10px', border: '1px solid var(--egd-rand)', borderRadius: '4px', background: 'var(--egd-veld)', color: 'var(--egd-tekst)', cursor: 'pointer', fontSize: '12px' });
                 if (activeCategory === cat.id) btn.style.background = 'var(--egd-accent)';
                 btn.addEventListener('click', function () { activeCategory = cat.id; renderCategories(cats); renderAddons(); });
@@ -158,8 +155,8 @@
                 const top = document.createElement('div');
                 Object.assign(top.style, { display: 'flex', alignItems: 'center', gap: '10px' });
                 const icon = document.createElement('div');
-                icon.style.cssText = 'width:40px;height:40px;border-radius:8px;background:var(--egd-paneel);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;';
-                icon.textContent = '📦';
+                icon.style.cssText = 'width:40px;height:40px;border-radius:8px;background:var(--egd-paneel);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--egd-tekst-zacht);';
+                icon.innerHTML = ICON_PACKAGE;
                 top.appendChild(icon);
                 const info = document.createElement('div');
                 Object.assign(info.style, { flex: '1', minWidth: '0' });
@@ -175,7 +172,7 @@
 
                 if (addon.verified) {
                     const badge = document.createElement('span');
-                    badge.textContent = '✓ Official';
+                    badge.textContent = 'Official';
                     badge.style.cssText = 'font-size:10px;padding:2px 8px;border-radius:999px;background:#2e7d32;color:#fff;font-weight:bold;';
                     top.appendChild(badge);
                 }
@@ -186,13 +183,25 @@
                 desc.style.cssText = 'font-size:12px;color:var(--egd-tekst-zacht);';
                 card.appendChild(desc);
 
+                if (addon.tags && addon.tags.length) {
+                    const tagsWrap = document.createElement('div');
+                    Object.assign(tagsWrap.style, { display: 'flex', gap: '6px', flexWrap: 'wrap' });
+                    addon.tags.forEach(function (t) {
+                        const tag = document.createElement('span');
+                        tag.textContent = t;
+                        tag.style.cssText = 'font-size:11px;padding:2px 8px;border-radius:999px;background:var(--egd-paneel);color:var(--egd-tekst-zacht);';
+                        tagsWrap.appendChild(tag);
+                    });
+                    card.appendChild(tagsWrap);
+                }
+
                 const actions = document.createElement('div');
                 Object.assign(actions.style, { display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' });
 
-                const isInstalled = (typeof window.EgodactAddonMarketplace !== 'undefined' && window.EgodactAddonMarketplace.isInstalled(addon.id));
+                const isInstalled = (typeof window.EgodactAddonInjector !== 'undefined' && window.EgodactAddonInjector.isInstalled(addon.id));
                 const installBtn = document.createElement('button');
                 installBtn.type = 'button';
-                installBtn.textContent = isInstalled ? '✓ Geïnstalleerd' : 'Installeren';
+                installBtn.textContent = isInstalled ? 'Geinstalleerd' : 'Installeren';
                 Object.assign(installBtn.style, { padding: '6px 14px', border: 'none', borderRadius: '4px', background: isInstalled ? '#2e7d32' : 'var(--egd-accent)', color: isInstalled ? '#fff' : 'var(--egd-accent-tekst)', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' });
                 installBtn.disabled = isInstalled;
                 if (!isInstalled) {
@@ -202,12 +211,11 @@
                 }
                 actions.appendChild(installBtn);
 
-                // Link to source
                 if (addon.repo) {
                     const srcLink = document.createElement('a');
                     srcLink.href = addon.repo;
                     srcLink.target = '_blank';
-                    srcLink.textContent = 'Broncode →';
+                    srcLink.textContent = 'Broncode';
                     srcLink.style.cssText = 'font-size:11px;color:var(--egd-accent);text-decoration:none;';
                     actions.appendChild(srcLink);
                 }
@@ -221,7 +229,6 @@
             btn.disabled = true;
             btn.textContent = 'Installeren...';
             try {
-                // Method 1: Injector — fetch addon files and store in chrome.storage
                 if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
                     const files = {};
                     for (const f of (addon.files || [])) {
@@ -230,7 +237,6 @@
                         if (!r.ok) throw new Error('Kan ' + f + ' niet laden');
                         files[f] = await r.text();
                     }
-                    // Store in chrome.storage
                     const key = 'egodact_marketplace_addon_' + addon.id;
                     await new Promise(function (resolve, reject) {
                         chrome.storage.local.set({ [key]: { id: addon.id, name: addon.name, version: addon.version, files: files, entryPoint: addon.entryPoint, installedAt: Date.now() } }, function () {
@@ -238,15 +244,13 @@
                             else resolve();
                         });
                     });
-                    btn.textContent = '✓ Geïnstalleerd';
+                    btn.textContent = 'Geinstalleerd';
                     btn.style.background = '#2e7d32';
                     btn.style.color = '#fff';
-                    // Inject immediately
                     if (window.EgodactAddonInjector) {
                         window.EgodactAddonInjector.inject(addon.id);
                     }
                 } else {
-                    // Fallback: open download page
                     window.open(addon.repo, '_blank');
                     btn.textContent = 'Geopend in nieuw tabblad';
                 }
@@ -262,31 +266,28 @@
         loadAddons().catch(function (err) { console.error('[Marketplace] Load failed:', err); });
     }
 
-    // Expose globally
     window.EgodactMarketplace = {
         open: openMarketplace,
         fetchRegistry: fetchRegistry
     };
 
-    // Register hamburger item if API available
     if (window.EgodactAddons && typeof window.EgodactAddons.registerHamburger === 'function') {
         window.EgodactAddons.registerHamburger({
             id: 'egodact-marketplace',
             addonId: null,
-            title: '🛒 Marketplace',
-            icon: '🛒',
+            title: 'Marketplace',
+            icon: ICON_CART,
             order: 99,
             open: openMarketplace
         });
     }
 
-    // Register as a menu too
     if (window.EgodactAddons && typeof window.EgodactAddons.registerMenu === 'function') {
         window.EgodactAddons.registerMenu({
             id: 'egodact-marketplace-menu',
             addonId: null,
-            title: '🛒 Addon Marketplace',
-            icon: '🛒',
+            title: 'Addon Marketplace',
+            icon: ICON_CART,
             open: openMarketplace
         });
     }
