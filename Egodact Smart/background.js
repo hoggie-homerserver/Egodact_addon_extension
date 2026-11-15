@@ -192,6 +192,8 @@ async function injectAddon(tabId, addonData) {
     }
 
     const codes = [];
+    // Host is up (we waited for it), so tell the SDK not to queue.
+    codes.push('try { window.__egodactHostReady = true; } catch (e) {}');
     // Prefer the SDK that the addon itself ships; fall back to the copy
     // bundled with the host so addons do not have to include it.
     BUNDLED_FILES.forEach(function (file) {
