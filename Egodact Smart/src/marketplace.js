@@ -139,6 +139,15 @@
         title.innerHTML = ICON_CART + '<span>Addon Marketplace</span>';
         title.style.cssText = 'margin:0;font-size:20px;flex:1;display:flex;align-items:center;gap:8px;font-weight:600;';
 
+        const devBtn = document.createElement('button');
+        devBtn.type = 'button';
+        devBtn.textContent = 'Ontwikkelaar';
+        devBtn.title = 'Addon aanmelden / publiceren op de marketplace';
+        styleButton(devBtn, 'ghost');
+        devBtn.addEventListener('click', function () {
+            try { window.open(MARKETPLACE_SITE + '#developer', '_blank', 'noopener'); } catch (e) {}
+        });
+
         const diagnoseBtn = document.createElement('button');
         diagnoseBtn.type = 'button';
         diagnoseBtn.textContent = 'Diagnose';
@@ -151,7 +160,7 @@
         styleButton(closeBtn, 'primary');
         closeBtn.addEventListener('click', function () { backdrop.remove(); activeModal = null; });
 
-        header.append(title, diagnoseBtn, closeBtn);
+        header.append(title, devBtn, diagnoseBtn, closeBtn);
         modal.appendChild(header);
 
         const banner = document.createElement('div');
@@ -183,8 +192,9 @@
         modal.appendChild(listContainer);
 
         const footer = document.createElement('div');
-        Object.assign(footer.style, { fontSize: '11px', color: 'var(--egd-tekst-zacht, #b0b0b0)', textAlign: 'center', borderTop: '1px solid var(--egd-rand, #555)', paddingTop: '12px' });
-        footer.innerHTML = 'Addons worden gevalideerd door de maintainer. <a href="' + MARKETPLACE_SITE + '" target="_blank" rel="noopener" style="color:var(--egd-accent);">Bekijk op GitHub Pages</a>';
+        Object.assign(footer.style, { fontSize: '11px', color: 'var(--egd-tekst-zacht, #b0b0b0)', textAlign: 'center', borderTop: '1px solid var(--egd-rand, #555)', paddingTop: '12px', lineHeight: '1.6' });
+        footer.innerHTML = 'Addons worden gevalideerd door de maintainer. <a href="' + MARKETPLACE_SITE + '" target="_blank" rel="noopener" style="color:var(--egd-accent);">Bekijk marketplace</a>' +
+            ' &middot; <a href="' + MARKETPLACE_SITE + '#developer" target="_blank" rel="noopener" style="color:var(--egd-accent);font-weight:bold;">Addon aanmelden / publiceren (ontwikkelaars)</a>';
         modal.appendChild(footer);
 
         backdrop.appendChild(modal);
