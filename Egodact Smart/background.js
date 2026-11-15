@@ -101,6 +101,7 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
         sendResponse({ success: true });
         return true;
     }
+    if (message.type === 'injector:install') {
         const addonData = message.addonData;
         if (addonData && addonData.id) {
             const key = STORAGE_PREFIX + addonData.id;
