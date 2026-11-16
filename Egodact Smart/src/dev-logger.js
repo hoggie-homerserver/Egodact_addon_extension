@@ -65,32 +65,55 @@
         } catch (e) {}
     }
 
+    const loggedEventIds = new Set();
+    let loggedSeq = 0;
+    function logCustomEvent(event, sourceTag) {
+        try {
+            if (!event) return;
+            const name = event.type || '';
+            if (name.indexOf('egodact:') !== 0) return;
+            // Dedupe: dispatch wrapper (same world) + capture listener (cross-world) can both see it
+            if (!event.__egdDevLogId) {
+                try { event.__egdDevLogId = 'e' + (++loggedSeq) + '_' + Date.now(); } catch (e2) { event.__egdDevLogId = 'e' + (++loggedSeq); }
+            }
+            const dedupeKey = event.__egdDevLogId + ':' + name + ':' + sourceTag;
+            if (loggedEventIds.has(dedupeKey)) return;
+            loggedEventIds.add(dedupeKey);
+            if (loggedEventIds.size > 1000) {
+                const it = loggedEventIds.values();
+                for (let i = 0; i < 400; i++) { const n = it.next(); if (n.done) break; loggedEventIds.delete(n.value); }
+            }
+            const detail = event.detail;
+            const meta = detail && detail.meta ? detail.meta : detail;
+            push({
+                kind: 'event', level: 'info', name: name,
+                subType: detail && detail.type ? detail.type : null,
+                addonId: addonIdFrom(detail),
+                id: (meta && (meta.id || meta.requestId)) || (detail && detail.id) || null,
+                summary: name + (detail && detail.type ? ' (' + detail.type + ')' : '') + (sourceTag === 'dispatch' ? '' : ''),
+                detail: safeStringify(detail, 0)
+            });
+        } catch (e) {}
+    }
+
     const origDispatch = document.dispatchEvent;
     document.dispatchEvent = function (event) {
         try {
             if (event && typeof CustomEvent !== 'undefined' && event instanceof CustomEvent) {
-                const name = event.type || '';
-                if (name.indexOf('egodact:') === 0) {
-                    const detail = event.detail;
-                    const meta = detail && detail.meta ? detail.meta : detail;
-                    push({
-                        kind: 'event', level: 'info', name: name,
-                        subType: detail && detail.type ? detail.type : null,
-                        addonId: addonIdFrom(detail),
-                        id: (meta && (meta.id || meta.requestId)) || (detail && detail.id) || null,
-                        summary: name + (detail && detail.type ? ' (' + detail.type + ')' : ''),
-                        detail: safeStringify(detail, 0)
-                    });
-                }
+                logCustomEvent(event, 'dispatch');
             }
         } catch (e) {}
         return origDispatch.apply(this, arguments);
     };
 
-    ['egodact:host:ready', 'egodact:addons:changed'].forEach(function (name) {
-        document.addEventListener(name, function (event) {
-            push({ kind: 'event', level: 'info', name: name, subType: null, addonId: null, id: null, summary: name, detail: safeStringify(event && event.detail, 0) });
-        }, true);
+    // Capture listeners see CustomEvents dispatched from ANY world (including userScripts worlds)
+    [
+        'egodact:host:ready', 'egodact:addons:changed',
+        'egodact:addon:register', 'egodact:addon:open',
+        'egodact:addon:challenges:request', 'egodact:addon:challenges:response',
+        'egodact:addon:toast', 'egodact:addon:shortcut'
+    ].forEach(function (name) {
+        document.addEventListener(name, function (event) { logCustomEvent(event, 'listener'); }, true);
     });
 
     function wrapConsole(level) {
