@@ -132,6 +132,7 @@ function openAddonsMenu(e) {
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
                 <button id="egodact-addons-installeren" type="button" style="background-color:transparent; border:1px solid var(--egd-accent); color:var(--egd-accent); cursor:pointer; padding:10px 16px; font-weight:bold; font-size:13px; text-transform:uppercase; border-radius:4px;">Addon valideren</button>
                 <button id="egodact-addons-publish" type="button" title="Addon aanmelden / publiceren op de marketplace" style="background-color:transparent; border:1px solid var(--egd-rand); color:var(--egd-tekst); cursor:pointer; padding:10px 16px; font-weight:bold; font-size:13px; text-transform:uppercase; border-radius:4px;">Addon aanmelden</button>
+                <button id="egodact-addons-devlog" type="button" title="Open Event & Console Viewer (dev)" style="background-color:transparent; border:1px solid var(--egd-rand); color:var(--egd-tekst); cursor:pointer; padding:10px 16px; font-weight:bold; font-size:13px; text-transform:uppercase; border-radius:4px;">Event viewer</button>
             </div>
             <button id="egodact-addons-sluiten" type="button" style="background-color:var(--egd-accent); border:none; color:var(--egd-accent-tekst); cursor:pointer; padding:10px 20px; font-weight:bold; font-size:14px; text-transform:uppercase; border-radius:4px; box-shadow:0px 3px 1px -2px rgba(0,0,0,0.2);">Sluiten</button>
         </div>
@@ -154,6 +155,16 @@ function openAddonsMenu(e) {
     if (publishBtn) publishBtn.addEventListener('click', function () {
         const url = 'https://hoggie-homerserver.github.io/Egodact_addon_marketplace/developer.html';
         try { window.open(url, '_blank', 'noopener'); } catch (err) { window.location.href = url; }
+    });
+    const devlogBtn = modal.querySelector('#egodact-addons-devlog');
+    if (devlogBtn) devlogBtn.addEventListener('click', function () {
+        try {
+            if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                chrome.runtime.sendMessage({ type: 'devlog:open' }, function () { try { void chrome.runtime.lastError; } catch (e) {} });
+            } else if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
+                window.open(chrome.runtime.getURL('devtools.html'), '_blank');
+            }
+        } catch (e) { console.warn('Kon event viewer niet openen', e); }
     });
     backdrop.addEventListener('click', (ev) => { if (ev.target === backdrop) sluit(); });
 

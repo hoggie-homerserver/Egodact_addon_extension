@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Egodact Dev - Event & Console Viewer</title>
+  <style>
+    :root { --bg:#1f1f1f; --panel:#2b2b2b; --panel2:#333; --border:#444; --text:#f2f2f2; --muted:#a8a8a8; --accent:#90caf9; --ok:#66bb6a; --warn:#ffb74d; --err:#ef5350; }
+    *{box-sizing:border-box} body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:13px}
+    .top{position:sticky;top:0;z-index:5;background:var(--panel);border-bottom:1px solid var(--border);padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    h1{font-size:15px;margin:0 8px 0 0;font-weight:600}
+    .muted{color:var(--muted);font-size:12px}
+    button,input,select{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:6px 10px}
+    button{cursor:pointer} button:hover{border-color:var(--accent)}
+    input[type="text"]{min-width:220px}
+    .status{margin-left:auto;font-size:12px;color:var(--muted)}
+    .wrap{padding:10px 12px}
+    .stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;color:var(--muted);font-size:12px}
+    .log{display:flex;flex-direction:column;gap:6px}
+    .entry{background:var(--panel);border:1px solid var(--border);border-left:4px solid #666;border-radius:6px;padding:8px 10px}
+    .entry.level-error{border-left-color:var(--err)} .entry.level-warn{border-left-color:var(--warn)} .entry.level-info{border-left-color:var(--accent)}
+    .head{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:4px}
+    .time{color:var(--muted);font-family:Consolas,monospace;font-size:11px}
+    .badge{font-size:11px;padding:1px 7px;border-radius:999px;background:#444;color:#fff}
+    .badge.event{background:#1565c0} .badge.console{background:#455a64} .badge.error{background:#b71c1c} .badge.lifecycle{background:#2e7d32}
+    .name{font-weight:600}
+    .addon{color:var(--accent);font-size:12px}
+    .summary{white-space:pre-wrap;word-break:break-word;line-height:1.45}
+    pre.detail{margin:6px 0 0;padding:8px;background:#222;border:1px solid var(--border);border-radius:4px;max-height:220px;overflow:auto;white-space:pre-wrap;word-break:break-all;font-size:11.5px;color:#d7d7d7}
+    .empty{color:var(--muted);padding:30px;text-align:center;border:1px dashed var(--border);border-radius:8px}
+    .row{display:flex;gap:6px;align-items:center}
+    label{font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="top">
+    <h1>Egodact Dev — Event &amp; Console Viewer</h1>
+    <button id="refresh">Vernieuwen</button>
+    <button id="clear">Wissen</button>
+    <label class="row"><input type="checkbox" id="auto" checked> Live/auto</label>
+    <input type="text" id="q" placeholder="Filter (naam, addon, tekst)...">
+    <select id="kind"><option value="">Alle types</option><option value="event">Events</option><option value="console">Console</option><option value="error">Errors</option><option value="lifecycle">Lifecycle</option></select>
+    <select id="level"><option value="">Alle levels</option><option value="info">info</option><option value="warn">warn</option><option value="error">error</option><option value="log">log</option></select>
+    <span class="status" id="status">verbinden...</span>
+  </div>
+  <div class="wrap">
+    <div class="stats" id="stats"></div>
+    <div id="log" class="log"></div>
+  </div>
+  <script src="devtools.js"></script>
+</body>
+</html>

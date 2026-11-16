@@ -24,6 +24,27 @@ const MAX_LOG = 300;
 const debugLog = [];
 const injectedTabs = {};
 
+// ---- Dev event viewer (egodact:* / addon events forwarded from content scripts) ----
+const devEventLog = [];
+const DEV_EVENT_MAX = 800;
+const devLogPorts = new Set();
+
+function devLogBroadcast(payload) {
+    devLogPorts.forEach(function (port) {
+        try { port.postMessage(payload); } catch (e) { try { devLogPorts.delete(port); } catch (err) {} }
+    });
+}
+function devLogAppend(entries) {
+    if (!Array.isArray(entries) || !entries.length) return;
+    entries.forEach(function (e) {
+        if (!e || typeof e !== 'object') return;
+        if (!e.t) e.t = Date.now();
+        devEventLog.push(e);
+    });
+    if (devEventLog.length > DEV_EVENT_MAX) devEventLog.splice(0, devEventLog.length - DEV_EVENT_MAX);
+    devLogBroadcast({ type: 'append', entries: entries });
+}
+
 function logDebug(level, msg) {
     const line = '[' + level + '] ' + msg;
     debugLog.push({ t: Date.now(), line: line });
@@ -289,9 +310,49 @@ chrome.tabs.onRemoved.addListener(function (tabId) {
     delete injectedTabs[String(tabId)];
 });
 
+chrome.runtime.onConnect.addListener(function (port) {
+    if (!port || port.name !== 'devlog-viewer') return;
+    devLogPorts.add(port);
+    try { port.postMessage({ type: 'init', entries: devEventLog.slice(-400) }); } catch (e) {}
+    port.onMessage.addListener(function (msg) {
+        if (!msg) return;
+        if (msg.type === 'get') {
+            try { port.postMessage({ type: 'init', entries: devEventLog.slice(-400) }); } catch (e) {}
+        } else if (msg.type === 'clear') {
+            devEventLog.length = 0;
+            devLogBroadcast({ type: 'cleared' });
+        }
+    });
+    port.onDisconnect.addListener(function () { devLogPorts.delete(port); try { void chrome.runtime.lastError; } catch (e) {} });
+});
+
 chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
     const type = message && message.type;
     if (!type) return false;
+
+    if (type === 'devlog:push') {
+        devLogAppend(message.entries || []);
+        sendResponse({ ok: true });
+        return false;
+    }
+    if (type === 'devlog:get') {
+        sendResponse({ entries: devEventLog.slice(-400) });
+        return false;
+    }
+    if (type === 'devlog:clear') {
+        devEventLog.length = 0;
+        devLogBroadcast({ type: 'cleared' });
+        sendResponse({ ok: true });
+        return false;
+    }
+    if (type === 'devlog:open') {
+        try {
+            const url = chrome.runtime.getURL('devtools.html');
+            chrome.tabs.create({ url: url }, function () { try { void chrome.runtime.lastError; } catch (e) {} });
+            sendResponse({ ok: true, url: url });
+        } catch (e) { sendResponse({ ok: false, error: e.message }); }
+        return false;
+    }
 
     const senderTabId = sender && sender.tab && sender.tab.id;
     const senderUrl = (sender && sender.tab && sender.tab.url) || '';
