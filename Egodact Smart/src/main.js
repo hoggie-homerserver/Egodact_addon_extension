@@ -32,7 +32,17 @@ if (window.EgodactAddons && typeof window.EgodactAddons.finalize === 'function')
 }
 
 
-try { window.__egodactHostReady = true; document.dispatchEvent(new CustomEvent('egodact:host:ready')); } catch (err) {}
+try {
+    var egodactHostManifest = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) ? chrome.runtime.getManifest() : null;
+    window.__egodactHostReady = true;
+    try {
+        document.documentElement.setAttribute('data-egodact-version', egodactHostManifest ? egodactHostManifest.version : '');
+        document.documentElement.setAttribute('data-egodact-sdk', '2');
+    } catch (attrErr) {}
+    document.dispatchEvent(new CustomEvent('egodact:host:ready', {
+        detail: { version: egodactHostManifest ? egodactHostManifest.version : '', sdk: '2' }
+    }));
+} catch (err) {}
 
 if (typeof egodactMisschienOnboarding === 'function') {
     egodactMisschienOnboarding();
