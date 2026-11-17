@@ -25,24 +25,77 @@ const debugLog = [];
 const injectedTabs = {};
 
 // ---- Dev event viewer (egodact:* / addon events forwarded from content scripts) ----
-const devEventLog = [];
-const DEV_EVENT_MAX = 800;
+const DEV_EVENT_MAX = 1000;
+const DEV_VIEWER_ENTRIES = 500;
+let devEventLog = [];
+let devViewerTabId = null;
 const devLogPorts = new Set();
+let devLogPersistTimer = null;
 
 function devLogBroadcast(payload) {
     devLogPorts.forEach(function (port) {
         try { port.postMessage(payload); } catch (e) { try { devLogPorts.delete(port); } catch (err) {} }
     });
 }
-function devLogAppend(entries) {
+
+// MV3 service workers go idle after ~30s, which used to wipe the whole log.
+// Keep a bounded copy in session storage so reopening the viewer keeps history.
+function devLogPersist() {
+    if (devLogPersistTimer) return;
+    devLogPersistTimer = setTimeout(function () {
+        devLogPersistTimer = null;
+        try {
+            chrome.storage.session.set({
+                devEventLog: devEventLog.slice(-DEV_VIEWER_ENTRIES),
+                devViewerTabId: devViewerTabId
+            }, function () { try { void chrome.runtime.lastError; } catch (e) {} });
+        } catch (e) {}
+    }, 400);
+}
+
+function devLogMerge(restored) {
+    if (!Array.isArray(restored) || !restored.length) return;
+    const keyOf = function (e) {
+        return [e.t || 0, e.kind || '', e.name || '', e.id || '', e.addonId || '', e.summary || '', e.detail || '', e.tabId == null ? '' : e.tabId].join('|');
+    };
+    const seen = new Set(devEventLog.map(keyOf));
+    const merged = restored.filter(function (e) { return e && typeof e === 'object' && !seen.has(keyOf(e)); }).concat(devEventLog);
+    merged.sort(function (a, b) { return (a.t || 0) - (b.t || 0); });
+    devEventLog = merged.slice(-DEV_EVENT_MAX);
+    if (devLogPorts.size) devLogBroadcast({ type: 'init', entries: devEventLog.slice(-DEV_VIEWER_ENTRIES) });
+}
+
+function devLogRestore() {
+    try {
+        chrome.storage.session.get(['devEventLog', 'devViewerTabId'], function (res) {
+            try { void chrome.runtime.lastError; } catch (e) {}
+            if (!res) return;
+            if (typeof res.devViewerTabId === 'number') devViewerTabId = res.devViewerTabId;
+            devLogMerge(res.devEventLog);
+        });
+    } catch (e) {}
+}
+devLogRestore();
+
+function devLogAppend(entries, meta) {
     if (!Array.isArray(entries) || !entries.length) return;
+    const added = [];
     entries.forEach(function (e) {
         if (!e || typeof e !== 'object') return;
-        if (!e.t) e.t = Date.now();
-        devEventLog.push(e);
+        const copy = Object.assign({}, e);
+        if (!copy.t) copy.t = Date.now();
+        if (meta) {
+            if (typeof meta.tabId === 'number') copy.tabId = meta.tabId;
+            if (meta.url) copy.page = copy.page || meta.url;
+            if (typeof meta.frameId === 'number' && meta.frameId > 0) copy.frameId = meta.frameId;
+        }
+        devEventLog.push(copy);
+        added.push(copy);
     });
+    if (!added.length) return;
     if (devEventLog.length > DEV_EVENT_MAX) devEventLog.splice(0, devEventLog.length - DEV_EVENT_MAX);
-    devLogBroadcast({ type: 'append', entries: entries });
+    devLogBroadcast({ type: 'append', entries: added });
+    devLogPersist();
 }
 
 function logDebug(level, msg) {
@@ -308,18 +361,27 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 
 chrome.tabs.onRemoved.addListener(function (tabId) {
     delete injectedTabs[String(tabId)];
+    if (tabId === devViewerTabId) { devViewerTabId = null; devLogPersist(); }
 });
 
 chrome.runtime.onConnect.addListener(function (port) {
     if (!port || port.name !== 'devlog-viewer') return;
     devLogPorts.add(port);
-    try { port.postMessage({ type: 'init', entries: devEventLog.slice(-400) }); } catch (e) {}
+    try {
+        const viewerTab = port.sender && port.sender.tab;
+        if (viewerTab && typeof viewerTab.id === 'number') {
+            devViewerTabId = viewerTab.id;
+            devLogPersist();
+        }
+    } catch (e) {}
+    try { port.postMessage({ type: 'init', entries: devEventLog.slice(-DEV_VIEWER_ENTRIES) }); } catch (e) {}
     port.onMessage.addListener(function (msg) {
         if (!msg) return;
         if (msg.type === 'get') {
-            try { port.postMessage({ type: 'init', entries: devEventLog.slice(-400) }); } catch (e) {}
+            try { port.postMessage({ type: 'init', entries: devEventLog.slice(-DEV_VIEWER_ENTRIES) }); } catch (e) {}
         } else if (msg.type === 'clear') {
-            devEventLog.length = 0;
+            devEventLog = [];
+            devLogPersist();
             devLogBroadcast({ type: 'cleared' });
         }
     });
@@ -331,16 +393,18 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
     if (!type) return false;
 
     if (type === 'devlog:push') {
-        devLogAppend(message.entries || []);
+        const srcTab = sender && sender.tab;
+        devLogAppend(message.entries || [], srcTab ? { tabId: srcTab.id, url: srcTab.url, frameId: sender.frameId } : null);
         sendResponse({ ok: true });
         return false;
     }
     if (type === 'devlog:get') {
-        sendResponse({ entries: devEventLog.slice(-400) });
+        sendResponse({ entries: devEventLog.slice(-DEV_VIEWER_ENTRIES) });
         return false;
     }
     if (type === 'devlog:clear') {
-        devEventLog.length = 0;
+        devEventLog = [];
+        devLogPersist();
         devLogBroadcast({ type: 'cleared' });
         sendResponse({ ok: true });
         return false;
@@ -348,8 +412,29 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
     if (type === 'devlog:open') {
         try {
             const url = chrome.runtime.getURL('devtools.html');
-            chrome.tabs.create({ url: url }, function () { try { void chrome.runtime.lastError; } catch (e) {} });
-            sendResponse({ ok: true, url: url });
+            const openNew = function () {
+                chrome.tabs.create({ url: url }, function (tab) {
+                    try { void chrome.runtime.lastError; } catch (e) {}
+                    if (tab && typeof tab.id === 'number') { devViewerTabId = tab.id; devLogPersist(); }
+                });
+            };
+            if (typeof devViewerTabId === 'number') {
+                chrome.tabs.get(devViewerTabId, function (tab) {
+                    try { void chrome.runtime.lastError; } catch (e) {}
+                    if (tab) {
+                        chrome.tabs.update(devViewerTabId, { active: true }, function () { try { void chrome.runtime.lastError; } catch (e) {} });
+                        try { chrome.windows.update(tab.windowId, { focused: true }); } catch (e) {}
+                        sendResponse({ ok: true, url: url, focused: true });
+                    } else {
+                        devViewerTabId = null;
+                        openNew();
+                        sendResponse({ ok: true, url: url });
+                    }
+                });
+            } else {
+                openNew();
+                sendResponse({ ok: true, url: url });
+            }
         } catch (e) { sendResponse({ ok: false, error: e.message }); }
         return false;
     }

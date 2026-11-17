@@ -76,7 +76,7 @@
             if (!event.__egdDevLogId) {
                 try { event.__egdDevLogId = 'e' + (++loggedSeq) + '_' + Date.now(); } catch (e2) { event.__egdDevLogId = 'e' + (++loggedSeq); }
             }
-            const dedupeKey = event.__egdDevLogId + ':' + name + ':' + sourceTag;
+            const dedupeKey = event.__egdDevLogId + ':' + name;
             if (loggedEventIds.has(dedupeKey)) return;
             loggedEventIds.add(dedupeKey);
             if (loggedEventIds.size > 1000) {
@@ -90,7 +90,8 @@
                 subType: detail && detail.type ? detail.type : null,
                 addonId: addonIdFrom(detail),
                 id: (meta && (meta.id || meta.requestId)) || (detail && detail.id) || null,
-                summary: name + (detail && detail.type ? ' (' + detail.type + ')' : '') + (sourceTag === 'dispatch' ? '' : ''),
+                summary: name + (detail && detail.type ? ' (' + detail.type + ')' : ''),
+                page: location.href,
                 detail: safeStringify(detail, 0)
             });
         } catch (e) {}
@@ -124,7 +125,7 @@
                 const args = Array.prototype.slice.call(arguments);
                 const text = args.map(function (a) { return safeStringify(a, 0); }).join(' ');
                 if (text.indexOf('[Egodact') !== -1 || text.indexOf('egodact') !== -1 || text.indexOf('Addon') !== -1 || text.indexOf('[Injector') !== -1 || text.indexOf('[Marketplace') !== -1) {
-                    push({ kind: 'console', level: level, name: 'console.' + level, subType: null, addonId: null, id: null, summary: text.slice(0, 240), detail: text });
+                    push({ kind: 'console', level: level, name: 'console.' + level, subType: null, addonId: null, id: null, summary: text.slice(0, 240), detail: text, page: location.href });
                 }
             } catch (e) {}
             return orig.apply(console, arguments);
@@ -137,7 +138,7 @@
             const msg = (event && event.message) ? event.message : 'Script error';
             const src = (event && event.filename) ? event.filename : '';
             if (msg.indexOf('egodact') !== -1 || msg.indexOf('Egodact') !== -1 || src.indexOf('egodact') !== -1 || src.indexOf('addon') !== -1) {
-                push({ kind: 'error', level: 'error', name: 'window.error', subType: null, addonId: null, id: null, summary: msg, detail: msg + (src ? ' @ ' + src + ':' + (event.lineno || '') : '') });
+                push({ kind: 'error', level: 'error', name: 'window.error', subType: null, addonId: null, id: null, summary: msg, detail: msg + (src ? ' @ ' + src + ':' + (event.lineno || '') : ''), page: location.href });
             }
         } catch (e) {}
     });
@@ -147,7 +148,7 @@
             const reason = event ? event.reason : null;
             const text = safeStringify(reason, 0);
             if (text.indexOf('egodact') !== -1 || text.indexOf('Egodact') !== -1 || text.indexOf('addon') !== -1) {
-                push({ kind: 'error', level: 'error', name: 'unhandledrejection', subType: null, addonId: null, id: null, summary: text.slice(0, 240), detail: text });
+                push({ kind: 'error', level: 'error', name: 'unhandledrejection', subType: null, addonId: null, id: null, summary: text.slice(0, 240), detail: text, page: location.href });
             }
         } catch (e) {}
     });
